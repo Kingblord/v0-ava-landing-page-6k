@@ -1,0 +1,222 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* AVA Brand Colors */
+  --ava-bg: #0B0F1A;
+  --ava-surface: #111827;
+  --ava-surface-2: #1a2235;
+  --ava-purple: #6C5CE7;
+  --ava-purple-light: #8b7cf0;
+  --ava-purple-dark: #5548c7;
+  --ava-teal: #00D1B2;
+  --ava-teal-light: #33dbc2;
+  --ava-teal-dark: #00a98f;
+  --ava-pink: #e040fb;
+  --ava-text: #f0f4ff;
+  --ava-text-muted: #8892a4;
+  --ava-border: rgba(108, 92, 231, 0.2);
+  --ava-glass: rgba(17, 24, 39, 0.6);
+
+  /* shadcn tokens mapped to AVA theme */
+  --background: #0B0F1A;
+  --foreground: #f0f4ff;
+  --card: #111827;
+  --card-foreground: #f0f4ff;
+  --popover: #111827;
+  --popover-foreground: #f0f4ff;
+  --primary: #6C5CE7;
+  --primary-foreground: #ffffff;
+  --secondary: #1a2235;
+  --secondary-foreground: #f0f4ff;
+  --muted: #1a2235;
+  --muted-foreground: #8892a4;
+  --accent: #00D1B2;
+  --accent-foreground: #0B0F1A;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(108, 92, 231, 0.2);
+  --input: rgba(108, 92, 231, 0.15);
+  --ring: #6C5CE7;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --font-sans: 'Geist', 'Geist Fallback', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 16px);
+
+  /* AVA custom colors for Tailwind */
+  --color-ava-bg: var(--ava-bg);
+  --color-ava-surface: var(--ava-surface);
+  --color-ava-surface-2: var(--ava-surface-2);
+  --color-ava-purple: var(--ava-purple);
+  --color-ava-purple-light: var(--ava-purple-light);
+  --color-ava-purple-dark: var(--ava-purple-dark);
+  --color-ava-teal: var(--ava-teal);
+  --color-ava-teal-light: var(--ava-teal-light);
+  --color-ava-teal-dark: var(--ava-teal-dark);
+  --color-ava-pink: var(--ava-pink);
+  --color-ava-text: var(--ava-text);
+  --color-ava-text-muted: var(--ava-text-muted);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-color: var(--ava-bg);
+  }
+}
+
+/* Noise texture overlay utility */
+@layer utilities {
+  .noise-texture {
+    position: relative;
+  }
+  .noise-texture::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 1;
+  }
+
+  .glass {
+    background: var(--ava-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(108, 92, 231, 0.15);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 30px rgba(108, 92, 231, 0.35), 0 0 60px rgba(108, 92, 231, 0.15);
+  }
+
+  .glow-teal {
+    box-shadow: 0 0 30px rgba(0, 209, 178, 0.35), 0 0 60px rgba(0, 209, 178, 0.15);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #6C5CE7 0%, #00D1B2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-pink {
+    background: linear-gradient(135deg, #e040fb 0%, #6C5CE7 50%, #00D1B2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+  }
+
+  .border-gradient::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.6), rgba(0, 209, 178, 0.6));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.15),
+      transparent
+    );
+    animation: shimmer-slide 2.5s infinite;
+  }
+
+  @keyframes shimmer-slide {
+    0% { left: -100%; }
+    100% { left: 200%; }
+  }
+
+  @keyframes border-beam {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(108, 92, 231, 0.3); }
+    50% { box-shadow: 0 0 50px rgba(108, 92, 231, 0.6), 0 0 80px rgba(0, 209, 178, 0.2); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
