@@ -4,15 +4,13 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
+import type { NavbarContent } from '@/lib/content'
 
-const navLinks = [
-  { label: 'Features', href: '#features' },
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Pricing', href: '#pricing' },
-  { label: 'FAQ', href: '#faq' },
-]
+interface NavbarProps {
+  content: NavbarContent
+}
 
-export default function Navbar() {
+export default function Navbar({ content }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -50,7 +48,7 @@ export default function Navbar() {
 
           {/* Desktop Links */}
           <ul className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
+            {content.links.map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
@@ -66,16 +64,16 @@ export default function Navbar() {
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
             <a
-              href="#pricing"
+              href={content.signInHref}
               className="text-sm text-[#8892a4] hover:text-[#f0f4ff] transition-colors duration-200"
             >
-              Sign In
+              {content.signInLabel}
             </a>
             <a
-              href="#pricing"
+              href={content.ctaHref}
               className="shimmer relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#6C5CE7] to-[#00D1B2] hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg shadow-[rgba(108,92,231,0.3)]"
             >
-              Get Started Free
+              {content.ctaLabel}
             </a>
           </div>
 
@@ -101,7 +99,7 @@ export default function Navbar() {
             className="fixed top-0 left-0 right-0 bottom-0 z-40 glass pt-20 px-6 flex flex-col"
           >
             <ul className="flex flex-col gap-6 mt-8">
-              {navLinks.map((link) => (
+              {content.links.map((link) => (
                 <li key={link.href}>
                   <a
                     href={link.href}
@@ -115,11 +113,11 @@ export default function Navbar() {
             </ul>
             <div className="mt-auto pb-12 flex flex-col gap-4">
               <a
-                href="#pricing"
+                href={content.ctaHref}
                 onClick={() => setMobileOpen(false)}
                 className="shimmer w-full text-center py-4 rounded-2xl text-base font-semibold text-white bg-gradient-to-r from-[#6C5CE7] to-[#00D1B2] shadow-lg shadow-[rgba(108,92,231,0.3)]"
               >
-                Start Selling with AVA
+                {content.ctaLabel}
               </a>
             </div>
           </motion.div>

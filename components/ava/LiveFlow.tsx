@@ -2,40 +2,12 @@
 
 import { useRef, useState } from 'react'
 import { motion, useInView, AnimatePresence } from 'framer-motion'
-import { Wifi, MessageSquare, DollarSign, CheckCircle2, ArrowRight, Zap } from 'lucide-react'
+import { Wifi, MessageSquare, DollarSign, CheckCircle2, Zap } from 'lucide-react'
+import type { LiveFlowContent } from '@/lib/content'
 
-const steps = [
-  {
-    id: 0,
-    icon: Wifi,
-    label: 'Connect',
-    color: '#6C5CE7',
-    title: 'Connect Your Channels',
-    description:
-      'Link AVA to your WhatsApp Business account or Telegram bot in under 5 minutes. No developers, no code — just connect and configure your product catalog.',
-    phoneContent: 'connect',
-  },
-  {
-    id: 1,
-    icon: MessageSquare,
-    label: 'Chat',
-    color: '#8b7cf0',
-    title: 'AVA Engages Every Customer',
-    description:
-      'The moment a customer messages you, AVA responds instantly with intelligent, context-aware replies. It qualifies leads, handles objections, and drives intent to purchase.',
-    phoneContent: 'chat',
-  },
-  {
-    id: 2,
-    icon: DollarSign,
-    label: 'Revenue',
-    color: '#00D1B2',
-    title: 'Close Deals & Collect Payments',
-    description:
-      'AVA sends payment links, processes transactions, and confirms orders — all within the conversation. Your customer pays without ever leaving their chat app.',
-    phoneContent: 'revenue',
-  },
-]
+const STEP_ICONS = [Wifi, MessageSquare, DollarSign]
+const STEP_COLORS = ['#6C5CE7', '#8b7cf0', '#00D1B2']
+const STEP_PHONE_CONTENT = ['connect', 'chat', 'revenue']
 
 function PhoneContent({ type }: { type: string }) {
   if (type === 'connect') {
@@ -50,10 +22,7 @@ function PhoneContent({ type }: { type: string }) {
         </div>
         <div className="w-full space-y-2">
           {['Product Catalog', 'Pricing Rules', 'Payment Gateway'].map((item) => (
-            <div
-              key={item}
-              className="flex items-center justify-between bg-[#1a2235] rounded-xl px-3 py-2.5"
-            >
+            <div key={item} className="flex items-center justify-between bg-[#1a2235] rounded-xl px-3 py-2.5">
               <span className="text-xs text-[#8892a4]">{item}</span>
               <CheckCircle2 size={14} className="text-[#00D1B2]" />
             </div>
@@ -135,14 +104,17 @@ function PhoneContent({ type }: { type: string }) {
   return null
 }
 
-export default function LiveFlow() {
+interface LiveFlowProps {
+  content: LiveFlowContent
+}
+
+export default function LiveFlow({ content }: LiveFlowProps) {
   const [activeStep, setActiveStep] = useState(0)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-100px' })
 
   return (
     <section id="how-it-works" className="relative py-28 overflow-hidden">
-      {/* BG */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#00D1B2]/6 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#6C5CE7]/8 rounded-full blur-[120px] pointer-events-none" />
 
@@ -157,11 +129,11 @@ export default function LiveFlow() {
         >
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border border-[rgba(108,92,231,0.3)] bg-[rgba(108,92,231,0.06)] text-[#8b7cf0] mb-5">
             <Zap size={12} />
-            How AVA Works
+            {content.eyebrow}
           </span>
           <h2 className="text-4xl lg:text-5xl font-bold tracking-[-0.03em] text-[#f0f4ff] text-balance">
-            From first message to{' '}
-            <span className="text-gradient">paid customer</span>
+            {content.headline}{' '}
+            <span className="text-gradient">{content.headlineGradient}</span>
             <br />
             fully automated
           </h2>
@@ -171,12 +143,13 @@ export default function LiveFlow() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Steps */}
           <div className="space-y-4">
-            {steps.map((step, i) => {
-              const Icon = step.icon
+            {content.steps.map((step, i) => {
+              const Icon = STEP_ICONS[i] ?? Wifi
+              const color = STEP_COLORS[i] ?? '#6C5CE7'
               const isActive = activeStep === i
               return (
                 <motion.div
-                  key={step.id}
+                  key={i}
                   initial={{ opacity: 0, x: -32 }}
                   animate={inView ? { opacity: 1, x: 0 } : {}}
                   transition={{ duration: 0.6, delay: 0.1 * i, ease: [0.22, 1, 0.36, 1] }}
@@ -188,31 +161,23 @@ export default function LiveFlow() {
                   }`}
                 >
                   <div className="flex items-start gap-5">
-                    {/* Step number + icon */}
                     <div className="flex flex-col items-center gap-2 flex-shrink-0">
                       <div
                         className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300"
                         style={{
-                          background: isActive
-                            ? `linear-gradient(135deg, ${step.color}33, ${step.color}11)`
-                            : 'rgba(17,24,39,0.8)',
-                          border: `1px solid ${step.color}${isActive ? '66' : '22'}`,
+                          background: isActive ? `linear-gradient(135deg, ${color}33, ${color}11)` : 'rgba(17,24,39,0.8)',
+                          border: `1px solid ${color}${isActive ? '66' : '22'}`,
                         }}
                       >
-                        <Icon
-                          size={20}
-                          style={{ color: isActive ? step.color : '#8892a4' }}
-                        />
+                        <Icon size={20} style={{ color: isActive ? color : '#8892a4' }} />
                       </div>
-                      {i < steps.length - 1 && (
+                      {i < content.steps.length - 1 && (
                         <div className="w-px h-6 bg-gradient-to-b from-[rgba(108,92,231,0.3)] to-transparent" />
                       )}
                     </div>
-
                     <div className="pt-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-bold tracking-widest uppercase"
-                          style={{ color: step.color }}>
+                        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color }}>
                           Step {i + 1}
                         </span>
                         {isActive && (
@@ -225,9 +190,7 @@ export default function LiveFlow() {
                           </motion.span>
                         )}
                       </div>
-                      <h3 className="text-lg font-bold text-[#f0f4ff] tracking-tight mb-1.5">
-                        {step.title}
-                      </h3>
+                      <h3 className="text-lg font-bold text-[#f0f4ff] tracking-tight mb-1.5">{step.title}</h3>
                       <AnimatePresence>
                         {isActive && (
                           <motion.p
@@ -255,29 +218,21 @@ export default function LiveFlow() {
             className="flex justify-center"
           >
             <div className="relative">
-              {/* Ambient */}
               <div
                 className="absolute -inset-10 rounded-full blur-3xl opacity-30 pointer-events-none transition-all duration-700"
-                style={{ background: steps[activeStep].color }}
+                style={{ background: STEP_COLORS[activeStep] }}
               />
-
-              {/* Phone */}
               <div className="relative w-72 bg-[#0d1220] border border-[rgba(108,92,231,0.3)] rounded-[2.5rem] p-4 shadow-2xl shadow-[rgba(0,0,0,0.5)]">
-                {/* Notch */}
                 <div className="w-24 h-5 bg-[#0B0F1A] rounded-full mx-auto mb-4 flex items-center justify-center">
                   <div className="w-8 h-1.5 rounded-full bg-[#1a2235]" />
                 </div>
-
-                {/* App header */}
                 <div className="flex items-center gap-2.5 px-1 pb-3 border-b border-[rgba(108,92,231,0.15)] mb-4">
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{
-                      background: `linear-gradient(135deg, ${steps[activeStep].color}, ${steps[activeStep].color}88)`,
-                    }}
+                    style={{ background: `linear-gradient(135deg, ${STEP_COLORS[activeStep]}, ${STEP_COLORS[activeStep]}88)` }}
                   >
                     {(() => {
-                      const Icon = steps[activeStep].icon
+                      const Icon = STEP_ICONS[activeStep]
                       return <Icon size={15} className="text-white" />
                     })()}
                   </div>
@@ -285,14 +240,10 @@ export default function LiveFlow() {
                     <p className="text-[#f0f4ff] text-xs font-semibold">AVA</p>
                     <div className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#00D1B2]" />
-                      <span className="text-[10px] text-[#00D1B2]">
-                        {steps[activeStep].label}
-                      </span>
+                      <span className="text-[10px] text-[#00D1B2]">{content.steps[activeStep]?.label}</span>
                     </div>
                   </div>
                 </div>
-
-                {/* Content */}
                 <div className="min-h-[240px]">
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -302,7 +253,7 @@ export default function LiveFlow() {
                       exit={{ opacity: 0, y: -12 }}
                       transition={{ duration: 0.35 }}
                     >
-                      <PhoneContent type={steps[activeStep].phoneContent} />
+                      <PhoneContent type={STEP_PHONE_CONTENT[activeStep] ?? 'connect'} />
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -313,11 +264,10 @@ export default function LiveFlow() {
 
         {/* Progress dots */}
         <div className="flex justify-center gap-3 mt-12">
-          {steps.map((step, i) => (
+          {content.steps.map((_, i) => (
             <button
-              key={step.id}
+              key={i}
               onClick={() => setActiveStep(i)}
-              className="flex items-center gap-2 group"
               aria-label={`Go to step ${i + 1}`}
             >
               <div
@@ -326,7 +276,7 @@ export default function LiveFlow() {
                   width: activeStep === i ? '32px' : '8px',
                   height: '8px',
                   background: activeStep === i
-                    ? `linear-gradient(90deg, ${step.color}, #00D1B2)`
+                    ? `linear-gradient(90deg, ${STEP_COLORS[i]}, #00D1B2)`
                     : 'rgba(108,92,231,0.25)',
                 }}
               />

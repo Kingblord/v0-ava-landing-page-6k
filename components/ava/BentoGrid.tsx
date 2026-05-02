@@ -12,7 +12,9 @@ import {
   Bot,
   Clock,
   Sparkles,
+  Check,
 } from 'lucide-react'
+import type { BentoContent } from '@/lib/content'
 
 interface BentoCardProps {
   children: React.ReactNode
@@ -50,7 +52,6 @@ function BentoCard({ children, className = '', delay = 0 }: BentoCardProps) {
       className={`relative group noise-texture bg-[#111827] border border-[rgba(108,92,231,0.15)] rounded-3xl overflow-hidden ${className}`}
       style={{ isolation: 'isolate' }}
     >
-      {/* Mouse-follow gradient border glow */}
       <motion.div
         className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
         style={{
@@ -63,46 +64,48 @@ function BentoCard({ children, className = '', delay = 0 }: BentoCardProps) {
   )
 }
 
-const sectionVariants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
+const CARD_ICONS = [MessageSquare, CreditCard, TrendingUp, Globe, BarChart3, Shield, Clock, Sparkles]
+const CARD_ICON_COLORS = ['#6C5CE7', '#00D1B2', '#e040fb', '#6C5CE7', '#00D1B2', '#6C5CE7', '#e040fb', '#00D1B2']
+
+interface BentoGridProps {
+  content: BentoContent
 }
 
-export default function BentoGrid() {
+export default function BentoGrid({ content }: BentoGridProps) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-100px' })
 
+  const cards = content.cards
+
   return (
     <section id="features" className="relative py-28 overflow-hidden">
-      {/* BG glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-[#6C5CE7]/6 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6">
         {/* Section header */}
         <motion.div
           ref={ref}
-          variants={sectionVariants}
-          initial="hidden"
-          animate={inView ? 'visible' : 'hidden'}
+          initial={{ opacity: 0, y: 24 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="text-center mb-16"
         >
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border border-[rgba(0,209,178,0.3)] bg-[rgba(0,209,178,0.06)] text-[#00D1B2] mb-5">
             <Sparkles size={12} />
-            Everything You Need to Sell at Scale
+            {content.eyebrow}
           </span>
           <h2 className="text-4xl lg:text-5xl font-bold tracking-[-0.03em] text-[#f0f4ff] max-w-3xl mx-auto leading-tight text-balance">
-            Built for businesses that demand{' '}
-            <span className="text-gradient">results, not complexity</span>
+            {content.headline}{' '}
+            <span className="text-gradient">{content.headlineGradient}</span>
           </h2>
           <p className="text-[#8892a4] text-lg mt-5 max-w-xl mx-auto leading-relaxed">
-            AVA combines cutting-edge AI with battle-tested sales psychology to turn every
-            conversation into a closed deal.
+            {content.subtext}
           </p>
         </motion.div>
 
         {/* Bento grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 auto-rows-[minmax(200px,auto)]">
-          {/* Card 1 — Human-like Conversations (wide) */}
+          {/* Card 0 — wide */}
           <BentoCard className="lg:col-span-2 p-8" delay={0}>
             <div className="flex flex-col h-full gap-5">
               <div className="flex items-start gap-4">
@@ -111,22 +114,18 @@ export default function BentoGrid() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">
-                    Human-like Conversations
+                    {cards[0]?.title}
                   </h3>
                   <p className="text-[#8892a4] text-sm mt-1.5 leading-relaxed">
-                    AVA reads context, handles objections, and builds rapport exactly like
-                    your best salesperson — but available 24/7 across every conversation
-                    simultaneously.
+                    {cards[0]?.description}
                   </p>
                 </div>
               </div>
-
-              {/* Mini conversation preview */}
               <div className="mt-auto space-y-2.5">
                 {[
                   { side: 'right', msg: "What's the best price you can do?", color: 'from-[#6C5CE7] to-[#8b7cf0]' },
-                  { side: 'left', msg: "For you, I can offer 15% off — that's $297. This is our best offer today only.", color: '' },
-                  { side: 'right', msg: "Deal! How do I pay?", color: 'from-[#6C5CE7] to-[#8b7cf0]' },
+                  { side: 'left', msg: 'For you, I can offer 15% off — that\'s $297. This is our best offer today only.', color: '' },
+                  { side: 'right', msg: 'Deal! How do I pay?', color: 'from-[#6C5CE7] to-[#8b7cf0]' },
                 ].map((item, i) => (
                   <div key={i} className={`flex ${item.side === 'right' ? 'justify-end' : 'justify-start'}`}>
                     <span className={`inline-block px-4 py-2 rounded-2xl text-xs max-w-[70%] ${
@@ -142,19 +141,14 @@ export default function BentoGrid() {
             </div>
           </BentoCard>
 
-          {/* Card 2 — Auto-Payments */}
+          {/* Card 1 — Auto-Payments */}
           <BentoCard className="p-8" delay={0.1}>
             <div className="flex flex-col h-full gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#00D1B2]/30 to-[#00D1B2]/10 border border-[rgba(0,209,178,0.3)] flex items-center justify-center">
                 <CreditCard size={22} className="text-[#00D1B2]" />
               </div>
-              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">
-                Auto-Payments
-              </h3>
-              <p className="text-[#8892a4] text-sm leading-relaxed">
-                Send instant payment links, accept card payments, and confirm orders —
-                all without leaving the chat.
-              </p>
+              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">{cards[1]?.title}</h3>
+              <p className="text-[#8892a4] text-sm leading-relaxed">{cards[1]?.description}</p>
               <div className="mt-auto bg-[#0d1220] border border-[rgba(0,209,178,0.2)] rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] text-[#8892a4]">Today&apos;s Revenue</span>
@@ -175,19 +169,14 @@ export default function BentoGrid() {
             </div>
           </BentoCard>
 
-          {/* Card 3 — Smart Negotiation */}
+          {/* Card 2 — Smart Negotiation */}
           <BentoCard className="p-8" delay={0.15}>
             <div className="flex flex-col h-full gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#e040fb]/30 to-[#e040fb]/10 border border-[rgba(224,64,251,0.3)] flex items-center justify-center">
                 <TrendingUp size={22} className="text-[#e040fb]" />
               </div>
-              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">
-                Smart Negotiation
-              </h3>
-              <p className="text-[#8892a4] text-sm leading-relaxed">
-                AVA dynamically adjusts pricing within your defined rules, maximizing
-                conversion while protecting your margins.
-              </p>
+              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">{cards[2]?.title}</h3>
+              <p className="text-[#8892a4] text-sm leading-relaxed">{cards[2]?.description}</p>
               <div className="mt-auto grid grid-cols-2 gap-3">
                 {[
                   { label: 'Close Rate', value: '73%', color: '#e040fb' },
@@ -196,9 +185,7 @@ export default function BentoGrid() {
                   { label: 'Uptime', value: '99.9%', color: '#8b7cf0' },
                 ].map((stat) => (
                   <div key={stat.label} className="bg-[#0d1220] rounded-2xl p-3 text-center">
-                    <p className="text-lg font-bold" style={{ color: stat.color }}>
-                      {stat.value}
-                    </p>
+                    <p className="text-lg font-bold" style={{ color: stat.color }}>{stat.value}</p>
                     <p className="text-[10px] text-[#8892a4] mt-0.5">{stat.label}</p>
                   </div>
                 ))}
@@ -206,31 +193,26 @@ export default function BentoGrid() {
             </div>
           </BentoCard>
 
-          {/* Card 4 — Multi-Platform */}
+          {/* Card 3 — Multi-Platform */}
           <BentoCard className="p-8" delay={0.2}>
             <div className="flex flex-col h-full gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#6C5CE7]/30 to-[#00D1B2]/20 border border-[rgba(108,92,231,0.3)] flex items-center justify-center">
                 <Globe size={22} className="text-[#8b7cf0]" />
               </div>
-              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">
-                Multi-Platform Reach
-              </h3>
-              <p className="text-[#8892a4] text-sm leading-relaxed">
-                Deploy AVA on WhatsApp, Telegram, Instagram, and web chat from a single
-                dashboard. One agent, infinite channels.
-              </p>
+              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">{cards[3]?.title}</h3>
+              <p className="text-[#8892a4] text-sm leading-relaxed">{cards[3]?.description}</p>
               <div className="mt-auto flex gap-3">
                 {[
-                  { label: 'WhatsApp', color: '#25D366', icon: '📱' },
-                  { label: 'Telegram', color: '#0088CC', icon: '✈️' },
-                  { label: 'Instagram', color: '#E1306C', icon: '📸' },
+                  { label: 'WhatsApp', color: '#25D366' },
+                  { label: 'Telegram', color: '#0088CC' },
+                  { label: 'Instagram', color: '#E1306C' },
                 ].map((platform) => (
                   <div
                     key={platform.label}
                     className="flex-1 bg-[#0d1220] rounded-xl p-2.5 text-center border border-[rgba(255,255,255,0.05)]"
                   >
                     <div
-                      className="w-6 h-6 rounded-full mx-auto mb-1.5 flex items-center justify-center text-xs"
+                      className="w-6 h-6 rounded-full mx-auto mb-1.5 flex items-center justify-center"
                       style={{ background: `${platform.color}22`, border: `1px solid ${platform.color}44` }}
                     >
                       <div className="w-2.5 h-2.5 rounded-full" style={{ background: platform.color }} />
@@ -242,7 +224,7 @@ export default function BentoGrid() {
             </div>
           </BentoCard>
 
-          {/* Card 5 — Analytics (wide) */}
+          {/* Card 4 — Analytics (wide) */}
           <BentoCard className="lg:col-span-2 p-8" delay={0.25}>
             <div className="flex flex-col lg:flex-row gap-6 h-full">
               <div className="flex flex-col gap-4 flex-shrink-0">
@@ -250,19 +232,14 @@ export default function BentoGrid() {
                   <BarChart3 size={22} className="text-[#00D1B2]" />
                 </div>
                 <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight max-w-[200px]">
-                  Real-Time Revenue Analytics
+                  {cards[4]?.title}
                 </h3>
-                <p className="text-[#8892a4] text-sm leading-relaxed max-w-xs">
-                  Track every deal, conversation, and conversion in a live dashboard
-                  built for operators who care about outcomes.
-                </p>
+                <p className="text-[#8892a4] text-sm leading-relaxed max-w-xs">{cards[4]?.description}</p>
               </div>
               <div className="flex-1 bg-[#0d1220] rounded-2xl border border-[rgba(108,92,231,0.15)] p-4 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-[#8892a4] font-medium">Conversions This Week</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[rgba(0,209,178,0.1)] text-[#00D1B2]">
-                    +38%
-                  </span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[rgba(0,209,178,0.1)] text-[#00D1B2]">+38%</span>
                 </div>
                 <div className="flex items-end gap-2 h-20">
                   {[30, 52, 41, 68, 74, 88, 95].map((h, i) => (
@@ -271,10 +248,9 @@ export default function BentoGrid() {
                         className="w-full rounded-t-md"
                         style={{
                           height: `${h}%`,
-                          background:
-                            i === 6
-                              ? 'linear-gradient(to top, #6C5CE7, #00D1B2)'
-                              : `rgba(108,92,231,${0.15 + i * 0.04})`,
+                          background: i === 6
+                            ? 'linear-gradient(to top, #6C5CE7, #00D1B2)'
+                            : `rgba(108,92,231,${0.15 + i * 0.04})`,
                         }}
                       />
                     </div>
@@ -289,24 +265,19 @@ export default function BentoGrid() {
             </div>
           </BentoCard>
 
-          {/* Card 6 — Security */}
+          {/* Card 5 — Security */}
           <BentoCard className="p-8" delay={0.3}>
             <div className="flex flex-col gap-4 h-full">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#6C5CE7]/30 to-[#6C5CE7]/10 border border-[rgba(108,92,231,0.3)] flex items-center justify-center">
                 <Shield size={22} className="text-[#8b7cf0]" />
               </div>
-              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">
-                Enterprise Security
-              </h3>
-              <p className="text-[#8892a4] text-sm leading-relaxed">
-                End-to-end encryption, SOC 2 compliance, and role-based access control
-                protect your business data at every layer.
-              </p>
+              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">{cards[5]?.title}</h3>
+              <p className="text-[#8892a4] text-sm leading-relaxed">{cards[5]?.description}</p>
               <div className="mt-auto space-y-2">
                 {['256-bit Encryption', 'SOC 2 Certified', 'GDPR Compliant'].map((item) => (
                   <div key={item} className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full bg-gradient-to-r from-[#6C5CE7] to-[#00D1B2] flex items-center justify-center flex-shrink-0">
-                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      <Check size={9} className="text-white" strokeWidth={3} />
                     </div>
                     <span className="text-xs text-[#8892a4]">{item}</span>
                   </div>
@@ -315,19 +286,14 @@ export default function BentoGrid() {
             </div>
           </BentoCard>
 
-          {/* Card 7 — Instant Setup */}
+          {/* Card 6 — Instant Setup */}
           <BentoCard className="p-8" delay={0.35}>
             <div className="flex flex-col gap-4 h-full">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#e040fb]/30 to-[#e040fb]/10 border border-[rgba(224,64,251,0.3)] flex items-center justify-center">
                 <Clock size={22} className="text-[#e040fb]" />
               </div>
-              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">
-                5-Minute Setup
-              </h3>
-              <p className="text-[#8892a4] text-sm leading-relaxed">
-                Connect your WhatsApp Business account, add your products, and go live.
-                No code, no developers required.
-              </p>
+              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">{cards[6]?.title}</h3>
+              <p className="text-[#8892a4] text-sm leading-relaxed">{cards[6]?.description}</p>
               <div className="mt-auto flex items-center gap-3 bg-[#0d1220] rounded-2xl p-3 border border-[rgba(224,64,251,0.15)]">
                 <Bot size={20} className="text-[#e040fb]" />
                 <div>
@@ -339,19 +305,14 @@ export default function BentoGrid() {
             </div>
           </BentoCard>
 
-          {/* Card 8 — Learning AI */}
+          {/* Card 7 — Learning AI */}
           <BentoCard className="p-8" delay={0.4}>
             <div className="flex flex-col gap-4 h-full">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#00D1B2]/30 to-[#6C5CE7]/20 border border-[rgba(0,209,178,0.3)] flex items-center justify-center">
                 <Sparkles size={22} className="text-[#00D1B2]" />
               </div>
-              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">
-                Self-Learning AI
-              </h3>
-              <p className="text-[#8892a4] text-sm leading-relaxed">
-                AVA learns from every conversation, continuously improving its close
-                rate based on what actually works for your specific products and customers.
-              </p>
+              <h3 className="text-xl font-bold text-[#f0f4ff] tracking-tight">{cards[7]?.title}</h3>
+              <p className="text-[#8892a4] text-sm leading-relaxed">{cards[7]?.description}</p>
               <div className="mt-auto flex items-center gap-2">
                 <div className="flex-1 bg-[#0d1220] rounded-full h-2">
                   <motion.div
