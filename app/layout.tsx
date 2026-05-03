@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { AuthProvider } from '@/lib/auth-context'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const geistSans = Geist({
@@ -77,7 +79,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} bg-[#0B0F1A]`}
     >
       <body className="font-sans antialiased bg-[#0B0F1A] text-[#f0f4ff] overflow-x-hidden">
-        {children}
+        <AuthProvider>
+          {children}
+          <Toaster position="bottom-right" theme="dark" />
+        </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
