@@ -24,10 +24,6 @@ const AI_MODELS = [
   { id: 'openai/gpt-oss-120b:free', label: 'Claude Opus 4.6' },
 ]
 
-interface TestMessage extends Message {
-  role: 'user' | 'assistant'
-}
-
 interface TestProduct extends Omit<Product, 'businessId' | 'createdAt'> {
   id: string
 }
@@ -38,7 +34,7 @@ export default function TestgroundPage() {
   const [loadingProducts, setLoadingProducts] = useState(true)
 
   const [business, setBusiness] = useState(DEFAULT_BUSINESS)
-  const [conversationHistory, setConversationHistory] = useState<TestMessage[]>([])
+  const [conversationHistory, setConversationHistory] = useState<Message[]>([])
   const [messageInput, setMessageInput] = useState('')
   const [aiProcessing, setAiProcessing] = useState(false)
   const [conversationState, setConversationState] = useState<ConversationState>('browsing')
@@ -101,7 +97,7 @@ export default function TestgroundPage() {
     // Add user message to history
     const updatedHistory: TestMessage[] = [
       ...conversationHistory,
-      { role: 'user', text: userMessage, timestamp: Date.now() },
+      { role: 'user', content: userMessage, timestamp: Date.now() },
     ]
     setConversationHistory(updatedHistory)
 
@@ -114,13 +110,13 @@ export default function TestgroundPage() {
         conversationHistory: updatedHistory.slice(0, -1),
         conversationState,
         businessConfig: business,
-        model: selectedModel, // Use selected model for testground
+        model: selectedModel,
       })
 
       // Add assistant message
       setConversationHistory((prev) => [
         ...prev,
-        { role: 'assistant', text: aiOutput.reply, timestamp: Date.now() },
+        { role: 'assistant', content: aiOutput.reply, timestamp: Date.now() },
       ])
 
       // Update state
@@ -409,7 +405,7 @@ export default function TestgroundPage() {
                       : 'bg-[#0d1120] text-[#f0f4ff] border border-[#6C5CE7]/15'
                   }`}
                 >
-                  {msg.text}
+                  {msg.content}
                 </div>
               </div>
             ))}
