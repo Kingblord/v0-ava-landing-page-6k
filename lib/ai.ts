@@ -79,7 +79,7 @@ export async function runAI(input: AIInput): Promise<AIOutput> {
       'X-Title': 'AVA Sales Agent',
     },
     body: JSON.stringify({
-      model: 'openai/gpt-4o-mini',
+      model: 'openrouter/free',
       messages,
       temperature: 0.7,
       max_tokens: 300,
