@@ -40,10 +40,11 @@ export default function OverviewPage() {
     if (!user) return
     async function load() {
       try {
+        // Pass businessId (which is user.uid) to all these functions
         const [o, c, p] = await Promise.all([
-          getOrders(user!.uid),
-          getConversations(user!.uid),
-          getProducts(user!.uid),
+          getOrders(user.uid),
+          getConversations(user.uid),
+          getProducts(user.uid),
         ])
         setOrders(o)
         setConversations(c)

@@ -36,6 +36,7 @@ export default function OrdersPage() {
 
   async function reload() {
     if (!user) return
+    // Pass businessId (which is the user.uid) to getOrders
     const o = await getOrders(user.uid)
     setOrders(o)
   }
