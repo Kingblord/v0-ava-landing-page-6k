@@ -17,9 +17,9 @@ const DEFAULT_BUSINESS = {
 }
 
 const AI_MODELS = [
-  { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini (Fast)' },
-  { id: 'openai/gpt-4-turbo', label: 'GPT-4 Turbo (Powerful)' },
-  { id: 'anthropic/claude-opus-4.6', label: 'Claude Opus 4.6' },
+  { id: 'openrouter/free', label: 'GPT-4o Mini (Fast)' },
+  { id: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'GPT-4 Turbo (Powerful)' },
+  { id: 'openai/gpt-oss-120b:free', label: 'Claude Opus 4.6' },
 ]
 
 interface TestMessage extends Message {
