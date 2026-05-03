@@ -44,22 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const showLoader = authLoading || !contentReady
 
-  // Once the React app is fully ready, fade out and remove the blocking HTML loader
-  useEffect(() => {
-    const el = document.getElementById('html-loader')
-    if (!el) return
-    if (!showLoader) {
-      // Fade out
-      el.style.opacity = '0'
-      const timer = setTimeout(() => {
-        el.remove()
-      }, 650)
-      return () => clearTimeout(timer)
-    } else {
-      // Ensure it's visible while loading
-      el.style.opacity = '1'
-    }
-  }, [showLoader])
+
 
   return (
     <ContentReadyContext.Provider value={{ markContentReady }}>
