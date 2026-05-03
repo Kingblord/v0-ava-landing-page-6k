@@ -128,14 +128,40 @@ export async function updateBusiness(
   await updateDoc(doc(db, 'businesses', businessId), data)
 }
 
-// ─── Phone → business mapping ─────────────────────────────────────────────────
-// Twilio sends messages to a specific "To" number. We map that to a businessId.
-// Admin sets this in Settings → WhatsApp Phone field.
-export async function getBusinessByPhone(phone: string): Promise<Business | null> {
+// ─── Testground Products ──────────────────────────────────────────────────────
+// Temporary test products for admin testing - stored at admin_testground_products collection
+
+export async function getTestgroundProducts(adminId: string): Promise<Product[]> {
   const snap = await getDocs(
-    query(collection(db, 'businesses'), where('whatsappPhone', '==', phone)),
+    query(
+      collection(db, 'admin_testground_products'),
+      where('adminId', '==', adminId),
+      orderBy('createdAt', 'desc'),
+    ),
   )
-  if (snap.empty) return null
-  const d = snap.docs[0]
-  return { id: d.id, ...d.data() } as Business
+  return snap.docs.map((d) => ({ id: d.id, businessId: 'testground', ...d.data() } as Product))
+}
+
+export async function createTestgroundProduct(
+  adminId: string,
+  data: Omit<Product, 'id' | 'businessId' | 'createdAt'>,
+): Promise<Product> {
+  const payload = { ...data, businessId: 'testground', adminId, createdAt: Date.now() }
+  const ref = await addDoc(collection(db, 'admin_testground_products'), payload)
+  return { id: ref.id, ...payload }
+}
+
+export async function updateTestgroundProduct(
+  adminId: string,
+  productId: string,
+  data: Partial<Omit<Product, 'id' | 'businessId' | 'createdAt'>>,
+): Promise<void> {
+  await updateDoc(doc(db, 'admin_testground_products', productId), data)
+}
+
+export async function deleteTestgroundProduct(
+  adminId: string,
+  productId: string,
+): Promise<void> {
+  await deleteDoc(doc(db, 'admin_testground_products', productId))
 }

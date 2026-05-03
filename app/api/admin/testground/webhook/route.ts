@@ -63,14 +63,17 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: incomingMessage, timestamp: Date.now() },
     ]
 
-    // Run AI with specified model
+    // Run AI with specified model and convert products to Message format
     const aiResponse = await runAI({
-      businessName,
-      aiPersonality,
+      message: incomingMessage,
       products,
-      history,
+      conversationHistory: history,
       conversationState,
-      model, // Dynamic model selection
+      businessConfig: {
+        name: businessName,
+        aiPersonality: aiPersonality,
+      },
+      model, // Pass the selected model
     })
 
     return twimlResponse(aiResponse)

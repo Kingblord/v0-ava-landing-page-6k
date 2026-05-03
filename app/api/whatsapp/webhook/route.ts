@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const history: Message[] = existing?.messages ?? []
     const currentState = existing?.state ?? 'browsing'
 
-    // 4. Run AI
+    // 4. Run AI (uses default model, or can be overridden in businessConfig)
     const { reply, newState, orderIntent } = await runAI({
       message: incomingMessage,
       products,
@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
         name: business.name,
         aiPersonality: business.aiPersonality,
       },
+      // model can be optionally passed from businessConfig if stored there
     })
 
     // 5. Persist order if intent detected

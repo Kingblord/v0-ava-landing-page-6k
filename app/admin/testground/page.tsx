@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@/lib/auth-context'
 import { runAI } from '@/lib/ai'
+import { getTestgroundProducts, createTestgroundProduct, deleteTestgroundProduct } from '@/lib/firestore'
 import { getMainWebhookUrl, getTestgroundWebhookUrl } from '@/lib/webhook-utils'
 import type { Product, Message, ConversationState } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -31,17 +33,9 @@ interface TestProduct extends Omit<Product, 'businessId' | 'createdAt'> {
 }
 
 export default function TestgroundPage() {
-  const [products, setProducts] = useState<TestProduct[]>([
-    {
-      id: '1',
-      name: 'Premium Headphones',
-      description: 'High-quality wireless headphones with noise cancellation',
-      price: 199,
-      minPrice: 150,
-      negotiationEnabled: true,
-      imageUrl: undefined,
-    },
-  ])
+  const { user } = useAuth()
+  const [products, setProducts] = useState<Product[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(true)
 
   const [business, setBusiness] = useState(DEFAULT_BUSINESS)
   const [conversationHistory, setConversationHistory] = useState<TestMessage[]>([])
@@ -52,7 +46,7 @@ export default function TestgroundPage() {
   const [showProductForm, setShowProductForm] = useState(false)
   const [showWebhookUrls, setShowWebhookUrls] = useState(false)
   const [copiedUrl, setCopiedUrl] = useState<'main' | 'testground' | null>(null)
-  const [newProduct, setNewProduct] = useState<Partial<TestProduct>>({
+  const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     description: '',
     price: 0,
@@ -60,6 +54,23 @@ export default function TestgroundPage() {
     negotiationEnabled: false,
   })
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Load testground products from Firestore on mount
+  useEffect(() => {
+    if (!user) return
+    async function load() {
+      try {
+        const prods = await getTestgroundProducts(user.uid)
+        setProducts(prods)
+      } catch (err) {
+        console.error('[testground] Failed to load products:', err)
+        toast.error('Failed to load test products')
+      } finally {
+        setLoadingProducts(false)
+      }
+    }
+    load()
+  }, [user])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -129,26 +140,40 @@ export default function TestgroundPage() {
     }
   }
 
-  function addTestProduct() {
+  async function addTestProduct() {
+    if (!user) return
     if (!newProduct.name || !newProduct.description || newProduct.price === undefined) {
       toast.error('Fill in all fields')
       return
     }
-    const product: TestProduct = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...newProduct,
-      price: newProduct.price ?? 0,
-      minPrice: newProduct.minPrice ?? newProduct.price ?? 0,
+    try {
+      const created = await createTestgroundProduct(user.uid, {
+        name: newProduct.name,
+        description: newProduct.description,
+        price: newProduct.price,
+        minPrice: newProduct.minPrice ?? newProduct.price,
+        negotiationEnabled: newProduct.negotiationEnabled ?? false,
+      })
+      setProducts([...products, created])
+      setNewProduct({ name: '', description: '', price: 0, minPrice: 0, negotiationEnabled: false })
+      setShowProductForm(false)
+      toast.success('Test product added')
+    } catch (err) {
+      console.error('[testground] Failed to add product:', err)
+      toast.error('Failed to add product')
     }
-    setProducts([...products, product])
-    setNewProduct({ name: '', description: '', price: 0, minPrice: 0, negotiationEnabled: false })
-    setShowProductForm(false)
-    toast.success('Test product added')
   }
 
-  function deleteProduct(id: string) {
-    setProducts(products.filter((p) => p.id !== id))
-    toast.success('Product removed')
+  async function deleteProduct(id: string) {
+    if (!user) return
+    try {
+      await deleteTestgroundProduct(user.uid, id)
+      setProducts(products.filter((p) => p.id !== id))
+      toast.success('Product removed')
+    } catch (err) {
+      console.error('[testground] Failed to delete product:', err)
+      toast.error('Failed to delete product')
+    }
   }
 
   function resetConversation() {

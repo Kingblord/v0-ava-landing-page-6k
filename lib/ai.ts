@@ -9,6 +9,7 @@ export interface AIInput {
     name: string
     aiPersonality: string
   }
+  model?: string // Optional model override for testground
 }
 
 export interface AIOutput {
@@ -57,7 +58,7 @@ RULES:
 }
 
 export async function runAI(input: AIInput): Promise<AIOutput> {
-  const { message, products, conversationHistory, conversationState, businessConfig } = input
+  const { message, products, conversationHistory, conversationState, businessConfig, model } = input
 
   const systemPrompt = buildSystemPrompt(products, businessConfig, conversationState)
 
@@ -70,6 +71,9 @@ export async function runAI(input: AIInput): Promise<AIOutput> {
     { role: 'user' as const, content: message },
   ]
 
+  // Use provided model or default to free tier
+  const modelToUse = model || 'openrouter/free'
+
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -79,7 +83,7 @@ export async function runAI(input: AIInput): Promise<AIOutput> {
       'X-Title': 'AVA Sales Agent',
     },
     body: JSON.stringify({
-      model: 'openrouter/free',
+      model: modelToUse,
       messages,
       temperature: 0.7,
       max_tokens: 300,
