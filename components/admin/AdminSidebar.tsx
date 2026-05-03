@@ -28,7 +28,7 @@ export function AdminSidebar() {
     <aside className="w-60 min-h-screen bg-[#0d1120] border-r border-[#6C5CE7]/15 flex flex-col flex-shrink-0">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-[#6C5CE7]/15">
-        <Image src="/logo.png" alt="AVA" width={32} height={24} className="object-contain" />
+        <Image src="/logo.png" alt="AVA" width={32} height={32} className="object-contain" style={{ width: 32, height: 'auto' }} />
         <div>
           <p className="text-white font-bold text-sm">AVA Admin</p>
           <p className="text-[#8892a4] text-xs">Landing Editor</p>

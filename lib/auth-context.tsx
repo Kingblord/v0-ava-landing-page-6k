@@ -8,32 +8,55 @@ import {
   type ReactNode,
 } from 'react'
 import { type User } from 'firebase/auth'
-import { onAuthChange } from '@/lib/firebase-auth'
+import { onAuthChange, onBusinessChange } from '@/lib/firebase-auth'
+import type { Business } from '@/lib/types'
 
 interface AuthContextValue {
   user: User | null
+  business: Business | null
   loading: boolean
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
+  business: null,
   loading: true,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsub = onAuthChange((u) => {
+    let businessUnsub: (() => void) | null = null
+
+    const authUnsub = onAuthChange((u) => {
       setUser(u)
       setLoading(false)
+
+      // Tear down previous business listener
+      businessUnsub?.()
+      businessUnsub = null
+
+      if (u) {
+        // Subscribe to real-time business profile
+        businessUnsub = onBusinessChange(u.uid, (b) => {
+          setBusiness(b)
+        })
+      } else {
+        setBusiness(null)
+      }
     })
-    return unsub
+
+    return () => {
+      authUnsub()
+      businessUnsub?.()
+    }
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, business, loading }}>
       {children}
     </AuthContext.Provider>
   )

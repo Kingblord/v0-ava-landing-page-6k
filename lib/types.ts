@@ -3,6 +3,11 @@ export interface Business {
   name: string
   email: string
   whatsappPhone?: string
+  twilioAccountSid?: string
+  twilioAuthToken?: string
+  twilioWhatsappNumber?: string
+  openrouterModel?: string
+  avatarUrl?: string
   aiPersonality: string
   createdAt: number
 }
@@ -15,6 +20,7 @@ export interface Product {
   price: number
   minPrice: number
   negotiationEnabled: boolean
+  imageUrl?: string
   createdAt: number
 }
 

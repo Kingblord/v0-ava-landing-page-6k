@@ -78,7 +78,7 @@ export default function DashboardSidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-[#6C5CE7]/15">
-        <Image src="/logo.png" alt="AVA" width={36} height={28} className="object-contain" />
+        <Image src="/logo.png" alt="AVA" width={36} height={36} className="object-contain" style={{ width: 36, height: 'auto' }} />
         <div>
           <p className="text-white font-bold text-sm leading-none">AVA</p>
           <p className="text-[#8892a4] text-xs mt-0.5">Sales Agent</p>
@@ -126,7 +126,7 @@ export default function DashboardSidebar() {
       {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-[#111827]/95 backdrop-blur-md border-b border-[#6C5CE7]/15 flex items-center justify-between px-4 h-14">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="AVA" width={28} height={22} className="object-contain" />
+          <Image src="/logo.png" alt="AVA" width={28} height={28} className="object-contain" style={{ width: 28, height: 'auto' }} />
           <span className="text-white font-bold text-sm">AVA</span>
         </div>
         <Button

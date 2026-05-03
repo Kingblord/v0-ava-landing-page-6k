@@ -80,8 +80,9 @@ export function AppLoader({ show }: AppLoaderProps) {
                   src="/ava-helmet.png"
                   alt="AVA"
                   width={220}
-                  height={220}
-                  className="object-contain drop-shadow-[0_0_48px_rgba(108,92,231,0.55)] !w-[220px] !h-auto"
+                  height={186}
+                  className="object-contain drop-shadow-[0_0_48px_rgba(108,92,231,0.55)]"
+                  style={{ width: 220, height: 'auto' }}
                   priority
                 />
               </motion.div>

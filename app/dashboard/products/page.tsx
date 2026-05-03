@@ -1,63 +1,80 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
+import { db } from '@/lib/firebase'
 import {
-  getProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-} from '@/lib/firestore'
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+} from 'firebase/firestore'
 import type { Product } from '@/lib/types'
+import { ImageUpload } from '@/components/ui/image-upload'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
 import {
   Plus,
   Pencil,
   Trash2,
   Package,
-  DollarSign,
   ToggleLeft,
   ToggleRight,
   X,
+  ImageIcon,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { toast } from 'sonner'
 
 const EMPTY_FORM = {
   name: '',
   description: '',
   price: '',
   minPrice: '',
-  negotiationEnabled: false,
+  negotiationEnabled: true,
+  imageUrl: '',
 }
-
-type FormState = typeof EMPTY_FORM
 
 export default function ProductsPage() {
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
+  const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState(EMPTY_FORM)
 
-  async function reload() {
-    if (!user) return
-    const p = await getProducts(user.uid)
-    setProducts(p)
-  }
-
+  // Real-time listener
   useEffect(() => {
     if (!user) return
-    reload().finally(() => setLoading(false))
+    const q = query(
+      collection(db, 'products'),
+      where('businessId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+    )
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Product)))
+        setLoading(false)
+      },
+      () => setLoading(false),
+    )
+    return unsub
   }, [user])
 
-  function openCreate() {
+  function openNew() {
     setForm(EMPTY_FORM)
     setEditingId(null)
-    setModalOpen(true)
+    setShowForm(true)
   }
 
   function openEdit(p: Product) {
@@ -67,243 +84,336 @@ export default function ProductsPage() {
       price: String(p.price),
       minPrice: String(p.minPrice),
       negotiationEnabled: p.negotiationEnabled,
+      imageUrl: p.imageUrl ?? '',
     })
     setEditingId(p.id)
-    setModalOpen(true)
+    setShowForm(true)
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    if (!user) return
-    setSaving(true)
+  function closeForm() {
+    setShowForm(false)
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+  }
+
+  const handleSave = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!user) return
+      const price = parseFloat(form.price)
+      const minPrice = parseFloat(form.minPrice)
+      if (!form.name.trim()) { toast.error('Product name is required.'); return }
+      if (isNaN(price) || price <= 0) { toast.error('Enter a valid selling price.'); return }
+      if (isNaN(minPrice) || minPrice < 0) { toast.error('Enter a valid floor price.'); return }
+      if (minPrice > price) { toast.error('Floor price cannot exceed selling price.'); return }
+
+      setSaving(true)
+      try {
+        const payload = {
+          name: form.name.trim(),
+          description: form.description.trim(),
+          price,
+          minPrice,
+          negotiationEnabled: form.negotiationEnabled,
+          imageUrl: form.imageUrl || '',
+          businessId: user.uid,
+        }
+        if (editingId) {
+          await updateDoc(doc(db, 'products', editingId), payload)
+          toast.success('Product updated.')
+        } else {
+          await addDoc(collection(db, 'products'), {
+            ...payload,
+            createdAt: serverTimestamp(),
+          })
+          toast.success('Product added.')
+        }
+        closeForm()
+      } catch {
+        toast.error('Failed to save product.')
+      } finally {
+        setSaving(false)
+      }
+    },
+    [user, form, editingId],
+  )
+
+  async function handleDelete(id: string) {
+    setDeleting(id)
     try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        price: parseFloat(form.price),
-        minPrice: parseFloat(form.minPrice),
-        negotiationEnabled: form.negotiationEnabled,
-      }
-      if (editingId) {
-        await updateProduct(user.uid, editingId, payload)
-        toast.success('Product updated.')
-      } else {
-        await createProduct(user.uid, payload)
-        toast.success('Product added.')
-      }
-      await reload()
-      setModalOpen(false)
+      await deleteDoc(doc(db, 'products', id))
+      toast.success('Product deleted.')
     } catch {
-      toast.error('Failed to save product.')
+      toast.error('Failed to delete product.')
     } finally {
-      setSaving(false)
+      setDeleting(null)
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!user || !confirm('Delete this product?')) return
+  async function toggleNegotiation(p: Product) {
     try {
-      await deleteProduct(user.uid, id)
-      toast.success('Product deleted.')
-      await reload()
+      await updateDoc(doc(db, 'products', p.id), {
+        negotiationEnabled: !p.negotiationEnabled,
+      })
     } catch {
-      toast.error('Failed to delete product.')
+      toast.error('Failed to update product.')
     }
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Products</h1>
-          <p className="text-[#8892a4] text-sm mt-1">Manage your product catalogue</p>
+          <p className="text-[#8892a4] text-sm mt-1">
+            {products.length} product{products.length !== 1 ? 's' : ''} — AVA sells these via WhatsApp
+          </p>
         </div>
         <Button
-          onClick={openCreate}
+          onClick={openNew}
           className="bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl gap-2"
         >
-          <Plus className="w-4 h-4" />
-          Add Product
+          <Plus className="w-4 h-4" /> Add Product
         </Button>
       </div>
 
+      {/* Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl h-36 animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-64 rounded-2xl bg-[#1a2235] animate-pulse" />
           ))}
         </div>
       ) : products.length === 0 ? (
-        <div className="text-center py-20 bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl">
-          <Package className="w-12 h-12 text-[#8892a4] mx-auto mb-3 opacity-40" />
-          <p className="text-[#f0f4ff] font-medium">No products yet</p>
-          <p className="text-[#8892a4] text-sm mt-1">Add your first product so AVA can sell it.</p>
-          <Button onClick={openCreate} className="mt-4 bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl gap-2">
-            <Plus className="w-4 h-4" />
-            Add Product
+        <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-[#1a2235] flex items-center justify-center">
+            <Package className="w-8 h-8 text-[#6C5CE7]" />
+          </div>
+          <p className="text-white font-semibold">No products yet</p>
+          <p className="text-[#8892a4] text-sm text-center max-w-xs">
+            Add your first product so AVA knows what to sell on WhatsApp.
+          </p>
+          <Button
+            onClick={openNew}
+            className="bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl gap-2 mt-2"
+          >
+            <Plus className="w-4 h-4" /> Add First Product
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map((p) => (
             <div
               key={p.id}
-              className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl p-5 flex flex-col gap-3 hover:border-[#6C5CE7]/35 transition-colors group"
+              className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl overflow-hidden flex flex-col hover:border-[#6C5CE7]/40 transition-colors group"
             >
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-white font-semibold text-base leading-snug">{p.name}</h3>
-                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Product image */}
+              <div className="relative aspect-video bg-[#1a2235] flex-shrink-0">
+                {p.imageUrl ? (
+                  <Image
+                    src={p.imageUrl}
+                    alt={p.name}
+                    fill
+                    className="object-cover"
+                    sizes="400px"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <ImageIcon className="w-10 h-10 text-[#6C5CE7]/25" />
+                  </div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="flex flex-col gap-2 p-4 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-white font-semibold text-sm leading-snug line-clamp-2">
+                    {p.name}
+                  </p>
                   <button
-                    onClick={() => openEdit(p)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8892a4] hover:text-[#6C5CE7] hover:bg-[#6C5CE7]/10 transition-colors"
-                    aria-label="Edit product"
+                    onClick={() => toggleNegotiation(p)}
+                    className="shrink-0 mt-0.5"
+                    aria-label="Toggle negotiation"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    {p.negotiationEnabled
+                      ? <ToggleRight className="w-5 h-5 text-[#00D1B2]" />
+                      : <ToggleLeft className="w-5 h-5 text-[#8892a4]" />}
                   </button>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8892a4] hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    aria-label="Delete product"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                </div>
+                {p.description && (
+                  <p className="text-[#8892a4] text-xs line-clamp-2">{p.description}</p>
+                )}
+                <div className="flex items-center gap-3 mt-auto pt-2 border-t border-[#6C5CE7]/10">
+                  <span className="text-white font-bold text-sm">${p.price.toFixed(2)}</span>
+                  <span className="text-[#8892a4] text-xs">floor ${p.minPrice.toFixed(2)}</span>
+                  {p.negotiationEnabled && (
+                    <span className="ml-auto text-[10px] font-medium bg-[#00D1B2]/10 text-[#00D1B2] border border-[#00D1B2]/20 rounded-full px-2 py-0.5">
+                      Negotiable
+                    </span>
+                  )}
                 </div>
               </div>
 
-              <p className="text-[#8892a4] text-sm leading-relaxed line-clamp-2">{p.description}</p>
-
-              <div className="flex items-center gap-3 mt-auto pt-2 border-t border-[#6C5CE7]/10">
-                <div className="flex items-center gap-1.5 text-[#00D1B2]">
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span className="text-sm font-semibold">{p.price.toFixed(2)}</span>
-                </div>
-                {p.negotiationEnabled && (
-                  <span className="text-xs text-[#8892a4]">
-                    min: ${p.minPrice.toFixed(2)}
-                  </span>
-                )}
-                <div className="ml-auto flex items-center gap-1.5">
-                  {p.negotiationEnabled ? (
-                    <ToggleRight className="w-4 h-4 text-[#00D1B2]" />
-                  ) : (
-                    <ToggleLeft className="w-4 h-4 text-[#8892a4]" />
-                  )}
-                  <span className="text-xs text-[#8892a4]">
-                    {p.negotiationEnabled ? 'Negotiable' : 'Fixed price'}
-                  </span>
-                </div>
+              {/* Actions */}
+              <div className="flex border-t border-[#6C5CE7]/10">
+                <button
+                  onClick={() => openEdit(p)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-[#8892a4] hover:text-white hover:bg-[#1a2235] transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Edit
+                </button>
+                <div className="w-px bg-[#6C5CE7]/10" />
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  disabled={deleting === p.id}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-[#8892a4] hover:text-red-400 hover:bg-red-500/5 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {deleting === p.id ? 'Deleting...' : 'Delete'}
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Product Modal */}
-      {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setModalOpen(false)}
-        >
+      {/* Slide-in panel */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex">
           <div
-            className="bg-[#111827] border border-[#6C5CE7]/25 rounded-2xl w-full max-w-md shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#6C5CE7]/15">
-              <h2 className="text-white font-semibold">
-                {editingId ? 'Edit Product' : 'Add Product'}
+            className="flex-1 bg-black/60 backdrop-blur-sm"
+            onClick={closeForm}
+          />
+          <div className="w-full max-w-md bg-[#111827] border-l border-[#6C5CE7]/20 h-full overflow-y-auto flex flex-col">
+            {/* Panel header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#6C5CE7]/15 sticky top-0 bg-[#111827] z-10">
+              <h2 className="text-white font-semibold text-base">
+                {editingId ? 'Edit Product' : 'New Product'}
               </h2>
               <button
-                onClick={() => setModalOpen(false)}
+                onClick={closeForm}
                 className="text-[#8892a4] hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[#f0f4ff] text-sm">Product Name</Label>
+            <form onSubmit={handleSave} className="flex flex-col gap-6 p-6 flex-1">
+              {/* Image upload */}
+              <div className="flex flex-col gap-2">
+                <Label className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                  Product Image
+                </Label>
+                <ImageUpload
+                  value={form.imageUrl}
+                  onChange={(url) => setForm({ ...form, imageUrl: url })}
+                  folder="products"
+                  variant="rect"
+                  label="Click to upload product image"
+                />
+              </div>
+
+              {/* Name */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="prod-name" className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                  Product Name *
+                </Label>
                 <Input
+                  id="prod-name"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Premium Sneakers"
+                  placeholder="e.g. Nike Air Max 90"
+                  className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
                   required
-                  className="bg-[#1a2235] border-[#6C5CE7]/25 text-white placeholder:text-[#8892a4] h-10"
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[#f0f4ff] text-sm">Description</Label>
+              {/* Description */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="prod-desc" className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                  Description
+                </Label>
                 <textarea
+                  id="prod-desc"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Describe the product..."
-                  required
+                  placeholder="Describe the product for AVA to reference in conversations..."
                   rows={3}
-                  className="bg-[#1a2235] border border-[#6C5CE7]/25 text-white placeholder:text-[#8892a4] rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]/30 focus:border-[#6C5CE7]"
+                  className="bg-[#0d1120] border border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 rounded-lg px-3 py-2 text-sm resize-none outline-none transition-colors"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-[#f0f4ff] text-sm">Price ($)</Label>
+              {/* Prices */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="prod-price" className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                    Selling Price *
+                  </Label>
                   <Input
+                    id="prod-price"
                     type="number"
-                    step="0.01"
                     min="0"
+                    step="0.01"
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
                     placeholder="0.00"
+                    className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
                     required
-                    className="bg-[#1a2235] border-[#6C5CE7]/25 text-white placeholder:text-[#8892a4] h-10"
                   />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-[#f0f4ff] text-sm">Min Price ($)</Label>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="prod-floor" className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                    Floor Price *
+                  </Label>
                   <Input
+                    id="prod-floor"
                     type="number"
-                    step="0.01"
                     min="0"
+                    step="0.01"
                     value={form.minPrice}
                     onChange={(e) => setForm({ ...form, minPrice: e.target.value })}
                     placeholder="0.00"
+                    className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
                     required
-                    className="bg-[#1a2235] border-[#6C5CE7]/25 text-white placeholder:text-[#8892a4] h-10"
                   />
                 </div>
               </div>
 
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <div
-                  onClick={() => setForm({ ...form, negotiationEnabled: !form.negotiationEnabled })}
-                  className={`w-10 h-6 rounded-full transition-colors duration-200 flex items-center px-0.5 ${
-                    form.negotiationEnabled ? 'bg-[#6C5CE7]' : 'bg-[#1a2235] border border-[#6C5CE7]/25'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
-                      form.negotiationEnabled ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
+              {/* Negotiation toggle */}
+              <div className="flex items-center justify-between bg-[#0d1120] border border-[#6C5CE7]/20 rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-white text-sm font-medium">Allow Negotiation</p>
+                  <p className="text-[#8892a4] text-xs mt-0.5">
+                    AVA will negotiate between floor and selling price
+                  </p>
                 </div>
-                <span className="text-[#f0f4ff] text-sm">Enable price negotiation</span>
-              </label>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, negotiationEnabled: !form.negotiationEnabled })}
+                >
+                  {form.negotiationEnabled
+                    ? <ToggleRight className="w-8 h-8 text-[#00D1B2]" />
+                    : <ToggleLeft className="w-8 h-8 text-[#8892a4]" />}
+                </button>
+              </div>
 
-              <div className="flex gap-3 pt-2">
+              {/* Actions */}
+              <div className="flex gap-3 pt-2 mt-auto">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setModalOpen(false)}
-                  className="flex-1 border-[#6C5CE7]/25 text-[#8892a4] hover:text-white hover:bg-[#1a2235] rounded-xl"
+                  onClick={closeForm}
+                  className="flex-1 border-[#6C5CE7]/20 text-[#8892a4] hover:text-white hover:bg-[#1a2235] rounded-xl"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl"
+                  className="flex-1 bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl disabled:opacity-60"
                 >
-                  {saving ? 'Saving...' : editingId ? 'Update' : 'Add Product'}
+                  {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Add Product'}
                 </Button>
               </div>
             </form>
