@@ -1,28 +1,45 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
+
+const MIN_DISPLAY_MS = 2500
 
 interface AppLoaderProps {
   show: boolean
 }
 
 export function AppLoader({ show }: AppLoaderProps) {
-  // Only render on the client — avoids all SSR/hydration mismatches.
-  // The dark bg-[#0B0F1A] on <html> and <body> prevents any white flash before mount.
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
-  if (!mounted) return null
+  // visible stays true until BOTH: show is false AND the minimum time has elapsed
+  const [visible, setVisible] = useState(true)
+  const startRef = useRef(Date.now())
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!show) {
+      const elapsed = Date.now() - startRef.current
+      const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed)
+      timerRef.current = setTimeout(() => {
+        setVisible(false)
+        // Remove ava-loading class so page content becomes visible
+        document.body.classList.remove('ava-loading')
+      }, remaining)
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [show])
 
   return (
     <AnimatePresence>
-      {show && (
+      {visible && (
         <motion.div
+          id="ava-loader-root"
           key="app-loader"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.55, ease: 'easeInOut' }}
+          transition={{ duration: 0.6, ease: 'easeInOut' }}
           style={{ zIndex: 99999 }}
           className="fixed inset-0 flex flex-col items-center justify-center bg-[#0B0F1A] overflow-hidden"
         >
@@ -47,15 +64,13 @@ export function AppLoader({ show }: AppLoaderProps) {
 
           {/* Main content */}
           <div className="relative z-10 flex flex-col items-center gap-6">
-            {/* Helmet with glow + float */}
+            {/* Helmet with glow halo + float */}
             <div className="relative flex items-center justify-center">
-              {/* Glow halo */}
               <motion.div
                 className="absolute w-64 h-64 rounded-full bg-gradient-to-br from-[#6C5CE7]/30 via-[#e040fb]/20 to-[#00D1B2]/15 blur-[60px]"
                 animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               />
-              {/* Floating helmet */}
               <motion.div
                 animate={{ y: [0, -12, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -66,7 +81,7 @@ export function AppLoader({ show }: AppLoaderProps) {
                   alt="AVA"
                   width={220}
                   height={220}
-                  className="object-contain drop-shadow-[0_0_48px_rgba(108,92,231,0.55)]"
+                  className="object-contain drop-shadow-[0_0_48px_rgba(108,92,231,0.55)] !w-[220px] !h-auto"
                   priority
                 />
               </motion.div>

@@ -94,6 +94,13 @@
     @apply bg-background text-foreground antialiased;
     background-color: var(--ava-bg);
   }
+
+  /* Hide all page content while the loader is active.
+     The loader itself is position:fixed so it is unaffected.
+     Class is removed by AppShell once fully ready. */
+  body.ava-loading > *:not(#ava-loader-root) {
+    visibility: hidden !important;
+  }
 }
 
 /* Noise texture overlay utility */

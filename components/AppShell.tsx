@@ -8,8 +8,16 @@ import {
   useEffect,
   useRef,
 } from 'react'
+import dynamic from 'next/dynamic'
 import { useAuth } from '@/lib/auth-context'
-import { AppLoader } from '@/components/AppLoader'
+
+// ssr:false ensures AppLoader never renders on the server, eliminating
+// all Framer Motion hydration mismatches. body.ava-loading hides content
+// until the client-side loader takes over.
+const AppLoader = dynamic(
+  () => import('@/components/AppLoader').then((m) => ({ default: m.AppLoader })),
+  { ssr: false }
+)
 
 interface ContentReadyContextValue {
   markContentReady: () => void
@@ -37,18 +45,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // auto-dismiss once Firebase Auth resolves.
   useEffect(() => {
     if (!authLoading && !calledRef.current) {
-      const timer = setTimeout(() => setContentReady(true), 120)
+      const timer = setTimeout(() => setContentReady(true), 150)
       return () => clearTimeout(timer)
     }
   }, [authLoading])
 
   const showLoader = authLoading || !contentReady
 
-
-
   return (
     <ContentReadyContext.Provider value={{ markContentReady }}>
-      {/* React AppLoader takes over seamlessly after hydration */}
       <AppLoader show={showLoader} />
       {children}
     </ContentReadyContext.Provider>
