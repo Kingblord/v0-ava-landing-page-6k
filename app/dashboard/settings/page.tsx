@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { updateBusiness } from '@/lib/firebase-auth'
+import { getBusiness, updateBusiness } from '@/lib/firestore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,20 +13,19 @@ const DEFAULT_PERSONALITY =
   'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.'
 
 export default function SettingsPage() {
-  const { user, business, loading } = useAuth()
-  const [businessName, setBusinessName] = useState(business?.name ?? '')
-  const [aiPersonality, setAiPersonality] = useState(business?.aiPersonality ?? DEFAULT_PERSONALITY)
+  const { user } = useAuth()
+  const [businessName, setBusinessName] = useState('')
+  const [aiPersonality, setAiPersonality] = useState('')
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Keep form in sync with real-time business data
-  if (business) {
-    if (businessName !== business.name && !saving) {
-      setBusinessName(business.name)
-    }
-    if (aiPersonality !== business.aiPersonality && !saving) {
-      setAiPersonality(business.aiPersonality)
-    }
-  }
+  useEffect(() => {
+    if (!user) return
+    getBusiness(user.uid).then((b) => {
+      setBusinessName(b?.name ?? '')
+      setAiPersonality(b?.aiPersonality ?? DEFAULT_PERSONALITY)
+    }).finally(() => setLoading(false))
+  }, [user])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -38,9 +37,8 @@ export default function SettingsPage() {
         aiPersonality: aiPersonality.trim(),
       })
       toast.success('Settings saved.')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to save settings.'
-      toast.error(msg)
+    } catch {
+      toast.error('Failed to save settings.')
     } finally {
       setSaving(false)
     }
