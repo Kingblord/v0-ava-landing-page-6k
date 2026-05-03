@@ -75,7 +75,7 @@ export async function runAI(input: AIInput): Promise<AIOutput> {
     headers: {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'https://ava.ai',
+      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'https://avapage6k.vercel.app',
       'X-Title': 'AVA Sales Agent',
     },
     body: JSON.stringify({
