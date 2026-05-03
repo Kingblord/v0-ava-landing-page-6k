@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getAllContent, DEFAULT_CONTENT } from '@/lib/content'
 import type { SiteContent } from '@/lib/content'
+import { useContentReady } from '@/components/AppShell'
 import { Navbar } from './Navbar'
 import { Hero } from './Hero'
 import { BentoGrid } from './BentoGrid'
@@ -14,14 +15,20 @@ import { Footer } from './Footer'
 
 export function LandingPage() {
   const [content, setContent] = useState<SiteContent>(DEFAULT_CONTENT)
+  const { markContentReady } = useContentReady()
 
   useEffect(() => {
     getAllContent()
-      .then(setContent)
+      .then((data) => {
+        setContent(data)
+      })
       .catch(() => {
         // Firestore unavailable — keep hardcoded defaults silently
       })
-  }, [])
+      .finally(() => {
+        markContentReady()
+      })
+  }, [markContentReady])
 
   return (
     <div className="min-h-screen bg-[var(--ava-bg)] overflow-x-hidden">
