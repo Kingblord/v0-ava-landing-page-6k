@@ -78,6 +78,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} bg-[#0B0F1A]`}
+      data-scroll-behavior="smooth"
     >
       <body className="font-sans antialiased bg-[#0B0F1A] text-[#f0f4ff] overflow-x-hidden">
         <AuthProvider>
