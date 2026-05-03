@@ -3,36 +3,14 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Minus } from 'lucide-react'
+import type { FAQContent } from '@/lib/content'
+import { DEFAULT_CONTENT } from '@/lib/content'
 
-const FAQS = [
-  {
-    q: 'Does AVA really sound human?',
-    a: 'Yes. AVA is powered by the latest large language models via OpenRouter. Customers consistently report that conversations feel completely natural. You can also customise the tone, style, and personality to match your brand.',
-  },
-  {
-    q: 'What happens if AVA can\'t answer a question?',
-    a: 'If a customer asks something outside AVA\'s knowledge base (your products and configured responses), AVA will politely let them know and can optionally escalate or flag the conversation for you to review.',
-  },
-  {
-    q: 'How does price negotiation work?',
-    a: 'For each product you set a "floor price" — the minimum you\'re willing to accept. AVA will negotiate naturally within that range, starting from your listed price and moving down strategically, never going below your floor.',
-  },
-  {
-    q: 'Do I need technical knowledge to set up AVA?',
-    a: 'No. Setup involves pasting a webhook URL into Twilio and filling in your product details. It takes under 10 minutes. No code, no servers, no developers needed.',
-  },
-  {
-    q: 'What WhatsApp providers does AVA support?',
-    a: 'AVA currently works with Twilio\'s WhatsApp API (Sandbox and Production). Support for Meta Business API and other providers is on the roadmap.',
-  },
-  {
-    q: 'Is there a free trial?',
-    a: 'Yes — every plan starts with a 14-day free trial. No credit card required to get started. You can upgrade, downgrade, or cancel anytime.',
-  },
-]
+interface FAQProps { content?: FAQContent }
 
-export function FAQ() {
+export function FAQ({ content = DEFAULT_CONTENT.faq }: FAQProps) {
   const [open, setOpen] = useState<number | null>(null)
+  const FAQS = content.items
 
   return (
     <section id="faq" className="px-6 py-24 max-w-3xl mx-auto">
@@ -43,10 +21,10 @@ export function FAQ() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">FAQ</p>
+          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">{content.sectionLabel}</p>
           <h2 className="text-4xl md:text-5xl font-bold text-white text-balance">
-            Questions{' '}
-            <span className="text-gradient">answered</span>
+            {content.headline}{' '}
+            <span className="text-gradient">{content.headlineAccent}</span>
           </h2>
         </motion.div>
       </div>

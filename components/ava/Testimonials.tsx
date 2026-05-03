@@ -2,59 +2,18 @@
 
 import { motion } from 'framer-motion'
 import { Star } from 'lucide-react'
+import type { TestimonialsContent } from '@/lib/content'
+import { DEFAULT_CONTENT } from '@/lib/content'
 
-const TESTIMONIALS = [
-  {
-    name: 'Amara Diallo',
-    handle: '@amarashoesng',
-    role: 'Sneaker Reseller, Lagos',
-    text: "AVA made $4,200 in sales while I was sleeping. I woke up to 17 confirmed orders. It handles the negotiating better than I do honestly.",
-    metric: '$4,200 overnight',
-    color: '#6C5CE7',
-  },
-  {
-    name: 'Thabo Nkosi',
-    handle: '@thabofashion',
-    role: 'Clothing Brand Owner, Johannesburg',
-    text: "I was spending 6 hours a day on WhatsApp. Now I spend 20 minutes reviewing orders AVA already closed. Complete game changer.",
-    metric: '6hrs → 20min/day',
-    color: '#00D1B2',
-  },
-  {
-    name: 'Fatima Al-Hassan',
-    handle: '@fatima_cosmetics',
-    role: 'Beauty Store, Dubai',
-    text: "My customers can't tell it's AI. The conversations are so natural. I had one customer say AVA was the most helpful sales rep she'd ever talked to.",
-    metric: '100% retention',
-    color: '#e040fb',
-  },
-  {
-    name: 'Kwame Mensah',
-    handle: '@kwamegadgets',
-    role: 'Electronics Retailer, Accra',
-    text: "The price negotiation feature is brilliant. I set floor prices and AVA handles everything. My margins are actually up 12% since I started.",
-    metric: '+12% margins',
-    color: '#6C5CE7',
-  },
-  {
-    name: 'Priya Sharma',
-    handle: '@priyaboutique',
-    role: 'Fashion Boutique, Mumbai',
-    text: "Setup took 8 minutes. Literally 8 minutes. And by the end of the day AVA had already handled 43 customer conversations. Mind-blowing.",
-    metric: '43 convos day 1',
-    color: '#00D1B2',
-  },
-  {
-    name: 'Carlos Mendez',
-    handle: '@carloselectronics',
-    role: 'Tech Store, Mexico City',
-    text: "I was sceptical about AI handling my customers but the trial convinced me in one day. It upsells better than my staff does. Wild.",
-    metric: 'Revenue up 34%',
-    color: '#e040fb',
-  },
-]
+const COLORS = ['#6C5CE7', '#00D1B2', '#e040fb']
 
-export function Testimonials() {
+interface TestimonialsProps { content?: TestimonialsContent }
+
+export function Testimonials({ content = DEFAULT_CONTENT.testimonials }: TestimonialsProps) {
+  const TESTIMONIALS = content.testimonials.map((t, i) => ({
+    ...t,
+    color: COLORS[i % COLORS.length],
+  }))
   const half = Math.ceil(TESTIMONIALS.length / 2)
   const col1 = TESTIMONIALS.slice(0, half)
   const col2 = TESTIMONIALS.slice(half)
@@ -68,10 +27,10 @@ export function Testimonials() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">Testimonials</p>
+          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">{content.sectionLabel}</p>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 text-balance">
-            Businesses already{' '}
-            <span className="text-gradient">closing more</span>
+            {content.headline}{' '}
+            <span className="text-gradient">{content.headlineAccent}</span>
           </h2>
         </motion.div>
       </div>

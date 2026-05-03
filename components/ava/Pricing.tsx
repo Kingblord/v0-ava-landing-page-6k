@@ -5,64 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Check, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import type { PricingContent } from '@/lib/content'
+import { DEFAULT_CONTENT } from '@/lib/content'
 
-const PLANS = [
-  {
-    name: 'Starter',
-    monthlyPrice: 29,
-    annualPrice: 23,
-    desc: 'Perfect for solo sellers getting started with AI sales.',
-    features: [
-      '1 WhatsApp number',
-      'Up to 500 conversations/mo',
-      '50 products',
-      'Basic analytics',
-      'Email support',
-    ],
-    cta: 'Start Free Trial',
-    accent: '#6C5CE7',
-    popular: false,
-  },
-  {
-    name: 'Pro',
-    monthlyPrice: 79,
-    annualPrice: 63,
-    desc: 'For growing businesses that need serious automation.',
-    features: [
-      '3 WhatsApp numbers',
-      'Unlimited conversations',
-      'Unlimited products',
-      'Advanced analytics',
-      'Price negotiation AI',
-      'Custom AI personality',
-      'Priority support',
-    ],
-    cta: 'Start Free Trial',
-    accent: '#00D1B2',
-    popular: true,
-  },
-  {
-    name: 'Enterprise',
-    monthlyPrice: 199,
-    annualPrice: 159,
-    desc: 'For large teams and high-volume operations.',
-    features: [
-      'Unlimited WhatsApp numbers',
-      'Unlimited everything',
-      'Multi-agent setup',
-      'Custom AI training',
-      'API access',
-      'Dedicated account manager',
-      'SLA guarantee',
-    ],
-    cta: 'Contact Sales',
-    accent: '#e040fb',
-    popular: false,
-  },
-]
+const PLAN_ACCENTS = ['#6C5CE7', '#00D1B2', '#e040fb']
 
-export function Pricing() {
+interface PricingProps { content?: PricingContent }
+
+export function Pricing({ content = DEFAULT_CONTENT.pricing }: PricingProps) {
   const [annual, setAnnual] = useState(false)
+  const PLANS = content.plans.map((p, i) => ({ ...p, accent: PLAN_ACCENTS[i % PLAN_ACCENTS.length] }))
 
   return (
     <section id="pricing" className="px-6 py-24 max-w-6xl mx-auto">
@@ -73,14 +25,14 @@ export function Pricing() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">Pricing</p>
+          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">{content.sectionLabel}</p>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 text-balance">
-            Simple,{' '}
-            <span className="text-gradient">transparent</span>{' '}
+            {content.headline}{' '}
+            <span className="text-gradient">{content.headlineAccent}</span>{' '}
             pricing
           </h2>
           <p className="text-[var(--ava-text-muted)] text-lg max-w-lg mx-auto mb-8">
-            Start free. Scale as you grow. No hidden fees.
+            {content.subheadline}
           </p>
 
           {/* Toggle */}

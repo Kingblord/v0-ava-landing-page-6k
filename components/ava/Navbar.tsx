@@ -6,15 +6,13 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import type { NavbarContent } from '@/lib/content'
+import { DEFAULT_CONTENT } from '@/lib/content'
 
-const NAV_LINKS = [
-  { label: 'Features', href: '#features' },
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Pricing', href: '#pricing' },
-  { label: 'FAQ', href: '#faq' },
-]
+interface NavbarProps { content?: NavbarContent }
 
-export function Navbar() {
+export function Navbar({ content = DEFAULT_CONTENT.navbar }: NavbarProps) {
+  const NAV_LINKS = content.links
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -38,7 +36,7 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
             <Image src="/logo.png" alt="AVA" width={40} height={30} className="object-contain" />
-            <span className="text-white font-bold text-xl tracking-tight">AVA</span>
+            <span className="text-white font-bold text-xl tracking-tight">{content.brandName}</span>
           </Link>
 
           {/* Desktop nav */}
@@ -58,7 +56,7 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <Link href="/auth/login">
               <Button variant="ghost" size="sm" className="text-[var(--ava-text-muted)] hover:text-white">
-                Sign In
+                {content.ctaSignIn}
               </Button>
             </Link>
             <Link href="/auth/signup">
@@ -66,7 +64,7 @@ export function Navbar() {
                 size="sm"
                 className="shimmer bg-[var(--ava-purple)] hover:bg-[var(--ava-purple-dark)] text-white rounded-xl px-5 font-semibold glow-purple"
               >
-                Get Started Free
+                {content.ctaSignUp}
               </Button>
             </Link>
           </div>
@@ -104,12 +102,12 @@ export function Navbar() {
             <div className="flex flex-col gap-3 mt-4 w-56">
               <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
                 <Button variant="outline" className="w-full border-[var(--ava-border)] text-[var(--ava-text-muted)]">
-                  Sign In
+                  {content.ctaSignIn}
                 </Button>
               </Link>
               <Link href="/auth/signup" onClick={() => setMobileOpen(false)}>
                 <Button className="w-full bg-[var(--ava-purple)] hover:bg-[var(--ava-purple-dark)] text-white glow-purple">
-                  Get Started Free
+                  {content.ctaSignUp}
                 </Button>
               </Link>
             </div>

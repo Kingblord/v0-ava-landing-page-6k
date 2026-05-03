@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/lib/auth-context'
+import { AppShell } from '@/components/AppShell'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
@@ -80,7 +81,9 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased bg-[#0B0F1A] text-[#f0f4ff] overflow-x-hidden">
         <AuthProvider>
-          {children}
+          <AppShell>
+            {children}
+          </AppShell>
           <Toaster position="bottom-right" theme="dark" />
         </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}

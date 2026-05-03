@@ -5,6 +5,10 @@ import Link from 'next/link'
 import { ArrowRight, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ChatDemo } from './ChatDemo'
+import type { HeroContent } from '@/lib/content'
+import { DEFAULT_CONTENT } from '@/lib/content'
+
+interface HeroProps { content?: HeroContent }
 
 const stagger = {
   hidden: {},
@@ -17,7 +21,7 @@ const fadeUp = {
 
 const AVATARS = ['#6C5CE7', '#00D1B2', '#e040fb', '#f59e0b', '#3b82f6']
 
-export function Hero() {
+export function Hero({ content = DEFAULT_CONTENT.hero }: HeroProps) {
   return (
     <section className="relative pt-32 pb-24 px-6 overflow-hidden">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
@@ -26,7 +30,7 @@ export function Hero() {
           {/* Badge */}
           <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-[var(--ava-purple)]/10 border border-[var(--ava-purple)]/25 rounded-full px-4 py-1.5 mb-8">
             <span className="w-2 h-2 rounded-full bg-[var(--ava-teal)] animate-pulse" />
-            <span className="text-[var(--ava-purple-light)] text-sm font-medium">AI Sales Agent for WhatsApp</span>
+            <span className="text-[var(--ava-purple-light)] text-sm font-medium">{content.badge}</span>
           </motion.div>
 
           {/* Headline */}
@@ -34,13 +38,13 @@ export function Hero() {
             variants={fadeUp}
             className="text-5xl lg:text-6xl xl:text-7xl font-extrabold text-white leading-[1.08] tracking-tight mb-6 text-balance"
           >
-            Close Deals{' '}
-            <span className="text-gradient-pink">While You Sleep</span>
+            {content.headline}{' '}
+            <span className="text-gradient-pink">{content.headlineAccent}</span>
           </motion.h1>
 
           {/* Sub */}
           <motion.p variants={fadeUp} className="text-[var(--ava-text-muted)] text-lg leading-relaxed mb-10 max-w-lg text-pretty">
-            AVA handles every WhatsApp customer — answering questions, negotiating prices, and confirming orders automatically. You wake up to revenue, not messages.
+            {content.subheadline}
           </motion.p>
 
           {/* CTAs */}
@@ -50,7 +54,7 @@ export function Hero() {
                 size="lg"
                 className="shimmer bg-[var(--ava-purple)] hover:bg-[var(--ava-purple-dark)] text-white rounded-xl h-12 px-8 text-base font-semibold gap-2 glow-purple transition-all"
               >
-                Start for Free
+                {content.ctaPrimary}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
@@ -60,7 +64,7 @@ export function Hero() {
                 variant="outline"
                 className="rounded-xl h-12 px-8 text-base border-[var(--ava-border)] text-[var(--ava-text-muted)] hover:text-white hover:bg-[var(--ava-surface-2)] transition-all"
               >
-                See How It Works
+                {content.ctaSecondary}
               </Button>
             </Link>
           </motion.div>
@@ -85,7 +89,7 @@ export function Hero() {
                 ))}
               </div>
               <p className="text-[var(--ava-text-muted)] text-xs mt-0.5">
-                Loved by 200+ business owners
+                {content.socialProofText}
               </p>
             </div>
           </motion.div>
@@ -109,12 +113,7 @@ export function Hero() {
         transition={{ duration: 0.6, delay: 0.6 }}
         className="max-w-4xl mx-auto mt-20 grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--ava-border)] rounded-2xl overflow-hidden border border-[var(--ava-border)]"
       >
-        {[
-          { value: '24/7', label: 'Always Online' },
-          { value: '<1s', label: 'Response Time' },
-          { value: '3×', label: 'More Conversions' },
-          { value: '0', label: 'Messages Missed' },
-        ].map((s) => (
+        {content.stats.map((s) => (
           <div key={s.label} className="bg-[var(--ava-surface)] px-6 py-5 text-center">
             <p className="text-3xl font-extrabold text-white">{s.value}</p>
             <p className="text-[var(--ava-text-muted)] text-sm mt-1">{s.label}</p>

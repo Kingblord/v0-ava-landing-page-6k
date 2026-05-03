@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { getAllContent, DEFAULT_CONTENT } from '@/lib/content'
+import type { SiteContent } from '@/lib/content'
 import { Navbar } from './Navbar'
 import { Hero } from './Hero'
 import { BentoGrid } from './BentoGrid'
@@ -10,6 +13,16 @@ import { FAQ } from './FAQ'
 import { Footer } from './Footer'
 
 export function LandingPage() {
+  const [content, setContent] = useState<SiteContent>(DEFAULT_CONTENT)
+
+  useEffect(() => {
+    getAllContent()
+      .then(setContent)
+      .catch(() => {
+        // Firestore unavailable — keep hardcoded defaults silently
+      })
+  }, [])
+
   return (
     <div className="min-h-screen bg-[var(--ava-bg)] overflow-x-hidden">
       {/* Ambient background blobs */}
@@ -19,16 +32,16 @@ export function LandingPage() {
         <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-[var(--ava-pink)]/5 blur-[150px]" />
       </div>
 
-      <Navbar />
+      <Navbar content={content.navbar} />
       <main>
-        <Hero />
-        <BentoGrid />
-        <LiveFlow />
-        <Testimonials />
-        <Pricing />
-        <FAQ />
+        <Hero content={content.hero} />
+        <BentoGrid content={content.bento} />
+        <LiveFlow content={content.liveflow} />
+        <Testimonials content={content.testimonials} />
+        <Pricing content={content.pricing} />
+        <FAQ content={content.faq} />
       </main>
-      <Footer />
+      <Footer content={content.footer} />
     </div>
   )
 }

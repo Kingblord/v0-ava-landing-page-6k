@@ -4,13 +4,13 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link2, Package, Bot, Check } from 'lucide-react'
 import Image from 'next/image'
+import type { LiveFlowContent } from '@/lib/content'
+import { DEFAULT_CONTENT } from '@/lib/content'
 
-const STEPS = [
+// Static visual/icon/accent metadata per step — not editable
+const STEP_META = [
   {
-    n: '01',
     icon: Link2,
-    title: 'Connect WhatsApp',
-    desc: 'Paste your Twilio webhook URL into your WhatsApp Sandbox. Takes under 2 minutes — no code required.',
     accent: '#6C5CE7',
     phone: {
       header: 'WhatsApp Setup',
@@ -33,10 +33,7 @@ const STEPS = [
     },
   },
   {
-    n: '02',
     icon: Package,
-    title: 'Add Your Products',
-    desc: 'Create your product catalogue with names, prices, and negotiation floor prices. AVA learns everything instantly.',
     accent: '#00D1B2',
     phone: {
       header: 'Product Catalogue',
@@ -60,10 +57,7 @@ const STEPS = [
     },
   },
   {
-    n: '03',
     icon: Bot,
-    title: 'AVA Takes Over',
-    desc: 'Every incoming WhatsApp message is handled by AVA — automatically, intelligently, around the clock.',
     accent: '#e040fb',
     phone: {
       header: 'Live Conversations',
@@ -90,8 +84,18 @@ const STEPS = [
   },
 ]
 
-export function LiveFlow() {
+interface LiveFlowProps { content?: LiveFlowContent }
+
+export function LiveFlow({ content = DEFAULT_CONTENT.liveflow }: LiveFlowProps) {
   const [activeStep, setActiveStep] = useState(0)
+
+  const STEPS = content.steps.map((s, i) => ({
+    ...STEP_META[i % STEP_META.length],
+    n: s.n,
+    title: s.title,
+    desc: s.desc,
+  }))
+
   const step = STEPS[activeStep]
 
   return (
@@ -103,13 +107,13 @@ export function LiveFlow() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">How It Works</p>
+          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">{content.sectionLabel}</p>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 text-balance">
-            Up and running in{' '}
-            <span className="text-gradient">3 steps</span>
+            {content.headline}{' '}
+            <span className="text-gradient">{content.headlineAccent}</span>
           </h2>
           <p className="text-[var(--ava-text-muted)] text-lg max-w-xl mx-auto">
-            No developers needed. No complex setup. Just plug in and let AVA work.
+            {content.subheadline}
           </p>
         </motion.div>
       </div>
@@ -122,7 +126,7 @@ export function LiveFlow() {
             const isActive = activeStep === i
             return (
               <motion.button
-                key={s.n}
+                key={s.n + i}
                 onClick={() => setActiveStep(i)}
                 whileHover={{ x: 4 }}
                 transition={{ type: 'spring', stiffness: 300 }}
@@ -160,14 +164,11 @@ export function LiveFlow() {
         <div className="flex justify-center">
           <div className="relative w-64">
             <div className="bg-[#0d1424] border border-[var(--ava-border)] rounded-[2rem] overflow-hidden shadow-2xl" style={{ boxShadow: `0 0 60px ${step.accent}20` }}>
-              {/* Phone header */}
               <div className="bg-[var(--ava-surface)] px-4 py-3 border-b border-[var(--ava-border)] flex items-center gap-2">
                 <Image src="/logo.png" alt="AVA" width={20} height={16} className="object-contain" />
                 <span className="text-white text-sm font-semibold">{step.phone.header}</span>
                 <div className="ml-auto w-2 h-2 rounded-full" style={{ background: step.accent }} />
               </div>
-
-              {/* Content */}
               <div className="min-h-48">
                 <AnimatePresence mode="wait">
                   <motion.div

@@ -4,74 +4,21 @@ import { useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
 import {
   MessageSquare, Package, ShoppingCart, Zap,
-  Bot, Shield, TrendingUp, Clock,
+  Bot, Shield, TrendingUp,   Clock,
 } from 'lucide-react'
+import type { BentoContent } from '@/lib/content'
+import { DEFAULT_CONTENT } from '@/lib/content'
 
-const CARDS = [
-  {
-    icon: MessageSquare,
-    title: 'Human-Like Conversations',
-    desc: 'AVA chats like a real salesperson — handles objections, builds rapport, and closes deals naturally.',
-    size: 'lg',
-    accent: '#6C5CE7',
-    visual: 'chat',
-  },
-  {
-    icon: Package,
-    title: 'Product Catalogue',
-    desc: 'Add products once. AVA knows them all and never recommends items you don\'t sell.',
-    size: 'sm',
-    accent: '#00D1B2',
-    visual: 'products',
-  },
-  {
-    icon: ShoppingCart,
-    title: 'Auto Order Creation',
-    desc: 'Orders appear in your dashboard automatically the moment a customer commits.',
-    size: 'sm',
-    accent: '#e040fb',
-    visual: 'orders',
-  },
-  {
-    icon: Shield,
-    title: 'Price Negotiation Control',
-    desc: 'Set floor prices per product. AVA negotiates within your limits so you never sell at a loss.',
-    size: 'md',
-    accent: '#6C5CE7',
-    visual: 'negotiation',
-  },
-  {
-    icon: Zap,
-    title: 'Instant Responses',
-    desc: 'Responds to every message in under a second — 24 hours a day, 7 days a week.',
-    size: 'md',
-    accent: '#00D1B2',
-    visual: 'speed',
-  },
-  {
-    icon: Bot,
-    title: 'Customisable Personality',
-    desc: 'Define how AVA speaks. Formal, casual, aggressive closer, or soft advisor — your brand, your voice.',
-    size: 'sm',
-    accent: '#e040fb',
-    visual: 'bot',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Revenue Analytics',
-    desc: 'Track conversations, conversion rates, and revenue from a single dashboard.',
-    size: 'sm',
-    accent: '#6C5CE7',
-    visual: 'analytics',
-  },
-  {
-    icon: Clock,
-    title: '0 Messages Missed',
-    desc: 'Every customer gets a reply — even at 3am. Never lose a sale to slow response times again.',
-    size: 'lg',
-    accent: '#00D1B2',
-    visual: 'clock',
-  },
+// Fixed visual/icon/size/accent metadata — not editable, only text is editable
+const CARD_META = [
+  { icon: MessageSquare, size: 'lg', accent: '#6C5CE7', visual: 'chat' },
+  { icon: Package, size: 'sm', accent: '#00D1B2', visual: 'products' },
+  { icon: ShoppingCart, size: 'sm', accent: '#e040fb', visual: 'orders' },
+  { icon: Shield, size: 'md', accent: '#6C5CE7', visual: 'negotiation' },
+  { icon: Zap, size: 'md', accent: '#00D1B2', visual: 'speed' },
+  { icon: Bot, size: 'sm', accent: '#e040fb', visual: 'bot' },
+  { icon: TrendingUp, size: 'sm', accent: '#6C5CE7', visual: 'analytics' },
+  { icon: Clock, size: 'lg', accent: '#00D1B2', visual: 'clock' },
 ]
 
 const BAR_DATA = [40, 65, 45, 80, 55, 90, 70]
@@ -132,7 +79,8 @@ function MiniVisual({ visual, accent }: { visual: string; accent: string }) {
   return null
 }
 
-function BentoCard({ card, index }: { card: typeof CARDS[0]; index: number }) {
+interface MergedCard { icon: typeof MessageSquare; title: string; desc: string; size: string; accent: string; visual: string }
+function BentoCard({ card, index }: { card: MergedCard; index: number }) {
   const Icon = card.icon
   const cardRef = useRef<HTMLDivElement>(null)
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 })
@@ -188,7 +136,15 @@ function BentoCard({ card, index }: { card: typeof CARDS[0]; index: number }) {
   )
 }
 
-export function BentoGrid() {
+interface BentoGridProps { content?: BentoContent }
+
+export function BentoGrid({ content = DEFAULT_CONTENT.bento }: BentoGridProps) {
+  const CARDS: MergedCard[] = content.cards.map((c, i) => ({
+    ...CARD_META[i % CARD_META.length],
+    title: c.title,
+    desc: c.desc,
+  }))
+
   return (
     <section id="features" className="px-6 py-24 max-w-6xl mx-auto">
       <div className="text-center mb-14">
@@ -198,20 +154,20 @@ export function BentoGrid() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">Features</p>
+          <p className="text-[var(--ava-purple-light)] text-sm font-medium uppercase tracking-widest mb-4">{content.sectionLabel}</p>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 text-balance">
-            Everything you need to{' '}
-            <span className="text-gradient">automate sales</span>
+            {content.headline}{' '}
+            <span className="text-gradient">{content.headlineAccent}</span>
           </h2>
           <p className="text-[var(--ava-text-muted)] text-lg max-w-xl mx-auto text-pretty">
-            One platform. Your AI agent, your products, your orders — all in one place.
+            {content.subheadline}
           </p>
         </motion.div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {CARDS.map((card, i) => (
-          <BentoCard key={card.title} card={card} index={i} />
+          <BentoCard key={card.title + i} card={card} index={i} />
         ))}
       </div>
     </section>
