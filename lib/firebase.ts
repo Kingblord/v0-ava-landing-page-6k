@@ -1,5 +1,11 @@
 import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import {
+  initializeFirestore,
+  getFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,4 +17,20 @@ const firebaseConfig = {
 }
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
-export const db = getFirestore(app)
+
+// Use persistent cache so Firestore works offline and avoids "client is offline" errors.
+// Only initialise once — if already initialised, fall back to getFirestore().
+export const db = (() => {
+  try {
+    return initializeFirestore(app, {
+      cache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    })
+  } catch {
+    // Already initialised — return existing instance
+    return getFirestore(app)
+  }
+})()
+
+export const auth = getAuth(app)

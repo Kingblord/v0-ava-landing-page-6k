@@ -310,18 +310,24 @@ export const DEFAULT_CONTENT: SiteContent = {
 
 const COLLECTION = 'landingContent'
 
-/** Fetch one section. If it doesn't exist yet, write the default and return it. */
+/** Fetch one section. If it doesn't exist yet, write the default and return it.
+ *  Falls back to DEFAULT_CONTENT silently if Firestore is unreachable. */
 export async function getSection<K extends keyof SiteContent>(
   section: K,
 ): Promise<SiteContent[K]> {
-  const ref = doc(db, COLLECTION, section)
-  const snap = await getDoc(ref)
-  if (snap.exists()) {
-    return snap.data() as SiteContent[K]
+  try {
+    const ref = doc(db, COLLECTION, section)
+    const snap = await getDoc(ref)
+    if (snap.exists()) {
+      return snap.data() as SiteContent[K]
+    }
+    // Document doesn't exist yet — try to initialise it, but don't block on failure
+    setDoc(ref, DEFAULT_CONTENT[section] as object).catch(() => {})
+    return DEFAULT_CONTENT[section]
+  } catch {
+    // Firestore offline or misconfigured — return hardcoded defaults silently
+    return DEFAULT_CONTENT[section]
   }
-  // Auto-initialise with default content
-  await setDoc(ref, DEFAULT_CONTENT[section] as object)
-  return DEFAULT_CONTENT[section]
 }
 
 /** Overwrite one section in Firestore. */
