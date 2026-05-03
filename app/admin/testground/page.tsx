@@ -2,18 +2,25 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { runAI } from '@/lib/ai'
+import { getMainWebhookUrl, getTestgroundWebhookUrl } from '@/lib/webhook-utils'
 import type { Product, Message, ConversationState } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
-import { Send, Plus, Trash2, Settings2 } from 'lucide-react'
+import { Send, Plus, Trash2, Settings2, Copy, Check } from 'lucide-react'
 
 const DEFAULT_BUSINESS = {
   name: 'Test Store',
   aiPersonality: 'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.',
 }
+
+const AI_MODELS = [
+  { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini (Fast)' },
+  { id: 'openai/gpt-4-turbo', label: 'GPT-4 Turbo (Powerful)' },
+  { id: 'anthropic/claude-opus-4.6', label: 'Claude Opus 4.6' },
+]
 
 interface TestMessage extends Message {
   role: 'user' | 'assistant'
@@ -41,7 +48,10 @@ export default function TestgroundPage() {
   const [messageInput, setMessageInput] = useState('')
   const [aiProcessing, setAiProcessing] = useState(false)
   const [conversationState, setConversationState] = useState<ConversationState>('browsing')
+  const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini')
   const [showProductForm, setShowProductForm] = useState(false)
+  const [showWebhookUrls, setShowWebhookUrls] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState<'main' | 'testground' | null>(null)
   const [newProduct, setNewProduct] = useState<Partial<TestProduct>>({
     name: '',
     description: '',
@@ -53,6 +63,18 @@ export default function TestgroundPage() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  async function copyWebhookUrl(type: 'main' | 'testground') {
+    const url = type === 'main' ? getMainWebhookUrl() : getTestgroundWebhookUrl()
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedUrl(type)
+      toast.success(`${type === 'main' ? 'Main' : 'Testground'} webhook URL copied!`)
+      setTimeout(() => setCopiedUrl(null), 2000)
+    } catch {
+      toast.error('Failed to copy URL')
+    }
   }
 
   useEffect(() => {
@@ -81,6 +103,7 @@ export default function TestgroundPage() {
         conversationHistory: updatedHistory.slice(0, -1),
         conversationState,
         businessConfig: business,
+        model: selectedModel, // Use selected model for testground
       })
 
       // Add assistant message
@@ -165,6 +188,21 @@ export default function TestgroundPage() {
             </div>
 
             <div>
+              <label className="text-[#8892a4] text-xs font-medium">AI Model</label>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="mt-1 w-full bg-[#0d1120] border border-[#6C5CE7]/20 text-white text-xs p-2 rounded-lg focus:border-[#6C5CE7]/60 focus:outline-none"
+              >
+                {AI_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label className="text-[#8892a4] text-xs font-medium">Conversation State</label>
               <select
                 value={conversationState}
@@ -177,6 +215,59 @@ export default function TestgroundPage() {
               </select>
             </div>
           </div>
+        </Card>
+
+        {/* Webhook URLs */}
+        <Card className="bg-[#111827] border-[#6C5CE7]/15 p-4">
+          <button
+            onClick={() => setShowWebhookUrls(!showWebhookUrls)}
+            className="w-full flex items-center justify-between text-sm font-semibold text-white hover:text-[#6C5CE7] transition-colors"
+          >
+            <span>Webhook URLs</span>
+            <span className="text-xs text-[#8892a4]">{showWebhookUrls ? '▼' : '▶'}</span>
+          </button>
+
+          {showWebhookUrls && (
+            <div className="mt-4 space-y-3">
+              <div>
+                <p className="text-[#8892a4] text-xs font-medium mb-2">Main Platform Webhook</p>
+                <div className="flex gap-2">
+                  <code className="flex-1 bg-[#0d1120] border border-[#6C5CE7]/20 p-2 rounded text-[#6C5CE7] text-xs overflow-x-auto break-all">
+                    {getMainWebhookUrl()}
+                  </code>
+                  <button
+                    onClick={() => copyWebhookUrl('main')}
+                    className="flex items-center justify-center w-8 h-8 bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white rounded transition-colors"
+                  >
+                    {copiedUrl === 'main' ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[#8892a4] text-xs font-medium mb-2">Testground Webhook</p>
+                <div className="flex gap-2">
+                  <code className="flex-1 bg-[#0d1120] border border-[#6C5CE7]/20 p-2 rounded text-[#6C5CE7] text-xs overflow-x-auto break-all">
+                    {getTestgroundWebhookUrl()}
+                  </code>
+                  <button
+                    onClick={() => copyWebhookUrl('testground')}
+                    className="flex items-center justify-center w-8 h-8 bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white rounded transition-colors"
+                  >
+                    {copiedUrl === 'testground' ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Test Products */}
