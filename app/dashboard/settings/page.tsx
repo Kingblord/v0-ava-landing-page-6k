@@ -16,8 +16,6 @@ import {
   RotateCcw,
   MessageSquare,
   User,
-  Eye,
-  EyeOff,
   CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,7 +23,7 @@ import { cn } from '@/lib/utils'
 const DEFAULT_PERSONALITY =
   'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.'
 
-type Section = 'profile' | 'business' | 'ai' | 'whatsapp' | 'account'
+type Section = 'profile' | 'business' | 'ai' | 'phone' | 'account'
 
 function SectionCard({
   id,
@@ -76,35 +74,6 @@ function FieldRow({ label, hint, children }: { label: string; hint?: string; chi
   )
 }
 
-function SecretInput({ value, onChange, placeholder, id }: {
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-  id?: string
-}) {
-  const [show, setShow] = useState(false)
-  return (
-    <div className="relative">
-      <Input
-        id={id}
-        type={show ? 'text' : 'password'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 pr-10"
-      />
-      <button
-        type="button"
-        onClick={() => setShow(!show)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8892a4] hover:text-white transition-colors"
-        aria-label={show ? 'Hide' : 'Show'}
-      >
-        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-      </button>
-    </div>
-  )
-}
-
 export default function SettingsPage() {
   const { user, business } = useAuth()
 
@@ -119,11 +88,8 @@ export default function SettingsPage() {
   const [aiPersonality, setAiPersonality] = useState(DEFAULT_PERSONALITY)
   const [openrouterModel, setOpenrouterModel] = useState('openai/gpt-4o-mini')
 
-  // WhatsApp / Twilio
+  // User's phone number for AVA to control conversations
   const [whatsappPhone, setWhatsappPhone] = useState('')
-  const [twilioAccountSid, setTwilioAccountSid] = useState('')
-  const [twilioAuthToken, setTwilioAuthToken] = useState('')
-  const [twilioWhatsappNumber, setTwilioWhatsappNumber] = useState('')
 
   const [activeSection, setActiveSection] = useState<Section>('profile')
   const [saving, setSaving] = useState<Section | null>(null)
@@ -138,9 +104,6 @@ export default function SettingsPage() {
     setAiPersonality(business.aiPersonality ?? DEFAULT_PERSONALITY)
     setOpenrouterModel(business.openrouterModel ?? 'openai/gpt-4o-mini')
     setWhatsappPhone(business.whatsappPhone ?? '')
-    setTwilioAccountSid(business.twilioAccountSid ?? '')
-    setTwilioAuthToken(business.twilioAuthToken ?? '')
-    setTwilioWhatsappNumber(business.twilioWhatsappNumber ?? '')
   }, [business])
 
   async function save(section: Section, data: Record<string, unknown>) {
@@ -338,23 +301,20 @@ export default function SettingsPage() {
           </form>
         </SectionCard>
 
-        {/* ── WhatsApp / Twilio ────────────────────────────── */}
+        {/* ── Link Phone Number ────────────────────────────── */}
         <SectionCard
-          id="whatsapp"
+          id="phone"
           icon={MessageSquare}
-          title="WhatsApp & Twilio"
-          description="Credentials used by AVA to send and receive WhatsApp messages"
-          active={activeSection === 'whatsapp'}
+          title="Link Phone Number"
+          description="The WhatsApp number where customers can reach AVA"
+          active={activeSection === 'phone'}
           onFocus={setActiveSection}
         >
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              save('whatsapp', {
+              save('phone', {
                 whatsappPhone: whatsappPhone.trim(),
-                twilioAccountSid: twilioAccountSid.trim(),
-                twilioAuthToken: twilioAuthToken.trim(),
-                twilioWhatsappNumber: twilioWhatsappNumber.trim(),
               })
             }}
           >
@@ -370,48 +330,12 @@ export default function SettingsPage() {
                   className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
                 />
               </FieldRow>
-
-              <div className="h-px bg-[#6C5CE7]/10" />
               <p className="text-[#8892a4] text-xs">
-                Twilio credentials are required to route messages through AVA. Find these in your{' '}
-                <a
-                  href="https://console.twilio.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#6C5CE7] hover:underline"
-                >
-                  Twilio Console
-                </a>.
+                AVA will use this number to send and receive messages with customers. Twilio configuration is handled by your admin.
               </p>
-
-              <FieldRow label="Twilio Account SID">
-                <SecretInput
-                  value={twilioAccountSid}
-                  onChange={setTwilioAccountSid}
-                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                />
-              </FieldRow>
-              <FieldRow label="Twilio Auth Token">
-                <SecretInput
-                  value={twilioAuthToken}
-                  onChange={setTwilioAuthToken}
-                  placeholder="Your auth token"
-                />
-              </FieldRow>
-              <FieldRow
-                label="Twilio WhatsApp Number"
-                hint="The Twilio sender number, e.g. whatsapp:+14155238886"
-              >
-                <Input
-                  value={twilioWhatsappNumber}
-                  onChange={(e) => setTwilioWhatsappNumber(e.target.value)}
-                  placeholder="whatsapp:+14155238886"
-                  className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
-                />
-              </FieldRow>
             </div>
             <div className="flex justify-end">
-              <SaveButton section="whatsapp" />
+              <SaveButton section="phone" />
             </div>
           </form>
         </SectionCard>
