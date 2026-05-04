@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { getTestgroundProducts, createTestgroundProduct, deleteTestgroundProduct, saveTestgroundConfig } from '@/lib/firestore'
+import { getTestgroundProducts, createTestgroundProduct, deleteTestgroundProduct, saveTestgroundConfig, getTestgroundConversationLogs, deleteTestgroundConversationLog } from '@/lib/firestore'
 import { getMainWebhookUrl, getTestgroundWebhookUrl } from '@/lib/webhook-utils'
-import type { Product } from '@/lib/types'
+import type { Product, TestgroundConversationLog } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -61,10 +61,15 @@ const FALLBACK_PRODUCTS: Product[] = [
 ]
 
 const AI_MODELS = [
-  { id: 'openrouter/free', label: 'OpenRouter Free' },
-  { id: 'openai/gpt-oss-120b:free', label: 'GPT-4o Mini' },
-  { id: 'z-ai/glm-4.5-air:free', label: 'GPT-4 Turbo' },
-  { id: 'openrouter/owl-alpha', label: 'Claude Opus 4.6' },
+
+ { id: 'openrouter/free', label: 'OpenRouter Free' },
+
+ { id: 'openai/gpt-oss-120b:free', label: 'GPT-4o Mini' },
+
+ { id: 'z-ai/glm-4.5-air:free', label: 'GPT-4 Turbo' },
+
+ { id: 'openrouter/owl-alpha', label: 'Claude Opus 4.6' },
+
 ]
 
 export default function TestgroundPage() {
@@ -75,9 +80,12 @@ export default function TestgroundPage() {
   const [selectedModel, setSelectedModel] = useState('openrouter/free')
   const [showProductForm, setShowProductForm] = useState(false)
   const [showWebhookUrls, setShowWebhookUrls] = useState(false)
+  const [showConversationLogs, setShowConversationLogs] = useState(false)
   const [copiedUrl, setCopiedUrl] = useState<'main' | 'testground' | null>(null)
   const [loadingAddProduct, setLoadingAddProduct] = useState(false)
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
+  const [conversationLogs, setConversationLogs] = useState<TestgroundConversationLog[]>([])
+  const [loadingLogs, setLoadingLogs] = useState(false)
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     description: '',
@@ -127,6 +135,37 @@ export default function TestgroundPage() {
     }
     saveConfig()
   }, [user, products, business.name, business.aiPersonality, selectedModel])
+
+  // Load conversation logs when showing them
+  async function loadConversationLogs() {
+    if (loadingLogs) return
+    setLoadingLogs(true)
+    try {
+      const logs = await getTestgroundConversationLogs()
+      setConversationLogs(logs)
+    } catch (err) {
+      console.error('[testground] Failed to load conversation logs:', err)
+      toast.error('Failed to load conversation logs')
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
+  const handleShowLogs = () => {
+    setShowConversationLogs(true)
+    loadConversationLogs()
+  }
+
+  async function deleteConversationLog(logId: string) {
+    try {
+      await deleteTestgroundConversationLog(logId)
+      setConversationLogs(logs => logs.filter(l => l.id !== logId))
+      toast.success('Conversation log deleted')
+    } catch (err) {
+      console.error('[testground] Failed to delete log:', err)
+      toast.error('Failed to delete conversation log')
+    }
+  }
 
   async function copyWebhookUrl(type: 'main' | 'testground') {
     const url = type === 'main' ? getMainWebhookUrl() : getTestgroundWebhookUrl()
@@ -325,6 +364,14 @@ export default function TestgroundPage() {
                 </div>
               )}
             </Card>
+
+            {/* Conversation Logs */}
+            <Button
+              onClick={handleShowLogs}
+              className="w-full bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white text-xs"
+            >
+              View Conversation Logs
+            </Button>
           </div>
 
           {/* Right Panel — Test Products */}
@@ -456,6 +503,86 @@ export default function TestgroundPage() {
             </Card>
           </div>
         </div>
+
+        {/* Conversation Logs Modal */}
+        {showConversationLogs && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="bg-[#111827] border-[#6C5CE7]/15 w-full max-w-3xl max-h-[90vh] overflow-auto flex flex-col">
+              <div className="sticky top-0 bg-[#111827] border-b border-[#6C5CE7]/15 p-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Conversation Logs</h3>
+                <button
+                  onClick={() => setShowConversationLogs(false)}
+                  className="text-[#8892a4] hover:text-white transition-colors text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-4">
+                {loadingLogs ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Spinner className="w-5 h-5 mr-2" />
+                    <span className="text-[#8892a4] text-sm">Loading conversation logs...</span>
+                  </div>
+                ) : conversationLogs.length === 0 ? (
+                  <div className="text-center py-8 text-[#8892a4] text-sm">
+                    No conversation logs yet. Send messages to the testground webhook to see them here.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {conversationLogs.map((log) => (
+                      <Card key={log.id} className="bg-[#0d1120] border-[#6C5CE7]/15 p-3 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-[#8892a4] mb-1">
+                              <strong>From:</strong> {log.phoneNumber}
+                            </p>
+                            <div className="bg-[#111827] rounded p-2 mb-2">
+                              <p className="text-xs text-white break-words">
+                                <strong className="text-[#6C5CE7]">User:</strong> {log.userMessage}
+                              </p>
+                            </div>
+                            <div className="bg-[#0f1419] rounded p-2 mb-2">
+                              <p className="text-xs text-[#6C5CE7] break-words">
+                                <strong>AI:</strong> {log.aiResponse}
+                              </p>
+                            </div>
+                            {log.orderIntent && (
+                              <div className="bg-[#111827] rounded p-2 mb-2 border-l-2 border-[#6C5CE7]">
+                                <p className="text-xs text-[#6C5CE7]">
+                                  <strong>Order Intent:</strong> {log.orderIntent.productName} @ ${log.orderIntent.amount}
+                                </p>
+                              </div>
+                            )}
+                            <p className="text-xs text-[#8892a4]">
+                              {new Date(log.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => deleteConversationLog(log.id)}
+                            className="text-[#8892a4] hover:text-red-400 transition-colors p-1 flex-shrink-0 ml-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="sticky bottom-0 bg-[#111827] border-t border-[#6C5CE7]/15 p-4">
+                <Button
+                  onClick={() => setShowConversationLogs(false)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Close
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   )
