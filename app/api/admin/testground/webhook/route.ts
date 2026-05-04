@@ -5,7 +5,10 @@ import { runAI } from '@/lib/ai'
 /**
  * Admin Testground Webhook
  * Receives Twilio sandbox messages and processes through AI using testground config
- *
+ * 
+ * Query params:
+ * - adminId: The admin user ID (to load testground config + products from Firestore)
+ * 
  * Twilio sends (urlencoded):
  * - From: Sender phone (e.g. whatsapp:+1234567890)
  * - To: Receiver phone (e.g. whatsapp:+14155238886)
@@ -47,6 +50,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Extract admin ID from query params
+    const adminId = request.nextUrl.searchParams.get('adminId')
+    if (!adminId) {
+      console.error('[testground-webhook] Missing adminId parameter')
+      return twimlResponse('Error: Missing adminId parameter')
+    }
+
     // Parse Twilio urlencoded payload
     const bodyText = await request.text()
     const body = parseForm(bodyText)
@@ -61,8 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Load testground config and products from Firestore
-    // Note: adminId is no longer required/used
-    const config = await serverGetTestgroundConfig('')
+    const config = await serverGetTestgroundConfig(adminId)
     console.log('[testground-webhook] Config loaded:', {
       model: config.selectedModel,
       productCount: config.products.length,
@@ -78,7 +87,7 @@ export async function POST(request: NextRequest) {
       businessConfig: {
         name: config.businessName,
         aiPersonality: config.aiPersonality,
-        id: '',
+        id: adminId,
         email: 'admin@testground',
         createdAt: Date.now(),
       },
