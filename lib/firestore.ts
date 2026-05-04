@@ -146,9 +146,18 @@ export async function createTestgroundProduct(
   adminId: string,
   data: Omit<Product, 'id' | 'businessId' | 'createdAt'>,
 ): Promise<Product> {
-  const payload = { ...data, businessId: 'testground', adminId, createdAt: Date.now() }
-  const ref = await addDoc(collection(db, 'admin_testground_products'), payload)
-  return { id: ref.id, ...payload }
+  try {
+    const payload = { ...data, businessId: 'testground', adminId, createdAt: Date.now() }
+    console.log('[firestore] Creating testground product with payload:', payload)
+    
+    const ref = await addDoc(collection(db, 'admin_testground_products'), payload)
+    console.log('[firestore] Product created with ID:', ref.id)
+    
+    return { id: ref.id, ...payload }
+  } catch (error) {
+    console.error('[firestore] Failed to create testground product:', error)
+    throw new Error(`Failed to save product: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }
 
 export async function updateTestgroundProduct(
@@ -190,7 +199,7 @@ export async function getTestgroundConfig(adminId: string): Promise<TestgroundCo
       products: [],
       businessName: 'Test Store',
       aiPersonality: 'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.',
-      selectedModel: 'openai/gpt-4o-mini',
+      selectedModel: 'openrouter/free',
     }
   }
   return snap.data() as TestgroundConfig
