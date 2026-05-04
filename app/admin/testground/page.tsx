@@ -17,6 +17,49 @@ const DEFAULT_BUSINESS = {
   aiPersonality: 'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.',
 }
 
+const FALLBACK_PRODUCTS: Product[] = [
+  {
+    id: 'iphone-16-pro-max',
+    name: 'iPhone 16 Pro Max',
+    description: '6.9" display, A18 Pro chip, advanced camera system with 5x optical zoom, titanium design',
+    price: 1199,
+    minPrice: 1000,
+    businessId: 'testground',
+    negotiationEnabled: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'iphone-16-pro',
+    name: 'iPhone 16 Pro',
+    description: '6.3" display, A18 Pro chip, dual camera system, titanium design with action button',
+    price: 999,
+    minPrice: 850,
+    businessId: 'testground',
+    negotiationEnabled: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'iphone-16',
+    name: 'iPhone 16',
+    description: '6.1" display, A18 chip, dual rear cameras, all-day battery life',
+    price: 799,
+    minPrice: 699,
+    businessId: 'testground',
+    negotiationEnabled: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'iphone-16-plus',
+    name: 'iPhone 16 Plus',
+    description: '6.7" display, A18 chip, extended battery life, dual camera system',
+    price: 899,
+    minPrice: 799,
+    businessId: 'testground',
+    negotiationEnabled: true,
+    createdAt: Date.now(),
+  },
+]
+
 const AI_MODELS = [
   { id: 'openrouter/free', label: 'OpenRouter Free' },
   { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini' },
@@ -49,10 +92,17 @@ export default function TestgroundPage() {
     async function load() {
       try {
         const prods = await getTestgroundProducts(user.uid)
-        setProducts(prods)
+        if (prods && prods.length > 0) {
+          setProducts(prods)
+        } else {
+          console.log('[testground] No products in database, using fallback iPhone products')
+          setProducts(FALLBACK_PRODUCTS)
+        }
       } catch (err) {
-        console.error('[testground] Failed to load products:', err)
-        toast.error('Failed to load test products')
+        console.error('[testground] Failed to load products from database:', err)
+        console.log('[testground] Using fallback iPhone products instead')
+        setProducts(FALLBACK_PRODUCTS)
+        toast.error('Could not connect to database. Using sample products.')
       } finally {
         setLoadingProducts(false)
       }
