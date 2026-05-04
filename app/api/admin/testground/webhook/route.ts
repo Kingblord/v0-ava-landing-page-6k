@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAI } from '@/lib/ai'
-import { getTestgroundConfig, getTestgroundProducts } from '@/lib/firestore'
+import { getTestgroundConfig, getTestgroundProducts, saveTestgroundConversationLog } from '@/lib/firestore'
 import type { Product } from '@/lib/types'
 
 /**
@@ -165,6 +165,15 @@ export async function POST(request: NextRequest) {
       hasOrderIntent: !!aiOutput.orderIntent,
       replyLength: aiOutput.reply.length,
     })
+
+    // Save conversation log to Firestore for inspection
+    await saveTestgroundConversationLog(
+      from,
+      userMessage,
+      aiOutput.reply,
+      aiOutput.newState,
+      aiOutput.orderIntent,
+    )
 
     // Return only the reply text in TwiML
     return twimlResponse(aiOutput.reply)
