@@ -116,6 +116,7 @@ export default function TestgroundPage() {
 
     setLoadingAddProduct(true)
     try {
+      console.log('[testground] Adding product:', { name: newProduct.name, price: newProduct.price })
       const created = await createTestgroundProduct(user.uid, {
         name: newProduct.name.trim(),
         description: newProduct.description.trim(),
@@ -123,13 +124,15 @@ export default function TestgroundPage() {
         minPrice: newProduct.minPrice,
         negotiationEnabled: newProduct.negotiationEnabled ?? false,
       })
-      setProducts([...products, created])
+      console.log('[testground] Product created successfully:', created)
+      setProducts(prev => [...prev, created])
       setNewProduct({ name: '', description: '', price: 0, minPrice: 0, negotiationEnabled: false })
       setShowProductForm(false)
-      toast.success('Test product added')
+      toast.success('Test product added successfully!')
     } catch (err) {
       console.error('[testground] Failed to add product:', err)
-      toast.error('Failed to add product')
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      toast.error(`Failed to add product: ${errorMsg}`)
     } finally {
       setLoadingAddProduct(false)
     }
