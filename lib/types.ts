@@ -51,3 +51,17 @@ export interface Conversation {
   state: ConversationState
   lastActiveAt: number
 }
+
+export interface TestgroundConversationLog {
+  id: string
+  phoneNumber: string
+  userMessage: string
+  aiResponse: string
+  aiState: ConversationState
+  orderIntent?: {
+    productId: string
+    productName: string
+    amount: number
+  }
+  createdAt: number
+}
