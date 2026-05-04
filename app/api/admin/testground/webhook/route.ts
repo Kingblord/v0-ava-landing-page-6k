@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { serverGetTestgroundConfig } from '@/lib/firebase-server'
 import { runAI } from '@/lib/ai'
+import { getTestgroundConfig, getTestgroundProducts } from '@/lib/firestore'
 
 /**
  * Admin Testground Webhook
@@ -50,19 +50,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Extract admin ID from query params
-    const adminId = request.nextUrl.searchParams.get('adminId')
-    if (!adminId) {
-      console.error('[testground-webhook] Missing adminId parameter')
-      return twimlResponse('Error: Missing adminId parameter')
-    }
-
     // Parse Twilio urlencoded payload
     const bodyText = await request.text()
     const body = parseForm(bodyText)
 
     const userMessage = (body.Body || body.body || '').trim()
     const from = body.From || body.from || 'unknown'
+    const adminId = body.adminId || body.admin_id
 
     console.log('[testground-webhook] Message from', from, ':', userMessage)
 
@@ -70,24 +64,43 @@ export async function POST(request: NextRequest) {
       return twimlResponse('Please provide a message.')
     }
 
-    // Load testground config and products from Firestore
-    const config = await serverGetTestgroundConfig(adminId)
-    console.log('[testground-webhook] Config loaded:', {
+    // Load testground config and products
+    let config, products
+    
+    if (adminId) {
+      // If adminId provided, load that specific admin's config
+      try {
+        [config, products] = await Promise.all([
+          getTestgroundConfig(adminId),
+          getTestgroundProducts(adminId),
+        ])
+      } catch (err) {
+        console.warn('[testground-webhook] Failed to load admin config, using defaults:', err)
+        config = await getTestgroundConfig('default')
+        products = []
+      }
+    } else {
+      // No adminId provided - use default testground config
+      config = await getTestgroundConfig('default')
+      products = []
+    }
+
+    console.log('[testground-webhook] Using config:', {
       model: config.selectedModel,
-      productCount: config.products.length,
+      productCount: products.length,
       businessName: config.businessName,
     })
 
     // Process through AI with loaded config
     const aiOutput = await runAI({
       message: userMessage,
-      products: config.products,
+      products,
       conversationHistory: [],
       conversationState: 'browsing',
       businessConfig: {
         name: config.businessName,
         aiPersonality: config.aiPersonality,
-        id: adminId,
+        id: 'testground',
         email: 'admin@testground',
         createdAt: Date.now(),
       },
@@ -103,7 +116,6 @@ export async function POST(request: NextRequest) {
     return twimlResponse(aiOutput.reply)
   } catch (error) {
     console.error('[testground-webhook] Error:', error)
-    const msg = error instanceof Error ? error.message : 'Unknown error occurred'
-    return twimlResponse(`Error: ${msg}`)
+    return twimlResponse(`I&apos;m having trouble right now. Please try again in a moment.`)
   }
 }
