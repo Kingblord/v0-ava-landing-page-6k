@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { serverGetTestgroundConfig } from '@/lib/firebase-server'
 import { runAI } from '@/lib/ai'
-import type { Product, Message, ConversationState } from '@/lib/types'
 
 /**
  * Admin Testground Webhook
- * Allows admins to test AI responses using dynamically selected models
- * and temporary test products without hitting the real business database.
+ * Receives Twilio sandbox messages and processes through AI using testground config
+ * 
+ * Query params:
+ * - adminId: The admin user ID (to load testground config + products from Firestore)
+ * 
+ * Twilio sends (urlencoded):
+ * - From: Sender phone (e.g. whatsapp:+1234567890)
+ * - To: Receiver phone (e.g. whatsapp:+14155238886)
+ * - Body: Message text
  */
-
-function parseTwilioBody(text: string): Record<string, string> {
-  const result: Record<string, string> = {}
-  for (const pair of text.split('&')) {
-    const [key, ...rest] = pair.split('=')
-    result[decodeURIComponent(key)] = decodeURIComponent(rest.join('=').replace(/\+/g, ' '))
-  }
-  return result
-}
 
 function twimlResponse(message: string): NextResponse {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -30,55 +28,50 @@ function twimlResponse(message: string): NextResponse {
 
 export async function POST(request: NextRequest) {
   try {
-    const bodyText = await request.text()
-    const body = parseTwilioBody(bodyText)
+    // Extract admin ID from query params
+    const adminId = request.nextUrl.searchParams.get('adminId')
+    if (!adminId) {
+      return twimlResponse('Error: Missing adminId parameter')
+    }
 
-    const incomingMessage = body['Body']?.trim()
-    const model = body['model']?.trim() || 'openai/gpt-4o-mini'
-    const productsJson = body['products']?.trim() || '[]'
-    const businessName = body['businessName']?.trim() || 'Test Store'
-    const aiPersonality = body['aiPersonality']?.trim() || 'You are a friendly sales agent.'
-    const conversationStateStr = body['conversationState']?.trim() || 'browsing'
-    const messagesJson = body['messages']?.trim() || '[]'
+    // Parse Twilio urlencoded payload
+    const formData = await request.formData()
+    const incomingMessage = formData.get('Body') as string
+    const from = formData.get('From') as string
 
     if (!incomingMessage) {
       return twimlResponse('Please provide a message.')
     }
 
-    let products: Product[] = []
-    let messages: Message[] = []
-    let conversationState: ConversationState = 'browsing'
+    console.log('[testground-webhook] Received message from', from, ':', incomingMessage)
 
-    try {
-      products = JSON.parse(productsJson)
-      messages = JSON.parse(messagesJson)
-      conversationState = conversationStateStr as ConversationState
-    } catch {
-      return twimlResponse('Invalid JSON in request parameters.')
-    }
+    // Load testground config and products from Firestore
+    const config = await serverGetTestgroundConfig(adminId)
+    console.log('[testground-webhook] Config loaded:', { model: config.selectedModel, productCount: config.products.length })
 
-    // Build conversation history
-    const history: Message[] = [
-      ...messages,
-      { role: 'user', content: incomingMessage, timestamp: Date.now() },
-    ]
-
-    // Run AI with specified model and convert products to Message format
-    const aiResponse = await runAI({
+    // Process through AI with loaded config
+    const aiOutput = await runAI({
       message: incomingMessage,
-      products,
-      conversationHistory: history,
-      conversationState,
+      products: config.products,
+      conversationHistory: [],
+      conversationState: 'browsing',
       businessConfig: {
-        name: businessName,
-        aiPersonality: aiPersonality,
+        name: config.businessName,
+        aiPersonality: config.aiPersonality,
+        id: adminId,
+        email: 'admin@testground',
+        createdAt: Date.now(),
       },
-      model, // Pass the selected model
+      model: config.selectedModel,
     })
 
-    return twimlResponse(aiResponse)
+    console.log('[testground-webhook] AI response generated, orderIntent:', !!aiOutput.orderIntent)
+
+    // Return only the reply text in TwiML
+    return twimlResponse(aiOutput.reply)
   } catch (error) {
     console.error('[testground-webhook] Error:', error)
-    return twimlResponse('An error occurred. Please try again.')
+    const msg = error instanceof Error ? error.message : 'Unknown error'
+    return twimlResponse(`Error: ${msg}`)
   }
 }

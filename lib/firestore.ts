@@ -165,3 +165,33 @@ export async function deleteTestgroundProduct(
 ): Promise<void> {
   await deleteDoc(doc(db, 'admin_testground_products', productId))
 }
+
+// ─── Testground Config ────────────────────────────────────────────────────────
+// Saves admin testground configuration (model, AI personality, business name) for webhook access
+
+export interface TestgroundConfig {
+  products: Product[]
+  businessName: string
+  aiPersonality: string
+  selectedModel: string
+}
+
+export async function saveTestgroundConfig(
+  adminId: string,
+  config: TestgroundConfig,
+): Promise<void> {
+  await setDoc(doc(db, 'admin_testground_config', adminId), config, { merge: true })
+}
+
+export async function getTestgroundConfig(adminId: string): Promise<TestgroundConfig> {
+  const snap = await getDoc(doc(db, 'admin_testground_config', adminId))
+  if (!snap.exists()) {
+    return {
+      products: [],
+      businessName: 'Test Store',
+      aiPersonality: 'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.',
+      selectedModel: 'openai/gpt-4o-mini',
+    }
+  }
+  return snap.data() as TestgroundConfig
+}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { runAI } from '@/lib/ai'
-import { getTestgroundProducts, createTestgroundProduct, deleteTestgroundProduct } from '@/lib/firestore'
+import { getTestgroundProducts, createTestgroundProduct, deleteTestgroundProduct, saveTestgroundConfig } from '@/lib/firestore'
 import { getMainWebhookUrl, getTestgroundWebhookUrl } from '@/lib/webhook-utils'
 import type { Product, Message, ConversationState } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -68,6 +68,25 @@ export default function TestgroundPage() {
     load()
   }, [user])
 
+  // Auto-save testground config to Firestore whenever it changes
+  // This ensures the webhook can load the latest products and AI settings
+  useEffect(() => {
+    if (!user || !products.length) return
+    async function saveConfig() {
+      try {
+        await saveTestgroundConfig(user.uid, {
+          products,
+          businessName: business.name,
+          aiPersonality: business.aiPersonality,
+          selectedModel,
+        })
+      } catch (err) {
+        console.error('[testground] Config save error:', err)
+      }
+    }
+    saveConfig()
+  }, [user, products, business.name, business.aiPersonality, selectedModel])
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -95,7 +114,7 @@ export default function TestgroundPage() {
     setMessageInput('')
 
     // Add user message to history
-    const updatedHistory: TestMessage[] = [
+    const updatedHistory: Message[] = [
       ...conversationHistory,
       { role: 'user', content: userMessage, timestamp: Date.now() },
     ]

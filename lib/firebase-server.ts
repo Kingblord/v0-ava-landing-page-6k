@@ -107,3 +107,36 @@ export async function serverGetConversations(businessId: string): Promise<Conver
   )
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Conversation))
 }
+
+// ═════════════════════════════════════════════════════════════════════
+// Testground Config — Admin testing products and AI configuration
+// ═════════════════════════════════════════════════════════════════════
+
+export interface TestgroundConfig {
+  products: Product[]
+  businessName: string
+  aiPersonality: string
+  selectedModel: string
+}
+
+export async function serverSaveTestgroundConfig(
+  adminId: string,
+  config: TestgroundConfig,
+): Promise<void> {
+  const db = getDb()
+  await setDoc(doc(db, 'admin_testground_config', adminId), config, { merge: true })
+}
+
+export async function serverGetTestgroundConfig(adminId: string): Promise<TestgroundConfig> {
+  const db = getDb()
+  const snap = await getDoc(doc(db, 'admin_testground_config', adminId))
+  if (!snap.exists()) {
+    return {
+      products: [],
+      businessName: 'Test Store',
+      aiPersonality: 'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.',
+      selectedModel: 'openai/gpt-4o-mini',
+    }
+  }
+  return snap.data() as TestgroundConfig
+}
