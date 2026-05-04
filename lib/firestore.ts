@@ -13,7 +13,7 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase-auth'
-import type { Product, Order, Conversation, Business, Message, ConversationState } from '@/lib/types'
+import type { Product, Order, Conversation, Business, Message, ConversationState, TestgroundConversationLog } from '@/lib/types'
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 
@@ -130,16 +130,45 @@ export async function updateBusiness(
 
 // ─── Testground Products ──────────────────────────────────────────────────────
 // Temporary test products for admin testing - stored at admin_testground_products collection
+// Falls back to local storage if Firebase is not configured
+
+function isFirebaseConfigured(): boolean {
+  return !!(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && process.env.NEXT_PUBLIC_FIREBASE_API_KEY)
+}
+
+function getLocalTestgroundProducts(): Product[] {
+  if (typeof window === 'undefined') return []
+  try {
+    return JSON.parse(localStorage.getItem('testground_products') || '[]')
+  } catch {
+    return []
+  }
+}
+
+function saveLocalTestgroundProducts(products: Product[]): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem('testground_products', JSON.stringify(products))
+}
 
 export async function getTestgroundProducts(adminId: string): Promise<Product[]> {
-  const snap = await getDocs(
-    query(
-      collection(db, 'admin_testground_products'),
-      where('adminId', '==', adminId),
-      orderBy('createdAt', 'desc'),
-    ),
-  )
-  return snap.docs.map((d) => ({ id: d.id, businessId: 'testground', ...d.data() } as Product))
+  try {
+    if (!isFirebaseConfigured()) {
+      console.log('[firestore] Firebase not configured, loading testground products from local storage')
+      return getLocalTestgroundProducts()
+    }
+
+    const snap = await getDocs(
+      query(
+        collection(db, 'admin_testground_products'),
+        where('adminId', '==', adminId),
+        orderBy('createdAt', 'desc'),
+      ),
+    )
+    return snap.docs.map((d) => ({ id: d.id, businessId: 'testground', ...d.data() } as Product))
+  } catch (error) {
+    console.warn('[firestore] Failed to load testground products from Firebase, falling back to local storage:', error)
+    return getLocalTestgroundProducts()
+  }
 }
 
 export async function createTestgroundProduct(
@@ -147,6 +176,11 @@ export async function createTestgroundProduct(
   data: Omit<Product, 'id' | 'businessId' | 'createdAt'>,
 ): Promise<Product> {
   try {
+    if (!isFirebaseConfigured()) {
+      console.log('[firestore] Firebase not configured, saving testground product to local storage')
+      return saveTestgroundProductLocal(data)
+    }
+
     const payload = { ...data, businessId: 'testground', adminId, createdAt: Date.now() }
     console.log('[firestore] Creating testground product with payload:', payload)
     
@@ -155,9 +189,19 @@ export async function createTestgroundProduct(
     
     return { id: ref.id, ...payload }
   } catch (error) {
-    console.error('[firestore] Failed to create testground product:', error)
-    throw new Error(`Failed to save product: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    console.warn('[firestore] Failed to create testground product in Firebase, falling back to local storage:', error)
+    return saveTestgroundProductLocal(data)
   }
+}
+
+function saveTestgroundProductLocal(data: Omit<Product, 'id' | 'businessId' | 'createdAt'>): Product {
+  const id = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const product: Product = { id, ...data, businessId: 'testground', createdAt: Date.now() }
+  const products = getLocalTestgroundProducts()
+  products.unshift(product)
+  saveLocalTestgroundProducts(products)
+  console.log('[firestore] Product saved to local storage:', product)
+  return product
 }
 
 export async function updateTestgroundProduct(
@@ -199,8 +243,70 @@ export async function getTestgroundConfig(adminId: string): Promise<TestgroundCo
       products: [],
       businessName: 'Test Store',
       aiPersonality: 'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.',
-      selectedModel: 'openrouter/free',
+      selectedModel: 'openai/gpt-4o-mini',
     }
   }
   return snap.data() as TestgroundConfig
+}
+
+// ─── Testground Conversation Logs ────────────────────────────────────────────
+// Stores all WhatsApp messages and AI responses for inspection
+
+export async function saveTestgroundConversationLog(
+  phoneNumber: string,
+  userMessage: string,
+  aiResponse: string,
+  aiState: ConversationState,
+  orderIntent?: { productId: string; productName: string; amount: number },
+): Promise<void> {
+  try {
+    if (!isFirebaseConfigured()) {
+      console.log('[firestore] Firebase not configured, skipping conversation log save')
+      return
+    }
+
+    const logEntry = {
+      phoneNumber,
+      userMessage,
+      aiResponse,
+      aiState,
+      orderIntent,
+      createdAt: Date.now(),
+    }
+
+    await addDoc(collection(db, 'admin_testground_logs'), logEntry)
+    console.log('[firestore] Conversation log saved for', phoneNumber)
+  } catch (error) {
+    console.warn('[firestore] Failed to save conversation log:', error)
+    // Don't throw - conversation should still work even if logging fails
+  }
+}
+
+export async function getTestgroundConversationLogs(): Promise<TestgroundConversationLog[]> {
+  try {
+    if (!isFirebaseConfigured()) {
+      console.log('[firestore] Firebase not configured, returning empty logs')
+      return []
+    }
+
+    const snap = await getDocs(
+      query(
+        collection(db, 'admin_testground_logs'),
+        orderBy('createdAt', 'desc'),
+      ),
+    )
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as TestgroundConversationLog))
+  } catch (error) {
+    console.warn('[firestore] Failed to load conversation logs:', error)
+    return []
+  }
+}
+
+export async function deleteTestgroundConversationLog(logId: string): Promise<void> {
+  try {
+    if (!isFirebaseConfigured()) return
+    await deleteDoc(doc(db, 'admin_testground_logs', logId))
+  } catch (error) {
+    console.warn('[firestore] Failed to delete conversation log:', error)
+  }
 }
