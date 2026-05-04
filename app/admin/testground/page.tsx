@@ -25,7 +25,7 @@ const AI_MODELS = [
 ]
 
 export default function TestgroundPage() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [business, setBusiness] = useState(DEFAULT_BUSINESS)
@@ -150,8 +150,25 @@ export default function TestgroundPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Spinner className="w-6 h-6" />
+      </div>
+    )
+  }
+
   if (!user) {
-    return <div className="flex items-center justify-center h-screen text-white">Please sign in</div>
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-white mb-4">Please sign in to access testground</p>
+          <Button onClick={() => window.location.href = '/auth/login'}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
