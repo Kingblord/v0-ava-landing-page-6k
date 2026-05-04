@@ -62,9 +62,9 @@ const FALLBACK_PRODUCTS: Product[] = [
 
 const AI_MODELS = [
   { id: 'openrouter/free', label: 'OpenRouter Free' },
-  { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini' },
-  { id: 'openai/gpt-4-turbo', label: 'GPT-4 Turbo' },
-  { id: 'anthropic/claude-opus-4.6', label: 'Claude Opus 4.6' },
+  { id: 'openai/gpt-oss-120b:free', label: 'GPT-4o Mini' },
+  { id: 'z-ai/glm-4.5-air:free', label: 'GPT-4 Turbo' },
+  { id: 'openrouter/owl-alpha', label: 'Claude Opus 4.6' },
 ]
 
 export default function TestgroundPage() {
