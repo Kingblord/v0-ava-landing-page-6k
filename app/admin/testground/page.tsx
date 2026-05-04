@@ -117,15 +117,23 @@ export default function TestgroundPage() {
     setLoadingAddProduct(true)
     try {
       console.log('[testground] Adding product:', { name: newProduct.name, price: newProduct.price })
-      const created = await createTestgroundProduct(user.uid, {
+      
+      // Create a timeout promise that rejects after 10 seconds
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out - Firebase may not be configured')), 10000)
+      )
+      
+      const productPromise = createTestgroundProduct(user.uid, {
         name: newProduct.name.trim(),
         description: newProduct.description.trim(),
         price: newProduct.price,
         minPrice: newProduct.minPrice,
         negotiationEnabled: newProduct.negotiationEnabled ?? false,
       })
+      
+      const created = await Promise.race([productPromise, timeoutPromise])
       console.log('[testground] Product created successfully:', created)
-      setProducts(prev => [...prev, created])
+      setProducts(prev => [...prev, created as typeof created])
       setNewProduct({ name: '', description: '', price: 0, minPrice: 0, negotiationEnabled: false })
       setShowProductForm(false)
       toast.success('Test product added successfully!')
