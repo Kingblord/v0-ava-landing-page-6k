@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAI } from '@/lib/ai'
 import { getTestgroundConfig, getTestgroundProducts } from '@/lib/firestore'
+import type { Product } from '@/lib/types'
 
 /**
  * Admin Testground Webhook
@@ -14,6 +15,49 @@ import { getTestgroundConfig, getTestgroundProducts } from '@/lib/firestore'
  * - To: Receiver phone (e.g. whatsapp:+14155238886)
  * - Body: Message text
  */
+
+const FALLBACK_PRODUCTS: Product[] = [
+  {
+    id: 'iphone-16-pro-max',
+    name: 'iPhone 16 Pro Max',
+    description: '6.9" display, A18 Pro chip, advanced camera system with 5x optical zoom, titanium design',
+    price: 1199,
+    minPrice: 1000,
+    businessId: 'testground',
+    negotiationEnabled: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'iphone-16-pro',
+    name: 'iPhone 16 Pro',
+    description: '6.3" display, A18 Pro chip, dual camera system, titanium design with action button',
+    price: 999,
+    minPrice: 850,
+    businessId: 'testground',
+    negotiationEnabled: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'iphone-16',
+    name: 'iPhone 16',
+    description: '6.1" display, A18 chip, dual rear cameras, all-day battery life',
+    price: 799,
+    minPrice: 699,
+    businessId: 'testground',
+    negotiationEnabled: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'iphone-16-plus',
+    name: 'iPhone 16 Plus',
+    description: '6.7" display, A18 chip, extended battery life, dual camera system',
+    price: 899,
+    minPrice: 799,
+    businessId: 'testground',
+    negotiationEnabled: true,
+    createdAt: Date.now(),
+  },
+]
 
 function parseForm(body: string): Record<string, string> {
   const params = new URLSearchParams(body)
@@ -64,25 +108,35 @@ export async function POST(request: NextRequest) {
       return twimlResponse('Please provide a message.')
     }
 
-    // Load testground config and products
+    // Load testground config and products with fallback
     let config, products
-    
-    if (adminId) {
-      // If adminId provided, load that specific admin's config
-      try {
+
+    try {
+      if (adminId) {
+        // If adminId provided, load that specific admin's config
         [config, products] = await Promise.all([
           getTestgroundConfig(adminId),
           getTestgroundProducts(adminId),
         ])
-      } catch (err) {
-        console.warn('[testground-webhook] Failed to load admin config, using defaults:', err)
+      } else {
+        // No adminId provided - use default testground config
         config = await getTestgroundConfig('default')
         products = []
       }
-    } else {
-      // No adminId provided - use default testground config
-      config = await getTestgroundConfig('default')
-      products = []
+
+      // Use fallback products if none loaded from database
+      if (!products || products.length === 0) {
+        console.log('[testground-webhook] No products in database, using fallback iPhone products')
+        products = FALLBACK_PRODUCTS
+      }
+    } catch (err) {
+      console.warn('[testground-webhook] Failed to load config/products, using defaults:', err)
+      config = {
+        selectedModel: 'openai/gpt-4o-mini',
+        businessName: 'Test Store',
+        aiPersonality: 'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision. Be concise, warm, and human.',
+      }
+      products = FALLBACK_PRODUCTS
     }
 
     console.log('[testground-webhook] Using config:', {
