@@ -49,6 +49,9 @@ export default function TestgroundPage() {
     minPrice: 0,
     negotiationEnabled: false,
   })
+  const [loadingAddProduct, setLoadingAddProduct] = useState(false)
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
+  const [sendingMessage, setSendingMessage] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Load testground products from Firestore on mount
@@ -157,16 +160,36 @@ export default function TestgroundPage() {
 
   async function addTestProduct() {
     if (!user) return
-    if (!newProduct.name || !newProduct.description || newProduct.price === undefined) {
-      toast.error('Fill in all fields')
+    
+    // Validate all required fields
+    if (!newProduct.name?.trim()) {
+      toast.error('Product name is required')
       return
     }
+    if (!newProduct.description?.trim()) {
+      toast.error('Product description is required')
+      return
+    }
+    if (newProduct.price === undefined || newProduct.price <= 0) {
+      toast.error('Product price must be greater than 0')
+      return
+    }
+    if (newProduct.minPrice === undefined || newProduct.minPrice <= 0) {
+      toast.error('Minimum price must be greater than 0')
+      return
+    }
+    if (newProduct.minPrice > newProduct.price) {
+      toast.error('Minimum price cannot be greater than price')
+      return
+    }
+
+    setLoadingAddProduct(true)
     try {
       const created = await createTestgroundProduct(user.uid, {
-        name: newProduct.name,
-        description: newProduct.description,
+        name: newProduct.name.trim(),
+        description: newProduct.description.trim(),
         price: newProduct.price,
-        minPrice: newProduct.minPrice ?? newProduct.price,
+        minPrice: newProduct.minPrice,
         negotiationEnabled: newProduct.negotiationEnabled ?? false,
       })
       setProducts([...products, created])
@@ -176,11 +199,14 @@ export default function TestgroundPage() {
     } catch (err) {
       console.error('[testground] Failed to add product:', err)
       toast.error('Failed to add product')
+    } finally {
+      setLoadingAddProduct(false)
     }
   }
 
   async function deleteProduct(id: string) {
     if (!user) return
+    setDeletingProductId(id)
     try {
       await deleteTestgroundProduct(user.uid, id)
       setProducts(products.filter((p) => p.id !== id))
@@ -188,6 +214,8 @@ export default function TestgroundPage() {
     } catch (err) {
       console.error('[testground] Failed to delete product:', err)
       toast.error('Failed to delete product')
+    } finally {
+      setDeletingProductId(null)
     }
   }
 
@@ -361,8 +389,20 @@ export default function TestgroundPage() {
                 />
                 Negotiable
               </label>
-              <Button onClick={addTestProduct} size="sm" className="w-full h-7 text-xs">
-                Add Product
+              <Button 
+                onClick={addTestProduct} 
+                size="sm" 
+                className="w-full h-7 text-xs flex items-center justify-center gap-2"
+                disabled={loadingAddProduct}
+              >
+                {loadingAddProduct ? (
+                  <>
+                    <Spinner className="w-3 h-3" />
+                    Adding...
+                  </>
+                ) : (
+                  'Add Product'
+                )}
               </Button>
             </div>
           )}
@@ -380,9 +420,14 @@ export default function TestgroundPage() {
                   </div>
                   <button
                     onClick={() => deleteProduct(p.id)}
-                    className="text-[#8892a4] hover:text-red-400 transition-colors p-1"
+                    disabled={deletingProductId === p.id}
+                    className="text-[#8892a4] hover:text-red-400 transition-colors p-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    {deletingProductId === p.id ? (
+                      <Spinner className="w-3 h-3" />
+                    ) : (
+                      <Trash2 className="w-3 h-3" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -456,9 +501,13 @@ export default function TestgroundPage() {
             <Button
               onClick={handleSendMessage}
               disabled={aiProcessing || !messageInput.trim()}
-              className="bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white"
+              className="bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white flex items-center justify-center gap-2 min-w-10"
             >
-              <Send className="w-4 h-4" />
+              {aiProcessing ? (
+                <Spinner className="w-4 h-4" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
             </Button>
           </div>
         </Card>
