@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDistanceToNow } from 'date-fns'
-import { MessageCircle, Zap, RefreshCw, AlertCircle } from 'lucide-react'
+import { MessageCircle, Zap, RefreshCw, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
 
 interface ActivityItem {
   id: string
@@ -16,16 +16,16 @@ interface ConversationActivityPanelProps {
   loading?: boolean
 }
 
-function getActivityIcon(type: ActivityItem['type']) {
+function getActivityIcon(type: ActivityItem['type']): React.ElementType {
   const icons: Record<ActivityItem['type'], React.ElementType> = {
     message: MessageCircle,
     ai_reply: Zap,
     reconnect: RefreshCw,
-    connected: MessageCircle,
-    disconnected: AlertCircle,
+    connected: CheckCircle,
+    disconnected: XCircle,
     error: AlertCircle,
   }
-  return icons[type]
+  return icons[type] || AlertCircle
 }
 
 function getActivityColor(type: ActivityItem['type']) {
