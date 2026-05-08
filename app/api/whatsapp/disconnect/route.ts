@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { WhatsAppService } from '@/lib/whatsapp-service'
 
 /**
  * POST /api/whatsapp/disconnect
@@ -12,11 +13,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    // TODO: Implement Baileys session disconnection
-    // 1. Call WhatsApp gateway service to close session
-    // 2. Delete session credentials from storage
-    // 3. Update Firestore status to disconnected
-    // 4. Clear any reconnection attempts
+    const service = WhatsAppService.getInstance()
+    await service.disconnect(userId)
 
     return NextResponse.json({
       success: true,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { WhatsAppService } from '@/lib/whatsapp-service'
 
 /**
  * GET /api/whatsapp/status
@@ -12,19 +13,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    // TODO: Implement status check
-    // 1. Query Firestore for session document
-    // 2. Check if connection is active
-    // 3. Return current status (connected | connecting | disconnected | reconnecting | qr_pending)
-    // 4. Include phone number if connected
+    const service = WhatsAppService.getInstance()
+    const status = await service.getStatus(userId)
 
-    return NextResponse.json({
-      status: 'disconnected',
-      phoneNumber: undefined,
-      connected: false,
-      lastConnected: undefined,
-      reconnectAttempts: 0,
-    })
+    return NextResponse.json(status)
   } catch (error) {
     console.error('[whatsapp-status] Error:', error)
     return NextResponse.json(

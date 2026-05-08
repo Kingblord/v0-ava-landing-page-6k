@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { WhatsAppService } from '@/lib/whatsapp-service'
 
 /**
  * POST /api/whatsapp/connect
@@ -13,11 +14,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    // TODO: Implement Baileys session creation
-    // 1. Call WhatsApp gateway service to create session
-    // 2. Generate QR code
-    // 3. Store session state in Firestore
-    // 4. Return status
+    const service = WhatsAppService.getInstance()
+    await service.connect(userId)
 
     return NextResponse.json({
       success: true,

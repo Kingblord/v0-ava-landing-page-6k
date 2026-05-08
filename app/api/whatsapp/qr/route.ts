@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { WhatsAppService } from '@/lib/whatsapp-service'
 
 /**
  * GET /api/whatsapp/qr
@@ -12,16 +13,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    // TODO: Implement QR code retrieval
-    // 1. Query WhatsApp gateway service for current QR
-    // 2. Return QR string (not data URL - convert on frontend)
-    // 3. Check if QR is expired (>60 seconds)
-    // 4. Generate new QR if expired
+    const service = WhatsAppService.getInstance()
+    const qrData = await service.getQR(userId)
 
-    return NextResponse.json({
-      qrCode: 'mock-qr-string-for-testing',
-      expiresIn: 60,
-    })
+    return NextResponse.json(qrData)
   } catch (error) {
     console.error('[whatsapp-qr] Error:', error)
     return NextResponse.json(

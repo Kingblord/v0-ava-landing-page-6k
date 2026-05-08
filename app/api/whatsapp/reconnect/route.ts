@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { WhatsAppService } from '@/lib/whatsapp-service'
 
 /**
  * POST /api/whatsapp/reconnect
@@ -12,11 +13,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    // TODO: Implement reconnection logic
-    // 1. Check if session exists and get last credentials
-    // 2. Attempt to restore session with stored auth state
-    // 3. If restoration fails, generate new QR code
-    // 4. Update reconnectAttempts counter in Firestore
+    const service = WhatsAppService.getInstance()
+    await service.reconnect(userId)
 
     return NextResponse.json({
       success: true,
