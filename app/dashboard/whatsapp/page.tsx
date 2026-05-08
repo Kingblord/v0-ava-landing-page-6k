@@ -111,28 +111,33 @@ export default function WhatsAppIntegrationPage() {
         reconnectAttempts: (prev.reconnectAttempts || 0) + 1,
       }))
       toast.info('Reconnecting to WhatsApp...')
+      setLoading(false)
       
       // Poll for reconnection
       let attempts = 0
       const checkReconnect = setInterval(async () => {
         attempts++
-        const status = await WhatsAppAPI.getStatus(user.uid)
-        setWhatsappState(status)
-        
-        if (status.status === 'connected') {
-          clearInterval(checkReconnect)
-          addActivity('WhatsApp reconnected', 'connected')
-          toast.success('WhatsApp reconnected successfully')
-        } else if (attempts > 30) {
-          clearInterval(checkReconnect)
-          toast.error('Reconnection timeout')
+        try {
+          const status = await WhatsAppAPI.getStatus(user.uid)
+          setWhatsappState(status)
+          
+          if (status.status === 'connected') {
+            clearInterval(checkReconnect)
+            addActivity('WhatsApp reconnected', 'connected')
+            toast.success('WhatsApp reconnected successfully')
+          } else if (attempts > 30) {
+            clearInterval(checkReconnect)
+            addActivity('Reconnection timeout after 30 attempts', 'error')
+            toast.error('Reconnection timeout')
+          }
+        } catch (err) {
+          console.error('[WhatsApp] Reconnection poll error:', err)
         }
       }, 1000)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to reconnect'
       addActivity(message, 'error', 'Reconnection failed')
       toast.error(message)
-    } finally {
       setLoading(false)
     }
   }
