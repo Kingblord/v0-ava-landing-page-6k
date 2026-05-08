@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { WhatsAppService } from '@/lib/whatsapp-service'
 
 /**
  * GET /api/whatsapp/qr
- * Returns current QR code for scanning
+ * Proxies QR code request to bot server
  */
 export async function GET(request: NextRequest) {
   try {
@@ -13,10 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    const service = WhatsAppService.getInstance()
-    const qrData = await service.getQR(userId)
+    const botServerUrl = process.env.BOT_SERVER_URL || 'http://localhost:3001'
+    const response = await fetch(`${botServerUrl}/qr/${userId}`)
+    const data = await response.json()
 
-    return NextResponse.json(qrData)
+    return NextResponse.json(data, { status: response.status })
   } catch (error) {
     console.error('[whatsapp-qr] Error:', error)
     return NextResponse.json(

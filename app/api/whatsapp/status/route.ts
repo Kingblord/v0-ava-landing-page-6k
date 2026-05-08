@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { WhatsAppService } from '@/lib/whatsapp-service'
 
 /**
  * GET /api/whatsapp/status
- * Returns current WhatsApp session status
+ * Proxies status request to bot server
  */
 export async function GET(request: NextRequest) {
   try {
@@ -13,10 +12,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    const service = WhatsAppService.getInstance()
-    const status = await service.getStatus(userId)
+    const botServerUrl = process.env.BOT_SERVER_URL || 'http://localhost:3001'
+    const response = await fetch(`${botServerUrl}/status/${userId}`)
+    const data = await response.json()
 
-    return NextResponse.json(status)
+    return NextResponse.json(data, { status: response.status })
   } catch (error) {
     console.error('[whatsapp-status] Error:', error)
     return NextResponse.json(
