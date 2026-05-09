@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Send, Copy, CheckCheck, Loader2, MessageCircle, QrCode } from 'lucide-react'
+import { Send, Copy, CheckCheck, Loader2, MessageCircle, QrCode, RefreshCw } from 'lucide-react'
 
 interface Message {
   id: string
@@ -30,7 +30,7 @@ export default function WhatsAppPage() {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const qrPollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Hardcoded Gateway URL
+  // ✅ Hardcoded Gateway URL
   const GATEWAY_URL = 'https://aromsg.onrender.com'
 
   const webhookUrl =
@@ -70,17 +70,14 @@ export default function WhatsAppPage() {
         throw new Error(data.error || data.message || 'Failed to connect')
       }
 
-      setMessages([
-        {
-          id: Date.now().toString(),
-          type: 'system',
-          text: 'Connection initiated. Generating QR code...',
-          timestamp: Date.now(),
-        },
-      ])
+      setMessages([{
+        id: Date.now().toString(),
+        type: 'system',
+        text: 'Connection initiated. Generating QR code...',
+        timestamp: Date.now(),
+      }])
 
       toast.success('Connection initiated. Scan QR when it appears.')
-
       startPolling()
 
     } catch (err: any) {
@@ -99,10 +96,11 @@ export default function WhatsAppPage() {
   }
 
   function startPolling() {
-    // QR Code Polling
+    // QR Polling
     qrPollIntervalRef.current = setInterval(async () => {
       try {
         const res = await fetch(`\( {GATEWAY_URL}/qr/ \){user?.uid}`)
+        if (!res.ok) return
         const data = await res.json()
 
         if (data.qr) {
@@ -117,6 +115,7 @@ export default function WhatsAppPage() {
     pollIntervalRef.current = setInterval(async () => {
       try {
         const res = await fetch(`\( {GATEWAY_URL}/status/ \){user?.uid}`)
+        if (!res.ok) return
         const data = await res.json()
 
         if (data.connected) {
@@ -155,12 +154,7 @@ export default function WhatsAppPage() {
 
     setMessages((prev) => [
       ...prev,
-      {
-        id: Date.now().toString(),
-        type: 'sent',
-        text: testMessage,
-        timestamp: Date.now(),
-      },
+      { id: Date.now().toString(), type: 'sent', text: testMessage, timestamp: Date.now() },
     ])
 
     try {
@@ -169,18 +163,17 @@ export default function WhatsAppPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.uid,
-          to: "234XXXXXXXXXX@s.whatsapp.net", // ← CHANGE THIS
+          to: "234XXXXXXXXXX@s.whatsapp.net",   // ← CHANGE THIS NUMBER
           text: testMessage,
         }),
       })
 
       const result = await response.json()
-
       if (!response.ok) throw new Error(result.error || 'Send failed')
 
-      toast.success('Message sent')
+      toast.success('Message sent successfully')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to send message')
+      toast.error(err.message || 'Failed to send')
       setMessages(prev => prev.slice(0, -1))
     } finally {
       setSendingMessage(false)
@@ -191,7 +184,7 @@ export default function WhatsAppPage() {
     await navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-    toast.success('Webhook URL copied')
+    toast.success('Webhook URL copied!')
   }
 
   const handleDisconnect = () => {
@@ -223,7 +216,7 @@ export default function WhatsAppPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: QR Code Section */}
+          {/* Left: QR Code & Status */}
           <div className="lg:col-span-1">
             <div className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl p-6 sticky top-6">
               <div className="mb-6">
@@ -234,19 +227,18 @@ export default function WhatsAppPage() {
 
                 <div className="p-3 bg-[#1a2235] rounded-lg border border-[#6C5CE7]/20 mb-4">
                   <p className="text-sm text-[#8892a4] font-mono">
-                    Status: <span className={`${isConnected ? 'text-green-400' : 'text-yellow-400'}`}>{statusText}</span>
+                    Status: <span className={isConnected ? 'text-green-400' : 'text-yellow-400'}>{statusText}</span>
                   </p>
                   {phoneNumber && <p className="text-xs text-green-400 mt-1">{phoneNumber}</p>}
                 </div>
 
                 {!isConnected ? (
                   <div className="space-y-4">
+                    {/* QR Code Display */}
                     {qrCode && (
-                      <div className="bg-white p-4 rounded-lg">
-                        <img src={qrCode} alt="WhatsApp QR Code" className="w-full" />
-                        <p className="text-xs text-center text-gray-600 mt-2">
-                          Scan with WhatsApp → Linked Devices
-                        </p>
+                      <div className="bg-white p-6 rounded-2xl shadow-inner text-center">
+                        <img src={qrCode} alt="WhatsApp QR Code" className="mx-auto w-full max-w-[260px]" />
+                        <p className="text-xs text-gray-600 mt-4">Scan with WhatsApp → Linked Devices</p>
                       </div>
                     )}
 
@@ -260,15 +252,13 @@ export default function WhatsAppPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <Button
-                      onClick={handleDisconnect}
-                      variant="outline"
-                      className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
-                    >
-                      Disconnect
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={handleDisconnect}
+                    variant="outline"
+                    className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  >
+                    Disconnect
+                  </Button>
                 )}
               </div>
 
@@ -279,15 +269,8 @@ export default function WhatsAppPage() {
                   <code className="flex-1 text-xs bg-[#0B0F1A] border border-[#6C5CE7]/20 rounded px-2 py-1.5 text-[#00D1B2] overflow-x-auto whitespace-nowrap">
                     {webhookUrl}
                   </code>
-                  <button
-                    onClick={handleCopyWebhook}
-                    className="p-1.5 hover:bg-[#1a2235] rounded transition"
-                  >
-                    {copied ? (
-                      <CheckCheck className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <Copy className="w-4 h-4 text-[#8892a4]" />
-                    )}
+                  <button onClick={handleCopyWebhook} className="p-1.5 hover:bg-[#1a2235] rounded transition">
+                    {copied ? <CheckCheck className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-[#8892a4]" />}
                   </button>
                 </div>
               </div>
@@ -302,27 +285,17 @@ export default function WhatsAppPage() {
                   <div className="flex items-center justify-center h-full text-center">
                     <div>
                       <QrCode className="w-12 h-12 text-[#6C5CE7]/30 mx-auto mb-2" />
-                      <p className="text-[#8892a4] text-sm">
-                        Connect WhatsApp to start testing messages
-                      </p>
+                      <p className="text-[#8892a4] text-sm">Connect WhatsApp to start testing messages</p>
                     </div>
                   </div>
                 )}
 
                 {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.type === 'sent' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
-                        msg.type === 'system'
-                          ? 'bg-[#1a2235] text-[#8892a4] border border-[#6C5CE7]/20 w-full'
-                          : msg.type === 'sent'
-                          ? 'bg-[#6C5CE7] text-white'
-                          : 'bg-[#1a2235] text-[#e2e8f0]'
-                      }`}
-                    >
+                  <div key={msg.id} className={`flex ${msg.type === 'sent' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
+                      msg.type === 'system' ? 'bg-[#1a2235] text-[#8892a4] border border-[#6C5CE7]/20 w-full' :
+                      msg.type === 'sent' ? 'bg-[#6C5CE7] text-white' : 'bg-[#1a2235] text-[#e2e8f0]'
+                    }`}>
                       {msg.text}
                     </div>
                   </div>
@@ -332,10 +305,7 @@ export default function WhatsAppPage() {
               </div>
 
               {isConnected && (
-                <form
-                  onSubmit={handleSendMessage}
-                  className="border-t border-[#6C5CE7]/15 p-4 flex gap-2"
-                >
+                <form onSubmit={handleSendMessage} className="border-t border-[#6C5CE7]/15 p-4 flex gap-2">
                   <Input
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
@@ -343,16 +313,8 @@ export default function WhatsAppPage() {
                     disabled={sendingMessage}
                     className="bg-[#0B0F1A] border-[#6C5CE7]/25 text-white placeholder:text-[#8892a4]"
                   />
-                  <Button
-                    type="submit"
-                    disabled={!messageText.trim() || sendingMessage}
-                    className="bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl"
-                  >
-                    {sendingMessage ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
+                  <Button type="submit" disabled={!messageText.trim() || sendingMessage} className="bg-[#6C5CE7] hover:bg-[#5548c7]">
+                    {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </form>
               )}
