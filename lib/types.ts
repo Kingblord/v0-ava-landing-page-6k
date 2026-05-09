@@ -65,32 +65,3 @@ export interface TestgroundConversationLog {
   }
   createdAt: number
 }
-
-// ═════════════════════════════════════════════════════════════════════
-// WhatsApp Integration Types (Baileys)
-// ═════════════════════════════════════════════════════════════════════
-
-export type WhatsAppStatus = 'disconnected' | 'connecting' | 'qr_pending' | 'connected' | 'reconnecting'
-
-export interface WhatsAppSession {
-  userId: string
-  phoneNumber: string
-  connected: boolean
-  sessionId: string
-  lastSeen: number
-  createdAt: number
-  updatedAt: number
-}
-
-export interface MessagingProvider {
-  name: string
-  icon: React.ElementType
-  status: WhatsAppStatus
-  phoneNumber?: string
-}
-
-export interface WhatsAppProvider extends MessagingProvider {
-  name: 'whatsapp'
-  lastConnected?: number
-  reconnectAttempts?: number
-}
