@@ -12,7 +12,19 @@ import type { Message } from '@/lib/types'
 import { db } from '@/lib/firebase'
 import { doc, setDoc } from 'firebase/firestore'
 
-const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://localhost:3001'
+const GATEWAY_URL = (() => {
+  let url = process.env.WHATSAPP_GATEWAY_URL || 'https://aromsg.render.com'
+  
+  // Ensure URL has protocol
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`
+  }
+  
+  // Remove trailing slash
+  url = url.replace(/\/$/, '')
+  
+  return url
+})()
 const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY
 
 /**

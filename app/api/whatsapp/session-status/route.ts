@@ -13,13 +13,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    const gatewayUrl = process.env.WHATSAPP_GATEWAY_URL
-    if (!gatewayUrl) {
-      return NextResponse.json(
-        { error: 'Gateway not configured' },
-        { status: 500 }
-      )
+    let gatewayUrl = process.env.WHATSAPP_GATEWAY_URL || 'https://aromsg.render.com'
+    
+    // Ensure URL has protocol
+    if (!gatewayUrl.startsWith('http://') && !gatewayUrl.startsWith('https://')) {
+      gatewayUrl = `https://${gatewayUrl}`
     }
+    
+    // Remove trailing slash
+    gatewayUrl = gatewayUrl.replace(/\/$/, '')
 
     const response = await axios.get(
       `${gatewayUrl}/status/${userId}`,
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response.data)
   } catch (error) {
-    console.error('[session-status] Error:', error)
+    console.error('[session-status] Error:', error instanceof Error ? error.message : error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get status' },
       { status: 500 }

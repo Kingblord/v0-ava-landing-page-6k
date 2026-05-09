@@ -16,13 +16,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const gatewayUrl = process.env.WHATSAPP_GATEWAY_URL
-    if (!gatewayUrl) {
-      return NextResponse.json(
-        { error: 'Gateway not configured' },
-        { status: 500 }
-      )
+    let gatewayUrl = process.env.WHATSAPP_GATEWAY_URL || 'https://aromsg.render.com'
+    
+    // Ensure URL has protocol
+    if (!gatewayUrl.startsWith('http://') && !gatewayUrl.startsWith('https://')) {
+      gatewayUrl = `https://${gatewayUrl}`
     }
+    
+    // Remove trailing slash
+    gatewayUrl = gatewayUrl.replace(/\/$/, '')
 
     // Send message via aromsg gateway
     const response = await axios.post(
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
       data: response.data,
     })
   } catch (error) {
-    console.error('[send-test-message] Error:', error)
+    console.error('[send-test-message] Error:', error instanceof Error ? error.message : error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to send message' },
       { status: 500 }
