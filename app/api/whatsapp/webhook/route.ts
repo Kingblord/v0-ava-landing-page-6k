@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import axios from 'axios'
+import https from 'https'
 import {
   serverGetBusinessByUserId,
   serverGetProducts,
@@ -13,7 +14,11 @@ import { db } from '@/lib/firebase'
 import { doc, setDoc } from 'firebase/firestore'
 
 const GATEWAY_URL = (() => {
-  let url = process.env.WHATSAPP_GATEWAY_URL || 'https://aromsg.render.com'
+  let url = process.env.WHATSAPP_GATEWAY_URL
+  if (!url) {
+    console.warn('[webhook] WHATSAPP_GATEWAY_URL not configured')
+    return null
+  }
   
   // Ensure URL has protocol
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -25,10 +30,15 @@ const GATEWAY_URL = (() => {
   
   return url
 })()
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false,
+})
+
 const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY
 
 /**
- * WhatsApp Webhook - Receives messages from aromsg.render.com gateway
+ * WhatsApp Webhook - Receives messages from aromsg gateway
  * Gateway sends: { userId, from, text, messageId, timestamp, apiKey }
  * 
  * Flow:
@@ -76,7 +86,7 @@ export async function POST(request: NextRequest) {
           text: 'Business configuration not found. Please contact support.',
           apiKey: GATEWAY_API_KEY,
         },
-        { timeout: 5000 }
+        { timeout: 5000, httpsAgent }
       ).catch(console.error)
 
       return NextResponse.json({ success: true })
@@ -155,7 +165,7 @@ export async function POST(request: NextRequest) {
           text: reply,
           apiKey: GATEWAY_API_KEY,
         },
-        { timeout: 10000 }
+        { timeout: 10000, httpsAgent }
       )
       console.log(`[WhatsApp Webhook] Response sent to ${from}`)
     } catch (err) {

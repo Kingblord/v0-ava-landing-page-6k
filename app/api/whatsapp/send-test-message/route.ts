@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import axios from 'axios'
+import https from 'https'
 
 /**
  * POST /api/whatsapp/send-test-message
@@ -16,7 +17,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let gatewayUrl = process.env.WHATSAPP_GATEWAY_URL || 'https://aromsg.render.com'
+    let gatewayUrl = process.env.WHATSAPP_GATEWAY_URL
+    if (!gatewayUrl) {
+      return NextResponse.json(
+        { error: 'Gateway URL not configured' },
+        { status: 500 }
+      )
+    }
     
     // Ensure URL has protocol
     if (!gatewayUrl.startsWith('http://') && !gatewayUrl.startsWith('https://')) {
@@ -26,11 +33,18 @@ export async function POST(request: NextRequest) {
     // Remove trailing slash
     gatewayUrl = gatewayUrl.replace(/\/$/, '')
 
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false,
+    })
+
     // Send message via aromsg gateway
     const response = await axios.post(
       `${gatewayUrl}/send-message`,
       { userId, message },
-      { timeout: 10000 }
+      { 
+        timeout: 10000,
+        httpsAgent,
+      }
     )
 
     return NextResponse.json({
