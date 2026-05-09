@@ -52,6 +52,13 @@ export async function serverGetBusinessByPhone(phone: string): Promise<Business 
   return { id: d.id, ...d.data() } as Business
 }
 
+export async function serverGetBusinessByUserId(userId: string): Promise<Business | null> {
+  const db = getDb()
+  const snap = await getDoc(doc(db, 'businesses', userId))
+  if (!snap.exists()) return null
+  return { id: snap.id, ...snap.data() } as Business
+}
+
 export async function serverGetProducts(businessId: string): Promise<Product[]> {
   const db = getDb()
   const snap = await getDocs(

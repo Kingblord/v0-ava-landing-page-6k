@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import axios from 'axios'
 import {
-  serverGetBusinessByPhone,
+  serverGetBusinessByUserId,
   serverGetProducts,
   serverGetConversation,
   serverUpsertConversation,
@@ -9,58 +10,52 @@ import {
 import { runAI } from '@/lib/ai'
 import type { Message } from '@/lib/types'
 
+const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://localhost:3001'
+
 /**
- * Twilio sends application/x-www-form-urlencoded POST requests.
- * We parse the body manually to avoid a dependency on the `qs` package in this route.
+ * WhatsApp Webhook - Receives messages from aromsg.render.com gateway
+ * Gateway sends: { userId, from, text, platform, messageId, timestamp }
  */
-function parseTwilioBody(text: string): Record<string, string> {
-  const result: Record<string, string> = {}
-  for (const pair of text.split('&')) {
-    const [key, ...rest] = pair.split('=')
-    result[decodeURIComponent(key)] = decodeURIComponent(rest.join('=').replace(/\+/g, ' '))
-  }
-  return result
-}
-
-function twimlResponse(message: string): NextResponse {
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Message>
-</Response>`
-  return new NextResponse(xml, {
-    status: 200,
-    headers: { 'Content-Type': 'text/xml' },
-  })
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const bodyText = await request.text()
-    const body = parseTwilioBody(bodyText)
+    const body = await request.json()
+    const { userId, from, text: incomingMessage, messageId, timestamp } = body
 
-    const incomingMessage = body['Body']?.trim()
-    const fromNumber = body['From']?.trim()  // e.g. whatsapp:+2348012345678
-    const toNumber = body['To']?.trim()      // e.g. whatsapp:+14155238886
-
-    if (!incomingMessage || !fromNumber || !toNumber) {
-      return twimlResponse('Sorry, I could not read your message.')
+    if (!userId || !from || !incomingMessage?.trim()) {
+      return NextResponse.json(
+        { error: 'Invalid webhook payload' },
+        { status: 400 }
+      )
     }
 
-    // 1. Identify business by the Twilio number this message was sent TO
-    const business = await serverGetBusinessByPhone(toNumber)
+    console.log(`[WhatsApp Webhook] Message from ${from}: ${incomingMessage}`)
+
+    // 1. Get business config by userId
+    const business = await serverGetBusinessByUserId(userId)
     if (!business) {
-      return twimlResponse("This number isn't set up yet. Please contact the business directly.")
+      console.error(`[WhatsApp Webhook] Business not found for userId: ${userId}`)
+      // Send error message back via gateway
+      await axios.post(
+        `${GATEWAY_URL}/send-message`,
+        {
+          userId,
+          to: from,
+          text: 'Business configuration not found. Please contact support.',
+        },
+        { timeout: 5000 }
+      ).catch(console.error)
+      return NextResponse.json({ success: true })
     }
 
     // 2. Load products
     const products = await serverGetProducts(business.id)
 
     // 3. Load or create conversation
-    const existing = await serverGetConversation(business.id, fromNumber)
+    const existing = await serverGetConversation(business.id, from)
     const history: Message[] = existing?.messages ?? []
     const currentState = existing?.state ?? 'browsing'
 
-    // 4. Run AI (uses default model, or can be overridden in businessConfig)
+    // 4. Run AI
     const { reply, newState, orderIntent } = await runAI({
       message: incomingMessage,
       products,
@@ -69,15 +64,18 @@ export async function POST(request: NextRequest) {
       businessConfig: {
         name: business.name,
         aiPersonality: business.aiPersonality,
+        id: business.id,
+        email: business.email,
+        createdAt: business.createdAt,
       },
-      // model can be optionally passed from businessConfig if stored there
+      model: business.aiModel,
     })
 
-    // 5. Persist order if intent detected
+    // 5. Create order if intent detected
     if (orderIntent) {
       await serverCreateOrder({
         businessId: business.id,
-        userId: fromNumber,
+        userId: from,
         productId: orderIntent.productId,
         productName: orderIntent.productName,
         amount: orderIntent.amount,
@@ -89,24 +87,38 @@ export async function POST(request: NextRequest) {
     // 6. Persist conversation
     const updatedMessages: Message[] = [
       ...history,
-      { role: 'user', content: incomingMessage, timestamp: Date.now() },
+      { role: 'user', content: incomingMessage, timestamp },
       { role: 'assistant', content: reply, timestamp: Date.now() },
-    ].slice(-40) // keep last 40 messages
+    ].slice(-40)
 
-    await serverUpsertConversation(business.id, fromNumber, updatedMessages, newState)
+    await serverUpsertConversation(business.id, from, updatedMessages, newState)
 
-    // 7. Return TwiML
-    return twimlResponse(reply)
+    // 7. Send response back via gateway
+    try {
+      await axios.post(
+        `${GATEWAY_URL}/send-message`,
+        {
+          userId,
+          to: from,
+          text: reply,
+        },
+        { timeout: 10000 }
+      )
+      console.log(`[WhatsApp Webhook] Response sent to ${from}`)
+    } catch (err) {
+      console.error('[WhatsApp Webhook] Failed to send response via gateway:', err)
+    }
+
+    return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('[AVA Webhook Error]', err)
-    return twimlResponse("I'm having trouble right now. Please try again in a moment.")
+    console.error('[WhatsApp Webhook Error]', err)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 
-// Twilio also sends a GET for sandbox verification
 export async function GET() {
-  return new NextResponse(
-    `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
-    { status: 200, headers: { 'Content-Type': 'text/xml' } },
-  )
+  return NextResponse.json({ status: 'ok' })
 }
