@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Send, Copy, CheckCheck, Loader2, MessageCircle } from 'lucide-react'
+import { Send, Copy, CheckCheck, Loader2, MessageCircle, QrCode } from 'lucide-react'
 
 interface Message {
   id: string
@@ -26,6 +26,9 @@ export default function WhatsAppPage() {
   const [copied, setCopied] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Gateway URL - same as the HTML example
+  const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://aromsg.render.com'
 
   const webhookUrl =
     typeof window !== 'undefined'
@@ -51,24 +54,41 @@ export default function WhatsAppPage() {
     setIsConnecting(true)
 
     try {
-      const response = await fetch('/api/whatsapp/initiate', {
+      console.log('[initiate] Calling gateway:', `${GATEWAY_URL}/connect`)
+
+      // Call gateway directly - same as the HTML example
+      const response = await fetch(`${GATEWAY_URL}/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.uid }),
       })
 
       const data = await response.json()
+      console.log('[initiate] Response:', data)
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to initiate connection')
+        throw new Error(data.error || data.message || 'Failed to connect')
       }
 
-      setQrCode(data.qrCode)
+      // Get QR code directly from gateway - same as the HTML example
+      try {
+        const qrResponse = await fetch(`${GATEWAY_URL}/qr/${user.uid}`)
+        const qrData = await qrResponse.json()
+        console.log('[qr] Response:', qrData)
+
+        if (qrData.qr) {
+          setQrCode(qrData.qr)
+          console.log('[qr] QR code set')
+        }
+      } catch (err) {
+        console.warn('[qr] Could not fetch QR:', err)
+      }
+
       setMessages([
         {
           id: Date.now().toString(),
           type: 'system',
-          text: 'Scan the QR code with your WhatsApp phone to connect. Waiting for connection...',
+          text: 'Scan the QR code with your WhatsApp phone to connect.',
           timestamp: Date.now(),
         },
       ])
@@ -81,10 +101,11 @@ export default function WhatsAppPage() {
         pollCount++
 
         try {
-          const statusResponse = await fetch(
-            `/api/whatsapp/session-status?userId=${user.uid}`
-          )
+          // Check status directly from gateway - same as the HTML example
+          const statusResponse = await fetch(`${GATEWAY_URL}/status/${user.uid}`)
           const statusData = await statusResponse.json()
+
+          console.log('[poll] Status:', statusData)
 
           if (statusData.status === 'connected') {
             setIsConnected(true)
@@ -103,9 +124,10 @@ export default function WhatsAppPage() {
               clearInterval(pollIntervalRef.current)
               pollIntervalRef.current = null
             }
+            toast.success('Connected!')
           }
         } catch (err) {
-          console.error('[poll] Error checking status:', err)
+          console.warn('[poll] Error:', err)
         }
 
         // Stop polling after max attempts
@@ -129,9 +151,10 @@ export default function WhatsAppPage() {
         }
       }, 1000)
 
-      toast.success('Session initiated. Scan QR code to connect.')
+      toast.success('Scan QR code to connect')
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Connection failed'
+      console.error('[initiate] Error:', err)
       toast.error(errorMsg)
       setMessages([
         {
@@ -166,8 +189,10 @@ export default function WhatsAppPage() {
         },
       ])
 
-      // Send via gateway
-      const response = await fetch('/api/whatsapp/send-test-message', {
+      console.log('[send] Sending message via gateway:', `${GATEWAY_URL}/send-message`)
+
+      // Send via gateway directly - same as the HTML example
+      const response = await fetch(`${GATEWAY_URL}/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -176,14 +201,17 @@ export default function WhatsAppPage() {
         }),
       })
 
+      const result = await response.json()
+      console.log('[send] Response:', result)
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to send message')
+        throw new Error(result.error || result.message || 'Failed to send message')
       }
 
       toast.success('Message sent')
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to send'
+      console.error('[send] Error:', err)
       toast.error(errorMsg)
       setMessages((prev) => [
         ...prev,
@@ -272,6 +300,9 @@ export default function WhatsAppPage() {
                         setIsConnected(false)
                         setQrCode('')
                         setMessages([])
+                        if (pollIntervalRef.current) {
+                          clearInterval(pollIntervalRef.current)
+                        }
                         toast.info('Disconnected from WhatsApp')
                       }}
                       variant="outline"
@@ -313,6 +344,7 @@ export default function WhatsAppPage() {
                 {messages.length === 0 && !isConnected && (
                   <div className="flex items-center justify-center h-full text-center">
                     <div>
+                      <QrCode className="w-12 h-12 text-[#6C5CE7]/30 mx-auto mb-2" />
                       <p className="text-[#8892a4] text-sm">
                         Connect WhatsApp to start testing messages
                       </p>
@@ -375,7 +407,7 @@ export default function WhatsAppPage() {
             {/* Info */}
             <div className="mt-4 text-xs text-[#8892a4] bg-[#111827] border border-[#6C5CE7]/15 rounded-xl p-3">
               <p className="font-mono">
-                💡 Once connected, send test messages here. Incoming messages will appear in the chat.
+                Gateway: {GATEWAY_URL}
               </p>
             </div>
           </div>
