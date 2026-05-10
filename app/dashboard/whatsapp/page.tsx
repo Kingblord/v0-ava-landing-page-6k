@@ -11,14 +11,12 @@ import {
 import type { Contact } from '@/lib/types'
 import { toast } from 'sonner'
 import {
-  Copy,
-  CheckCheck,
   Send,
   Loader2,
   SmartphoneNfc,
   Unplug,
   Bot,
-  Settings2,
+  Settings,
   Plus,
   Search,
   Trash2,
@@ -26,12 +24,16 @@ import {
   ArrowLeft,
   Wifi,
   WifiOff,
-  Activity,
+  Copy,
+  CheckCheck,
   MessageSquare,
   Phone,
-  Link2,
-  ChevronRight,
+  Bell,
+  BellOff,
+  Download,
   Zap,
+  Activity,
+  ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -50,68 +52,52 @@ interface ChatMessage {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function isConnectedData(d: unknown): boolean {
-  if (!d || typeof d !== 'object') return false
-  const data = d as Record<string, unknown>
-  return (
-    data.status === 'connected' ||
-    data.status === 'CONNECTED' ||
-    data.connected === true ||
-    data.state === 'open' ||
-    data.state === 'connected' ||
-    data.isConnected === true
-  )
-}
-
 function phoneFromJid(jid: string) {
   return jid.replace(/@.*/, '')
 }
 
 function initials(name: string) {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
+  return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
+const AVATAR_COLORS = [
+  'bg-emerald-500/20 text-emerald-400',
+  'bg-teal-500/20 text-teal-400',
+  'bg-green-500/20 text-green-400',
+  'bg-cyan-500/20 text-cyan-400',
+]
 function avatarColor(name: string): string {
-  const palettes = [
-    'bg-emerald-500/20 text-emerald-400',
-    'bg-teal-500/20 text-teal-400',
-    'bg-green-500/20 text-green-400',
-    'bg-cyan-500/20 text-cyan-400',
-  ]
-  return palettes[name.charCodeAt(0) % palettes.length]
+  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
 }
 
 function fmtTime(ts: number) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const d = new Date(ts)
+  const now = new Date()
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
-// ─── Status Light ─────────────────────────────────────────────────────────────
+// ─── Status Dot ──────────────────────────────────────────────────────────────
 
 function StatusDot({ status }: { status: 'idle' | 'loading' | 'qr' | 'connected' }) {
   return (
-    <span
-      className={cn(
-        'inline-block w-2 h-2 rounded-full shrink-0',
-        status === 'connected'
-          ? 'bg-emerald-400 shadow-[0_0_6px_2px_rgba(52,211,153,0.5)] animate-pulse'
-          : status === 'loading' || status === 'qr'
-          ? 'bg-yellow-400 shadow-[0_0_6px_2px_rgba(250,204,21,0.5)] animate-pulse'
-          : 'bg-red-500 shadow-[0_0_4px_1px_rgba(239,68,68,0.4)]',
-      )}
-    />
+    <span className={cn(
+      'inline-block w-2 h-2 rounded-full shrink-0',
+      status === 'connected'
+        ? 'bg-emerald-400 shadow-[0_0_6px_2px_rgba(52,211,153,0.5)] animate-pulse'
+        : status === 'loading' || status === 'qr'
+        ? 'bg-yellow-400 shadow-[0_0_6px_2px_rgba(250,204,21,0.5)] animate-pulse'
+        : 'bg-red-500 shadow-[0_0_4px_1px_rgba(239,68,68,0.4)]',
+    )} />
   )
 }
 
-// ─── Contact Avatar ───────────────────────────────────────────────────────────
+// ─── Avatar ───────────────────────────────────────────────────────────────────
 
-function ContactAvatar({ contact, size = 'md' }: { contact: Contact; size?: 'sm' | 'md' | 'lg' }) {
-  const sz =
-    size === 'lg' ? 'w-12 h-12 text-sm' : size === 'sm' ? 'w-9 h-9 text-xs' : 'w-10 h-10 text-xs'
+function Avatar({ contact, size = 'md' }: { contact: Contact; size?: 'sm' | 'md' | 'lg' }) {
+  const sz = size === 'lg' ? 'w-12 h-12 text-base' : size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
   return (
     <div className={cn('rounded-full flex items-center justify-center font-bold shrink-0', sz, avatarColor(contact.name))}>
       {initials(contact.name)}
@@ -119,62 +105,63 @@ function ContactAvatar({ contact, size = 'md' }: { contact: Contact; size?: 'sm'
   )
 }
 
-// ─── Toggle Switch ────────────────────────────────────────────────────────────
+// ─── Toggle ───────────────────────────────────────────────────────────────────
 
-function Toggle({
-  checked,
-  onChange,
-  disabled,
-}: {
-  checked: boolean
-  onChange: () => void
-  disabled?: boolean
-}) {
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
   return (
     <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      disabled={disabled}
+      type="button" role="switch" aria-checked={checked}
+      onClick={onChange} disabled={disabled}
       className={cn(
         'relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-40',
         checked ? 'bg-[var(--aro-green)]' : 'bg-border',
       )}
     >
-      <span
-        className={cn(
-          'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200',
-          checked ? 'translate-x-5' : 'translate-x-0',
-        )}
-      />
+      <span className={cn(
+        'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200',
+        checked ? 'translate-x-5' : 'translate-x-0',
+      )} />
     </button>
   )
 }
 
-// ─── Bottom Sheet ────────────────────────────────────────────────────────────
+// ─── Modal Overlay ────────────────────────────────────────────────────────────
 
-function BottomSheet({
-  open,
-  onClose,
-  title,
-  children,
+function Modal({
+  open, onClose, title, children, size = 'md',
 }: {
   open: boolean
   onClose: () => void
   title: React.ReactNode
   children: React.ReactNode
+  size?: 'sm' | 'md' | 'lg'
 }) {
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
   if (!open) return null
+
+  const widths = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-2xl' }
+
   return (
-    <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-card border-t border-border rounded-t-2xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-center pt-3 pb-2 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-border" />
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className={cn(
+        'relative bg-card border border-border rounded-t-3xl sm:rounded-3xl w-full flex flex-col shadow-2xl',
+        'max-h-[94vh] sm:max-h-[88vh] overflow-hidden',
+        widths[size],
+      )}>
+        {/* Drag handle (mobile) */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0 sm:hidden">
+          <div className="w-9 h-1 rounded-full bg-border" />
         </div>
-        <div className="flex items-center justify-between px-5 pb-3 shrink-0">
-          <div className="text-sm font-semibold text-foreground">{title}</div>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+          <div className="text-base font-semibold text-foreground">{title}</div>
           <button onClick={onClose} className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -185,12 +172,12 @@ function BottomSheet({
   )
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function WhatsAppPage() {
   const { user } = useAuth()
 
-  // ── Connection ──
+  // Connection
   const [status, setStatus] = useState<'idle' | 'loading' | 'qr' | 'connected'>('idle')
   const [qrSrc, setQrSrc] = useState('')
   const [phone, setPhone] = useState('')
@@ -198,39 +185,73 @@ export default function WhatsAppPage() {
   const hasCheckedRef = useRef(false)
   const [initialising, setInitialising] = useState(true)
 
-  // ── Webhook ──
+  // Modals
+  const [showConnectModal, setShowConnectModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showAiModal, setShowAiModal] = useState(false)
+
+  // Webhook + copy
   const [webhookUrl, setWebhookUrl] = useState('')
   const [copied, setCopied] = useState(false)
 
-  // ── Contacts ──
+  // Contacts
   const [contacts, setContacts] = useState<Contact[]>([])
   const [contactsLoading, setContactsLoading] = useState(true)
   const [selected, setSelected] = useState<Contact | null>(null)
   const [contactSearch, setContactSearch] = useState('')
-  const [showAddContact, setShowAddContact] = useState(false)
   const [newPhone, setNewPhone] = useState('')
   const [newName, setNewName] = useState('')
   const [addingContact, setAddingContact] = useState(false)
   const [deletingContact, setDeletingContact] = useState<string | null>(null)
 
-  // ── Chat ──
+  // Chat
   const [convos, setConvos] = useState<Record<string, ChatMessage[]>>({})
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // ── AI ──
-  const [showAiPanel, setShowAiPanel] = useState(false)
+  // AI settings
   const [globalAi, setGlobalAi] = useState(false)
 
-  // ── Mobile state ──
-  const [mobileView, setMobileView] = useState<'contacts' | 'chat'>('contacts')
-  const [showConnectionSheet, setShowConnectionSheet] = useState(false)
-  const [showAiSheet, setShowAiSheet] = useState(false)
+  // Mobile view
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
 
-  // ── Init ──
+  // Notifications
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default')
+
+  // PWA install
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [pwaInstalled, setPwaInstalled] = useState(false)
+
+  // Unread badge map
+  const [unread, setUnread] = useState<Record<string, number>>({})
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     setWebhookUrl(`${window.location.origin}/api/whatsapp/webhook`)
+
+    // Notification permission
+    if ('Notification' in window) {
+      setNotifPermission(Notification.permission)
+    }
+
+    // PWA install prompt
+    const handleInstall = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', handleInstall)
+
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setPwaInstalled(true)
+    }
+    window.addEventListener('appinstalled', () => setPwaInstalled(true))
+
+    return () => window.removeEventListener('beforeinstallprompt', handleInstall)
   }, [])
 
   useEffect(() => {
@@ -250,7 +271,33 @@ export default function WhatsAppPage() {
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
 
-  // ── Contacts ──────────────────────────────────────────────────────────────────
+  // ── Notifications ─────────────────────────────────────────────────────────
+
+  async function requestNotifications() {
+    if (!('Notification' in window)) return
+    const perm = await Notification.requestPermission()
+    setNotifPermission(perm)
+    if (perm === 'granted') toast.success('Notifications enabled')
+    else toast.error('Notifications blocked')
+  }
+
+  function sendNotification(title: string, body: string, icon?: string) {
+    if (typeof window === 'undefined') return
+    if (!('Notification' in window)) return
+    if (Notification.permission !== 'granted') return
+    new Notification(title, { body, icon: icon || '/aromsg-logo.png' })
+  }
+
+  // ── PWA ───────────────────────────────────────────────────────────────────
+
+  async function handleInstallPWA() {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    if (outcome === 'accepted') { setPwaInstalled(true); setDeferredPrompt(null) }
+  }
+
+  // ── Contacts ──────────────────────────────────────────────────────────────
 
   async function loadContacts() {
     if (!user) return
@@ -277,18 +324,15 @@ export default function WhatsAppPage() {
     setAddingContact(true)
     try {
       const contact = await createContact(user.uid, {
-        jid,
-        phone: rawPhone,
+        jid, phone: rawPhone,
         name: newName.trim() || rawPhone,
         aiEnabled: false,
       })
       setContacts((prev) => [contact, ...prev])
-      setNewPhone('')
-      setNewName('')
-      setShowAddContact(false)
+      setNewPhone(''); setNewName('')
+      setShowAddModal(false)
       setSelected(contact)
       setMobileView('chat')
-      setShowConnectionSheet(false)
       toast.success('Contact saved')
     } catch {
       toast.error('Failed to save contact')
@@ -302,7 +346,7 @@ export default function WhatsAppPage() {
     try {
       await updateContact(user.uid, id, patch)
       setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
-      if (selected?.id === id) setSelected((prev) => (prev ? { ...prev, ...patch } : prev))
+      if (selected?.id === id) setSelected((prev) => prev ? { ...prev, ...patch } : prev)
     } catch {
       toast.error('Failed to update contact')
     }
@@ -314,11 +358,7 @@ export default function WhatsAppPage() {
     try {
       await deleteContact(user.uid, id)
       setContacts((prev) => prev.filter((c) => c.id !== id))
-      if (selected?.id === id) {
-        setSelected(null)
-        setMobileView('contacts')
-        setShowAiSheet(false)
-      }
+      if (selected?.id === id) { setSelected(null); setMobileView('list') }
       toast.success('Contact removed')
     } catch {
       toast.error('Failed to delete contact')
@@ -327,7 +367,7 @@ export default function WhatsAppPage() {
     }
   }
 
-  // ── Gateway helpers ───────────────────────────────────────────────────────────
+  // ── Gateway ───────────────────────────────────────────────────────────────
 
   async function checkExistingSession() {
     if (!user) return
@@ -336,13 +376,11 @@ export default function WhatsAppPage() {
       const res = await fetch(`${GATEWAY}/status/${user.uid}`)
       const data = await res.json() as { connected: boolean; phoneNumber?: string | null }
       if (data.connected === true) {
-        const num = data.phoneNumber || 'Connected'
         setStatus('connected')
-        setPhone(num)
+        setPhone(data.phoneNumber || 'Connected')
+        sendNotification('AroMsg', 'WhatsApp session restored')
       }
-    } catch {
-      // Gateway offline
-    } finally {
+    } catch { /* gateway offline */ } finally {
       setInitialising(false)
     }
   }
@@ -352,7 +390,6 @@ export default function WhatsAppPage() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
     setQrSrc('')
     setStatus('loading')
-    addSystem('__global__', 'Initiating session…')
 
     try {
       await fetch(`${GATEWAY}/connect`, {
@@ -361,11 +398,8 @@ export default function WhatsAppPage() {
         body: JSON.stringify({ userId: user.uid }),
       })
 
-      let qrAttempts = 0
-      let statusAttempts = 0
-      let done = false
-      let qrShowing = false
-      let lastQr = ''
+      let qrAttempts = 0, statusAttempts = 0
+      let done = false, qrShowing = false, lastQr = ''
 
       pollRef.current = setInterval(async () => {
         if (done) return
@@ -374,62 +408,54 @@ export default function WhatsAppPage() {
             qrAttempts++
             const qrRes = await fetch(`${GATEWAY}/qr/${user.uid}`)
             const qrData = await qrRes.json() as { qr?: string | null; connected: boolean }
+
             if (qrData.connected === true) {
-              done = true
-              clearInterval(pollRef.current!); pollRef.current = null
+              done = true; clearInterval(pollRef.current!); pollRef.current = null
               const sRes = await fetch(`${GATEWAY}/status/${user.uid}`)
               const sData = await sRes.json() as { connected: boolean; phoneNumber?: string | null }
               const num = sData.phoneNumber || 'Connected'
               setStatus('connected'); setPhone(num); setQrSrc('')
-              addSystem('__global__', `Connected — ${num}`)
+              setShowConnectModal(false)
+              sendNotification('WhatsApp Connected', `Linked to ${num}`)
               toast.success('WhatsApp connected!')
               return
             }
+
             if (qrData.qr) {
-              lastQr = qrData.qr
-              setQrSrc(qrData.qr)
-              setStatus('qr')
-              qrShowing = true
-              addSystem('__global__', 'QR ready — scan with WhatsApp.')
+              lastQr = qrData.qr; setQrSrc(qrData.qr); setStatus('qr'); qrShowing = true
             } else if (qrAttempts >= 20) {
-              done = true
-              clearInterval(pollRef.current!); pollRef.current = null
-              addSystem('__global__', 'No QR returned. Check your gateway server.')
+              done = true; clearInterval(pollRef.current!); pollRef.current = null
               setStatus('idle')
+              toast.error('No QR returned. Check your gateway.')
             }
           } else {
             statusAttempts++
             if (statusAttempts % 3 === 0) {
-              const freshQr = await fetch(`${GATEWAY}/qr/${user.uid}`)
-              const freshQrData = await freshQr.json() as { qr?: string | null; connected: boolean }
-              if (freshQrData.qr && freshQrData.qr !== lastQr) {
-                lastQr = freshQrData.qr
-                setQrSrc(freshQrData.qr)
-              }
+              const fq = await fetch(`${GATEWAY}/qr/${user.uid}`)
+              const fqd = await fq.json() as { qr?: string | null }
+              if (fqd.qr && fqd.qr !== lastQr) { lastQr = fqd.qr; setQrSrc(fqd.qr) }
             }
             const sRes = await fetch(`${GATEWAY}/status/${user.uid}`)
             const sData = await sRes.json() as { connected: boolean; phoneNumber?: string | null }
             if (sData.connected === true) {
-              done = true
-              clearInterval(pollRef.current!); pollRef.current = null
+              done = true; clearInterval(pollRef.current!); pollRef.current = null
               const num = sData.phoneNumber || 'Connected'
               setStatus('connected'); setPhone(num); setQrSrc('')
-              addSystem('__global__', `Connected — ${num}`)
+              setShowConnectModal(false)
+              sendNotification('WhatsApp Connected', `Linked to ${num}`)
               toast.success('WhatsApp connected!')
             } else if (statusAttempts >= 90) {
-              done = true
-              clearInterval(pollRef.current!); pollRef.current = null
-              addSystem('__global__', 'Timed out. Please try again.')
+              done = true; clearInterval(pollRef.current!); pollRef.current = null
               setStatus('idle'); setQrSrc('')
+              toast.error('Timed out. Please try again.')
             }
           }
         } catch { /* keep polling */ }
       }, 1000)
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      addSystem('__global__', `Error: ${msg}`)
-      toast.error(msg)
-      setStatus('idle')
+      toast.error(msg); setStatus('idle')
     }
   }
 
@@ -444,43 +470,30 @@ export default function WhatsAppPage() {
       })
     } catch { /* best effort */ }
     setStatus('idle'); setQrSrc(''); setPhone('')
-    addSystem('__global__', 'Disconnected.')
+    setShowSettingsModal(false)
     toast.info('Disconnected from WhatsApp')
   }
 
-  // ── Chat ──────────────────────────────────────────────────────────────────────
-
-  function addSystem(contactId: string, text: string) {
-    setConvos((prev) => ({
-      ...prev,
-      [contactId]: [
-        ...(prev[contactId] ?? []),
-        { id: `${Date.now()}${Math.random()}`, role: 'system', text, ts: Date.now() },
-      ],
-    }))
-  }
+  // ── Chat ──────────────────────────────────────────────────────────────────
 
   function addMessage(contactId: string, msg: Omit<ChatMessage, 'id' | 'ts'>) {
-    setConvos((prev) => ({
-      ...prev,
-      [contactId]: [
-        ...(prev[contactId] ?? []),
-        { ...msg, id: `${Date.now()}${Math.random()}`, ts: Date.now() },
-      ],
-    }))
+    const message: ChatMessage = { ...msg, id: `${Date.now()}${Math.random()}`, ts: Date.now() }
+    setConvos((prev) => ({ ...prev, [contactId]: [...(prev[contactId] ?? []), message] }))
     setContacts((prev) =>
-      prev.map((c) =>
-        c.id === contactId ? { ...c, lastMessage: msg.text, lastTs: Date.now() } : c,
-      ),
+      prev.map((c) => c.id === contactId ? { ...c, lastMessage: msg.text, lastTs: Date.now() } : c),
     )
+    // Increment unread if not currently viewing this contact
+    if (msg.role === 'bot' && selected?.id !== contactId) {
+      setUnread((prev) => ({ ...prev, [contactId]: (prev[contactId] ?? 0) + 1 }))
+      const contact = contacts.find((c) => c.id === contactId)
+      if (contact) sendNotification(`New message from ${contact.name}`, msg.text)
+    }
   }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
     if (!input.trim() || !selected || !user) return
-    const text = input.trim()
-    setInput('')
-    setSending(true)
+    const text = input.trim(); setInput(''); setSending(true)
     addMessage(selected.id, { role: 'user', text })
     try {
       const res = await fetch(`${GATEWAY}/send-message`, {
@@ -493,7 +506,6 @@ export default function WhatsAppPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Send failed'
       toast.error(msg)
-      addMessage(selected.id, { role: 'system', text: `Error: ${msg}` })
     } finally {
       setSending(false)
     }
@@ -501,23 +513,26 @@ export default function WhatsAppPage() {
 
   async function handleCopy() {
     await navigator.clipboard.writeText(webhookUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setCopied(true); setTimeout(() => setCopied(false), 2000)
   }
 
-  // ── Derived ───────────────────────────────────────────────────────────────────
+  function selectContact(contact: Contact) {
+    setSelected(contact)
+    setMobileView('chat')
+    setUnread((prev) => ({ ...prev, [contact.id]: 0 }))
+  }
+
+  // ── Derived ───────────────────────────────────────────────────────────────
 
   const isConnected = status === 'connected'
   const connectBusy = status === 'loading' || status === 'qr'
   const messages = selected ? (convos[selected.id] ?? []) : []
   const filteredContacts = contacts.filter(
-    (c) =>
-      c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-      c.phone.includes(contactSearch),
+    (c) => c.name.toLowerCase().includes(contactSearch.toLowerCase()) || c.phone.includes(contactSearch),
   )
-  const activityLog = convos['__global__'] ?? []
+  const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0)
 
-  // ── Loading splash ────────────────────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────────────────────
 
   if (!user || initialising) {
     return (
@@ -525,390 +540,374 @@ export default function WhatsAppPage() {
         <div className="w-14 h-14 rounded-2xl bg-[var(--aro-green)]/10 border border-[var(--aro-green)]/20 flex items-center justify-center">
           <Loader2 className="w-6 h-6 text-[var(--aro-green)] animate-spin" />
         </div>
-        <p className="text-muted-foreground text-sm">Connecting to gateway…</p>
+        <p className="text-muted-foreground text-sm">Checking session…</p>
       </div>
     )
   }
 
-  // ── AI Settings content (shared between desktop panel and mobile sheet) ───────
+  // ── Not Connected Screen ──────────────────────────────────────────────────
 
-  const AiSettingsContent = selected ? (
-    <div className="p-5 space-y-5">
-      {/* AI toggle row */}
-      <div className="flex items-center justify-between p-4 bg-secondary/60 rounded-2xl border border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
-            <Bot className="w-4 h-4 text-[var(--aro-green)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">AI Replies</p>
-            <p className="text-xs text-muted-foreground">Auto-respond to this contact</p>
-          </div>
-        </div>
-        <Toggle
-          checked={selected.aiEnabled}
-          onChange={() => handleUpdateContact(selected.id, { aiEnabled: !selected.aiEnabled })}
-          disabled={!isConnected}
-        />
-      </div>
-
-      {selected.aiEnabled && (
-        <div className="flex items-center gap-2 px-3 py-2.5 bg-[var(--aro-green)]/8 border border-[var(--aro-green)]/20 rounded-xl">
-          <Zap className="w-3.5 h-3.5 text-[var(--aro-green)] shrink-0" />
-          <p className="text-xs text-[var(--aro-green)] font-medium">AI is active for this contact</p>
-        </div>
-      )}
-
-      {/* Personality */}
-      <div className="space-y-2">
-        <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-          Custom Personality
-        </label>
-        <textarea
-          value={selected.aiPersonality || ''}
-          onChange={(e) => handleUpdateContact(selected.id, { aiPersonality: e.target.value })}
-          placeholder="e.g. Reply formally in English. Focus on product inquiries only."
-          rows={4}
-          className="w-full bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--aro-green)]/40 resize-none transition-colors"
-        />
-      </div>
-
-      {/* Model */}
-      <div className="space-y-2">
-        <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-          AI Model
-        </label>
-        <select
-          value={selected.aiModel || 'default'}
-          onChange={(e) => handleUpdateContact(selected.id, { aiModel: e.target.value })}
-          className="w-full bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--aro-green)]/40"
-        >
-          <option value="default">Default (Business Config)</option>
-          <option value="gpt-4o">GPT-4o</option>
-          <option value="gpt-4o-mini">GPT-4o Mini</option>
-          <option value="claude-opus-4.6">Claude Opus</option>
-          <option value="gemini-3-flash">Gemini Flash</option>
-        </select>
-      </div>
-    </div>
-  ) : null
-
-  // ── Connection panel content ────────────────────────────────────────────────
-
-  const ConnectionContent = (
-    <div className="p-5 space-y-4">
-
-      {/* Status card */}
-      <div className={cn(
-        'flex items-center gap-3 p-4 rounded-2xl border',
-        isConnected
-          ? 'bg-emerald-500/8 border-emerald-500/20'
-          : connectBusy
-          ? 'bg-yellow-500/8 border-yellow-500/20'
-          : 'bg-secondary border-border',
-      )}>
-        <div className={cn(
-          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-          isConnected ? 'bg-emerald-500/15' : connectBusy ? 'bg-yellow-500/15' : 'bg-secondary',
-        )}>
-          {isConnected
-            ? <Wifi className="w-5 h-5 text-emerald-400" />
-            : connectBusy
-            ? <Loader2 className="w-5 h-5 text-yellow-400 animate-spin" />
-            : <WifiOff className="w-5 h-5 text-muted-foreground" />}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <StatusDot status={status} />
-            <p className={cn(
-              'text-sm font-semibold',
-              isConnected ? 'text-emerald-400' : connectBusy ? 'text-yellow-400' : 'text-foreground',
-            )}>
-              {isConnected ? 'Connected' : connectBusy ? 'Connecting…' : 'Disconnected'}
-            </p>
-          </div>
-          <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">
-            {isConnected ? phone : GATEWAY.replace('https://', '')}
-          </p>
-        </div>
-      </div>
-
-      {/* Action button */}
-      {!isConnected ? (
-        <Button
-          onClick={handleConnect}
-          disabled={connectBusy}
-          className="w-full h-11 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] font-semibold rounded-2xl"
-        >
-          {connectBusy ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> {status === 'qr' ? 'Waiting for scan…' : 'Connecting…'}</>
-          ) : (
-            <><SmartphoneNfc className="w-4 h-4" /> Connect WhatsApp</>
-          )}
-        </Button>
-      ) : (
-        <Button
-          onClick={handleDisconnect}
-          variant="outline"
-          className="w-full h-11 border-destructive/30 text-destructive hover:bg-destructive/8 hover:border-destructive/50 rounded-2xl font-semibold"
-        >
-          <Unplug className="w-4 h-4" /> Disconnect
-        </Button>
-      )}
-
-      {/* QR Code */}
-      {status === 'qr' && qrSrc && (
-        <div className="flex flex-col items-center gap-4 p-5 bg-card border border-border rounded-2xl">
-          <div className="bg-white p-3 rounded-2xl shadow-sm">
-            <img src={qrSrc} alt="WhatsApp QR Code" className="w-48 h-48 object-contain" />
-          </div>
-          <div className="text-center space-y-1">
-            <p className="text-sm font-medium text-foreground">Scan to link</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              WhatsApp &rarr; Settings &rarr; Linked Devices &rarr; Link a Device
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 text-yellow-400 text-xs font-medium bg-yellow-500/10 px-3 py-1.5 rounded-full border border-yellow-500/20">
-            <Loader2 className="w-3 h-3 animate-spin" /> Waiting for scan…
-          </div>
-        </div>
-      )}
-
-      {/* Global AI */}
-      <div className="flex items-center justify-between p-4 bg-secondary/60 rounded-2xl border border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
-            <Bot className="w-4 h-4 text-[var(--aro-green)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Global AI</p>
-            <p className="text-xs text-muted-foreground">Auto-reply all messages</p>
-          </div>
-        </div>
-        <Toggle
-          checked={globalAi}
-          onChange={() => setGlobalAi((v) => !v)}
-          disabled={!isConnected}
-        />
-      </div>
-
-      {/* Webhook */}
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Webhook URL</p>
-        <div className="flex gap-2">
-          <code className="flex-1 min-w-0 bg-secondary border border-border rounded-xl px-3 py-2.5 text-[var(--aro-green)] text-xs font-mono truncate">
-            {webhookUrl}
-          </code>
-          <button
-            onClick={handleCopy}
-            className="flex items-center justify-center w-10 h-10 bg-secondary hover:bg-card border border-border rounded-xl transition-colors shrink-0"
-            aria-label="Copy webhook URL"
-          >
-            {copied
-              ? <CheckCheck className="w-4 h-4 text-[var(--aro-green)]" />
-              : <Copy className="w-4 h-4 text-muted-foreground" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Activity log */}
-      {activityLog.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Activity</p>
-          </div>
-          <div className="space-y-1.5 max-h-40 overflow-y-auto scrollbar-hide">
-            {activityLog.map((m) => (
-              <p key={m.id} className="text-xs text-muted-foreground font-mono leading-relaxed">
-                <span className="opacity-50">{fmtTime(m.ts)}</span> {m.text}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-
-  // ─── Render ────────────────────────────────────────────────────────────────────
-
-  return (
-    <div className="flex flex-col h-[calc(100vh-112px)] lg:h-screen bg-background overflow-hidden">
-
-      {/* ── Page header (inside page content area) ── */}
-      <div className="shrink-0 px-4 pt-4 pb-2 lg:px-6 lg:pt-6 lg:pb-4 flex items-center gap-3">
-        {/* Mobile back in chat view */}
-        {mobileView === 'chat' && (
-          <button
-            onClick={() => setMobileView('contacts')}
-            className="lg:hidden p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors -ml-1"
-            aria-label="Back to contacts"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-        )}
-
-        {mobileView !== 'chat' && (
-          <>
-            <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
+  if (!isConnected && !connectBusy) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-112px)] lg:h-screen bg-background">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 py-4 lg:px-6 border-b border-border shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center">
               <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[var(--aro-green)]">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
                 <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.855L.057 23.527a.75.75 0 0 0 .916.916l5.672-1.475A11.953 11.953 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.956 9.956 0 0 1-5.145-1.428l-.369-.218-3.827.995.999-3.793-.236-.381A9.956 9.956 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
               </svg>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-foreground tracking-tight">WhatsApp</h1>
+            <div>
+              <h1 className="text-sm font-bold text-foreground">WhatsApp</h1>
+              <div className="flex items-center gap-1.5 mt-0.5">
                 <StatusDot status={status} />
+                <span className="text-xs text-muted-foreground">Not connected</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {isConnected ? phone : 'Not connected'}
-              </p>
             </div>
-          </>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* PWA download */}
+            {!pwaInstalled && deferredPrompt && (
+              <button
+                onClick={handleInstallPWA}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:block">Install App</span>
+              </button>
+            )}
+            {/* Notifications */}
+            <button
+              onClick={requestNotifications}
+              className={cn(
+                'p-2 rounded-xl border transition-colors',
+                notifPermission === 'granted'
+                  ? 'bg-[var(--aro-green)]/10 border-[var(--aro-green)]/20 text-[var(--aro-green)]'
+                  : 'bg-secondary border-border text-muted-foreground hover:text-foreground',
+              )}
+              aria-label="Notification settings"
+            >
+              {notifPermission === 'granted' ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Hero empty state */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8">
+          <div className="relative">
+            <div className="w-28 h-28 rounded-3xl bg-[var(--aro-green)]/10 border-2 border-[var(--aro-green)]/20 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-14 h-14 fill-[var(--aro-green)]/60">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.855L.057 23.527a.75.75 0 0 0 .916.916l5.672-1.475A11.953 11.953 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.956 9.956 0 0 1-5.145-1.428l-.369-.218-3.827.995.999-3.793-.236-.381A9.956 9.956 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+              </svg>
+            </div>
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 border-2 border-background flex items-center justify-center">
+              <span className="text-white text-[9px] font-bold">!</span>
+            </span>
+          </div>
+
+          <div className="text-center space-y-2 max-w-xs">
+            <h2 className="text-xl font-bold text-foreground">Connect WhatsApp</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Link your WhatsApp number to start receiving messages and let your AI agent handle conversations.
+            </p>
+          </div>
+
+          <Button
+            onClick={() => { setShowConnectModal(true); handleConnect() }}
+            className="h-14 px-8 text-base font-bold bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-2xl shadow-lg shadow-[var(--aro-green)]/20 gap-3"
+          >
+            <SmartphoneNfc className="w-5 h-5" />
+            Connect WhatsApp
+          </Button>
+
+          <div className="flex items-center gap-6 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--aro-green)]" />
+              End-to-end encrypted
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--aro-green)]" />
+              AI-powered replies
+            </div>
+          </div>
+        </div>
+
+        {/* Connect Modal */}
+        <Modal
+          open={showConnectModal}
+          onClose={() => { if (status !== 'qr') setShowConnectModal(false) }}
+          title={
+            <div className="flex items-center gap-2">
+              <StatusDot status={status} />
+              <span>{status === 'qr' ? 'Scan QR Code' : status === 'loading' ? 'Initialising…' : 'Connect WhatsApp'}</span>
+            </div>
+          }
+          size="sm"
+        >
+          <div className="p-6 space-y-6">
+            {status === 'loading' && !qrSrc && (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <Loader2 className="w-10 h-10 text-[var(--aro-green)] animate-spin" />
+                <p className="text-sm text-muted-foreground">Starting gateway session…</p>
+              </div>
+            )}
+
+            {status === 'qr' && qrSrc && (
+              <>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="p-4 bg-white rounded-3xl shadow-md">
+                    <img src={qrSrc} alt="WhatsApp QR Code" className="w-52 h-52 object-contain" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-semibold text-foreground">Scan with WhatsApp</p>
+                    <p className="text-xs text-muted-foreground">
+                      Open WhatsApp → Settings → Linked Devices → Link a Device
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 rounded-full">
+                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                    Waiting for scan — QR refreshes automatically
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">How to scan</p>
+                  {[
+                    'Open WhatsApp on your phone',
+                    'Go to Settings → Linked Devices',
+                    'Tap "Link a Device"',
+                    'Point your camera at the QR code',
+                  ].map((step, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="w-5 h-5 rounded-full bg-[var(--aro-green)]/15 text-[var(--aro-green)] text-[10px] font-bold flex items-center justify-center shrink-0">
+                        {i + 1}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
+      </div>
+    )
+  }
+
+  // ── Connecting spinner ────────────────────────────────────────────────────
+
+  if (connectBusy && showConnectModal) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-112px)] lg:h-screen bg-background items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[var(--aro-green)] animate-spin" />
+        <p className="text-muted-foreground text-sm mt-3">Connecting…</p>
+        <Modal
+          open={showConnectModal}
+          onClose={() => {}}
+          title={<div className="flex items-center gap-2"><StatusDot status={status} /><span>Connecting…</span></div>}
+          size="sm"
+        >
+          <div className="p-6 space-y-6">
+            {!qrSrc ? (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <Loader2 className="w-10 h-10 text-[var(--aro-green)] animate-spin" />
+                <p className="text-sm text-muted-foreground">Starting gateway session…</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <div className="p-4 bg-white rounded-3xl shadow-md">
+                  <img src={qrSrc} alt="WhatsApp QR Code" className="w-52 h-52 object-contain" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-foreground">Scan with WhatsApp</p>
+                  <p className="text-xs text-muted-foreground mt-1">Open WhatsApp → Settings → Linked Devices</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 rounded-full">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Waiting for scan…
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      </div>
+    )
+  }
+
+  // ── Connected: Chat Interface ─────────────────────────────────────────────
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-112px)] lg:h-screen bg-background overflow-hidden">
+
+      {/* ── Global top bar ── */}
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card shrink-0">
+        {/* Back button (mobile, chat view) */}
+        {mobileView === 'chat' && (
+          <button
+            onClick={() => { setSelected(null); setMobileView('list') }}
+            className="lg:hidden p-2 -ml-1 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
         )}
 
-        {/* Mobile: connection sheet trigger */}
-        <button
-          onClick={() => setShowConnectionSheet(true)}
-          className={cn(
-            'lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shrink-0 ml-auto',
-            isConnected
-              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-              : connectBusy
-              ? 'bg-yellow-500/10 border-yellow-500/25 text-yellow-400'
-              : 'bg-secondary border-border text-muted-foreground',
-          )}
-        >
-          <StatusDot status={status} />
-          {isConnected ? 'Linked' : connectBusy ? 'Linking' : 'Link'}
-        </button>
-      </div>
+        {/* App identity */}
+        {mobileView === 'list' && (
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="relative shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 fill-[var(--aro-green)]" style={{ width: 18, height: 18 }}>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.855L.057 23.527a.75.75 0 0 0 .916.916l5.672-1.475A11.953 11.953 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.956 9.956 0 0 1-5.145-1.428l-.369-.218-3.827.995.999-3.793-.236-.381A9.956 9.956 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+                </svg>
+              </div>
+              {totalUnread > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--aro-green)] rounded-full text-[var(--aro-bg)] text-[9px] font-bold flex items-center justify-center border border-card">
+                  {totalUnread > 9 ? '9+' : totalUnread}
+                </span>
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-bold text-foreground">WhatsApp</h1>
+                <StatusDot status={status} />
+              </div>
+              <p className="text-xs text-muted-foreground font-mono truncate">{phone}</p>
+            </div>
+          </div>
+        )}
 
-      {/* ── Body: 3-col desktop / 1-panel mobile ── */}
+        {/* Chat header content (mobile) */}
+        {mobileView === 'chat' && selected && (
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Avatar contact={selected} size="sm" />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground truncate">{selected.name}</p>
+              <p className="text-xs text-muted-foreground font-mono">+{phoneFromJid(selected.jid)}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Right actions */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          {/* PWA install */}
+          {!pwaInstalled && deferredPrompt && (
+            <button
+              onClick={handleInstallPWA}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-secondary border border-border text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Install app"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:block">Install</span>
+            </button>
+          )}
+
+          {/* Notifications toggle */}
+          <button
+            onClick={requestNotifications}
+            className={cn(
+              'p-2 rounded-xl border transition-colors',
+              notifPermission === 'granted'
+                ? 'bg-[var(--aro-green)]/10 border-[var(--aro-green)]/20 text-[var(--aro-green)]'
+                : 'bg-secondary border-border text-muted-foreground hover:text-foreground',
+            )}
+            aria-label="Toggle notifications"
+          >
+            {notifPermission === 'granted' ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+          </button>
+
+          {/* Settings */}
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="p-2 rounded-xl border border-border bg-secondary text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
+            aria-label="Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* ── Body ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* COL 1: Connection — desktop only */}
-        <aside className="hidden lg:flex flex-col w-80 shrink-0 border-r border-border overflow-y-auto scrollbar-hide">
-          {ConnectionContent}
-        </aside>
-
-        {/* COL 2: Contacts */}
-        <aside
-          className={cn(
-            'border-r border-border flex flex-col overflow-hidden',
-            'lg:w-72 lg:shrink-0 lg:flex',
-            mobileView === 'contacts' ? 'flex flex-col w-full' : 'hidden',
-          )}
-        >
-          {/* Contacts header */}
-          <div className="px-4 py-3 border-b border-border shrink-0">
-            <div className="flex items-center gap-2 mb-3">
-              <p className="text-sm font-bold text-foreground flex-1">Contacts</p>
-              <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full border border-border">
-                {contacts.length}
-              </span>
+        {/* Contacts sidebar (desktop always / mobile list view) */}
+        <aside className={cn(
+          'flex flex-col border-r border-border overflow-hidden bg-background',
+          'lg:flex lg:w-80 lg:shrink-0',
+          mobileView === 'list' ? 'flex w-full' : 'hidden',
+        )}>
+          {/* Search + add */}
+          <div className="px-4 py-3 border-b border-border shrink-0 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 flex-1 bg-secondary border border-border rounded-2xl px-3 py-2.5">
+                <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <input
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                  placeholder="Search conversations…"
+                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                />
+              </div>
               <button
-                onClick={() => setShowAddContact((v) => !v)}
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 rounded-xl border transition-all',
-                  showAddContact
-                    ? 'bg-[var(--aro-green)] border-[var(--aro-green)] text-[var(--aro-bg)]'
-                    : 'bg-secondary border-border text-muted-foreground hover:text-foreground',
-                )}
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center justify-center w-10 h-10 shrink-0 rounded-2xl bg-[var(--aro-green)] text-[var(--aro-bg)] hover:bg-[var(--aro-green-dark)] transition-colors shadow-md shadow-[var(--aro-green)]/20"
                 aria-label="Add contact"
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Search */}
-            <div className="flex items-center gap-2.5 bg-secondary border border-border rounded-xl px-3 py-2.5">
-              <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <input
-                value={contactSearch}
-                onChange={(e) => setContactSearch(e.target.value)}
-                placeholder="Search contacts…"
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-              />
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+              <span className="font-medium">{contacts.length} contact{contacts.length !== 1 ? 's' : ''}</span>
+              {totalUnread > 0 && (
+                <span className="bg-[var(--aro-green)]/10 text-[var(--aro-green)] border border-[var(--aro-green)]/20 px-2 py-0.5 rounded-full font-semibold">
+                  {totalUnread} unread
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Add contact form */}
-          {showAddContact && (
-            <form onSubmit={handleAddContact} className="px-4 py-3 border-b border-border bg-secondary/30 space-y-2.5 shrink-0">
-              <Input
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="Phone e.g. 2348012345678"
-                className="h-10 bg-background border-border text-sm rounded-xl"
-                required
-              />
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Name (optional)"
-                className="h-10 bg-background border-border text-sm rounded-xl"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="submit"
-                  disabled={addingContact}
-                  size="sm"
-                  className="flex-1 h-9 text-xs bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl font-semibold"
-                >
-                  {addingContact ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save Contact'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddContact(false)}
-                  className="h-9 px-3 text-xs rounded-xl"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {/* Contact list */}
+          {/* List */}
           <div className="flex-1 overflow-y-auto scrollbar-hide">
             {contactsLoading ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center py-16">
                 <Loader2 className="w-5 h-5 text-[var(--aro-green)] animate-spin" />
               </div>
             ) : filteredContacts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-secondary border border-border flex items-center justify-center">
-                  <Phone className="w-5 h-5 text-muted-foreground/50" />
+              <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-secondary border border-border flex items-center justify-center">
+                  <Phone className="w-6 h-6 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {contacts.length === 0 ? 'No contacts yet' : 'No matches'}
-                </p>
-                {contacts.length === 0 && (
-                  <p className="text-xs text-muted-foreground/70">Tap + to add your first contact</p>
-                )}
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-1">
+                    {contacts.length === 0 ? 'No contacts yet' : 'No matches'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {contacts.length === 0 ? 'Tap + to add your first contact' : 'Try a different search'}
+                  </p>
+                </div>
               </div>
             ) : (
-              <div>
-                {filteredContacts.map((contact) => (
+              filteredContacts.map((contact) => {
+                const badge = unread[contact.id] ?? 0
+                const active = selected?.id === contact.id
+                return (
                   <button
                     key={contact.id}
-                    onClick={() => {
-                      setSelected(contact)
-                      setShowAiPanel(false)
-                      setMobileView('chat')
-                    }}
+                    onClick={() => selectContact(contact)}
                     className={cn(
-                      'w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/50 text-left transition-all duration-150',
-                      selected?.id === contact.id
-                        ? 'bg-[var(--aro-green)]/8 border-l-2 border-l-[var(--aro-green)]'
+                      'w-full flex items-center gap-3 px-4 py-4 border-b border-border/50 text-left transition-all duration-150',
+                      active
+                        ? 'bg-[var(--aro-green)]/8 border-l-[3px] border-l-[var(--aro-green)] pl-[13px]'
                         : 'hover:bg-secondary/60',
                     )}
                   >
                     <div className="relative shrink-0">
-                      <ContactAvatar contact={contact} size="md" />
+                      <Avatar contact={contact} size="md" />
                       {contact.aiEnabled && (
                         <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[var(--aro-green)] rounded-full flex items-center justify-center border-2 border-background">
                           <Bot className="w-2 h-2 text-[var(--aro-bg)]" />
@@ -916,101 +915,86 @@ export default function WhatsAppPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <p className="text-sm font-semibold text-foreground truncate">{contact.name}</p>
-                        {contact.lastTs && (
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {fmtTime(contact.lastTs)}
+                      <div className="flex items-start justify-between gap-1 mb-0.5">
+                        <p className={cn('text-sm font-semibold truncate', badge > 0 ? 'text-foreground' : 'text-foreground/90')}>
+                          {contact.name}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                          {contact.lastTs ? fmtTime(contact.lastTs) : ''}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={cn('text-xs truncate', badge > 0 ? 'text-foreground font-medium' : 'text-muted-foreground')}>
+                          {contact.lastMessage || `+${contact.phone}`}
+                        </p>
+                        {badge > 0 && (
+                          <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--aro-green)] text-[var(--aro-bg)] text-[10px] font-bold flex items-center justify-center">
+                            {badge > 9 ? '9+' : badge}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {contact.lastMessage || `+${contact.phone}`}
-                      </p>
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-border shrink-0" />
                   </button>
-                ))}
-              </div>
+                )
+              })
             )}
           </div>
         </aside>
 
-        {/* COL 3: Chat */}
-        <main
-          className={cn(
-            'flex-1 min-w-0 bg-background flex flex-col overflow-hidden',
-            'lg:flex',
-            mobileView === 'chat' ? 'flex' : 'hidden',
-          )}
-        >
+        {/* Chat panel (desktop always / mobile chat view) */}
+        <main className={cn(
+          'flex-1 min-w-0 flex flex-col overflow-hidden bg-background',
+          'lg:flex',
+          mobileView === 'chat' ? 'flex' : 'hidden',
+        )}>
           {!selected ? (
-            <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
+            /* Empty state on desktop */
+            <div className="hidden lg:flex flex-col items-center justify-center h-full gap-5 text-center p-8">
               <div className="w-20 h-20 rounded-3xl bg-[var(--aro-green)]/10 border border-[var(--aro-green)]/15 flex items-center justify-center">
-                <MessageSquare className="w-9 h-9 text-[var(--aro-green)]/60" />
+                <MessageSquare className="w-9 h-9 text-[var(--aro-green)]/50" />
               </div>
               <div>
-                <p className="text-base font-semibold text-foreground mb-1">No conversation open</p>
+                <p className="text-base font-semibold text-foreground mb-2">Select a conversation</p>
                 <p className="text-sm text-muted-foreground max-w-xs">
-                  Select a contact from the list to start chatting
+                  Choose a contact from the list to view their AI-monitored conversation.
                 </p>
               </div>
             </div>
           ) : (
             <>
-              {/* Chat header */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card shrink-0">
-                <button
-                  onClick={() => setMobileView('contacts')}
-                  className="lg:hidden p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                  aria-label="Back"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-
-                <ContactAvatar contact={selected} size="md" />
-
+              {/* Desktop chat header */}
+              <div className="hidden lg:flex items-center gap-3 px-5 py-3.5 border-b border-border bg-card shrink-0">
+                <Avatar contact={selected} size="md" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground truncate">{selected.name}</p>
+                  <p className="text-sm font-bold text-foreground">{selected.name}</p>
                   <p className="text-xs text-muted-foreground font-mono">+{phoneFromJid(selected.jid)}</p>
                 </div>
-
                 {/* AI quick toggle */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs text-muted-foreground hidden sm:block">AI</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs text-muted-foreground">AI</span>
                   <Toggle
                     checked={selected.aiEnabled}
                     onChange={() => handleUpdateContact(selected.id, { aiEnabled: !selected.aiEnabled })}
                     disabled={!isConnected}
                   />
                 </div>
-
-                {/* AI settings */}
                 <button
-                  onClick={() => {
-                    if (window.innerWidth < 1024) {
-                      setShowAiSheet((v) => !v)
-                    } else {
-                      setShowAiPanel((v) => !v)
-                    }
-                  }}
-                  aria-label="AI settings"
+                  onClick={() => setShowAiModal(true)}
                   className={cn(
                     'p-2 rounded-xl border transition-colors',
-                    showAiPanel || showAiSheet
-                      ? 'bg-[var(--aro-green)]/15 border-[var(--aro-green)]/25 text-[var(--aro-green)]'
-                      : 'bg-card border-border text-muted-foreground hover:bg-secondary',
+                    selected.aiEnabled
+                      ? 'bg-[var(--aro-green)]/10 border-[var(--aro-green)]/20 text-[var(--aro-green)]'
+                      : 'bg-secondary border-border text-muted-foreground hover:text-foreground',
                   )}
+                  aria-label="AI settings"
                 >
-                  <Settings2 className="w-4 h-4" />
+                  <Bot className="w-4 h-4" />
                 </button>
-
-                {/* Delete */}
                 <button
                   onClick={() => handleDeleteContact(selected.id)}
                   disabled={deletingContact === selected.id}
+                  className="p-2 rounded-xl border border-border bg-secondary text-muted-foreground hover:text-destructive hover:bg-destructive/8 hover:border-destructive/30 transition-colors disabled:opacity-50"
                   aria-label="Delete contact"
-                  className="p-2 rounded-xl border border-border bg-card hover:bg-destructive/10 hover:border-destructive/30 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
                 >
                   {deletingContact === selected.id
                     ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -1018,116 +1002,316 @@ export default function WhatsAppPage() {
                 </button>
               </div>
 
-              <div className="flex flex-1 overflow-hidden">
-                {/* Messages */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
-                    {messages.length === 0 && (
-                      <div className="flex flex-col items-center justify-center h-full gap-2 text-center opacity-60">
-                        <MessageSquare className="w-8 h-8 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">
-                          {isConnected ? 'Send a message to start' : 'Connect WhatsApp first'}
-                        </p>
-                      </div>
-                    )}
-                    {messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}
-                      >
-                        {msg.role === 'system' ? (
-                          <div className="w-full px-3 py-2 bg-secondary/60 border border-border rounded-xl text-xs text-muted-foreground font-mono text-center">
-                            {msg.text}
-                          </div>
-                        ) : (
-                          <div
-                            className={cn(
-                              'max-w-[78%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed',
-                              msg.role === 'user'
-                                ? 'bg-[var(--aro-green)] text-[var(--aro-bg)] rounded-br-sm'
-                                : 'bg-card text-foreground border border-border rounded-bl-sm',
-                            )}
-                          >
-                            <p>{msg.text}</p>
-                            <p className="text-[10px] opacity-50 mt-0.5 text-right">{fmtTime(msg.ts)}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    <div ref={bottomRef} />
-                  </div>
-
-                  {/* Input bar */}
-                  <form
-                    onSubmit={handleSend}
-                    className="flex items-center gap-2.5 px-4 py-3 border-t border-border bg-card shrink-0"
-                  >
-                    <input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      disabled={!isConnected || sending}
-                      placeholder={isConnected ? `Message ${selected.name}…` : 'Connect WhatsApp first…'}
-                      className="flex-1 bg-secondary border border-border rounded-2xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--aro-green)]/30 disabled:opacity-50 transition-all"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!isConnected || !input.trim() || sending}
-                      className="flex items-center justify-center w-10 h-10 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] disabled:opacity-40 text-[var(--aro-bg)] rounded-2xl transition-colors shrink-0"
-                      aria-label="Send"
-                    >
-                      {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    </button>
-                  </form>
+              {/* Mobile chat action bar */}
+              <div className="flex lg:hidden items-center gap-2 px-4 py-2.5 border-b border-border bg-card shrink-0">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-xs text-muted-foreground">AI replies</span>
+                  <Toggle
+                    checked={selected.aiEnabled}
+                    onChange={() => handleUpdateContact(selected.id, { aiEnabled: !selected.aiEnabled })}
+                    disabled={!isConnected}
+                  />
+                  {selected.aiEnabled && (
+                    <span className="text-xs font-medium text-[var(--aro-green)] flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> Active
+                    </span>
+                  )}
                 </div>
-
-                {/* Desktop AI panel */}
-                {showAiPanel && (
-                  <div className="hidden lg:flex flex-col w-64 shrink-0 border-l border-border overflow-y-auto scrollbar-hide">
-                    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
-                      <div className="flex items-center gap-2">
-                        <Bot className="w-4 h-4 text-[var(--aro-green)]" />
-                        <p className="text-sm font-semibold text-foreground">AI Settings</p>
-                      </div>
-                      <button onClick={() => setShowAiPanel(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    {AiSettingsContent}
-                  </div>
-                )}
+                <button
+                  onClick={() => setShowAiModal(true)}
+                  className="p-2 rounded-xl border border-border bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Bot className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteContact(selected.id)}
+                  disabled={deletingContact === selected.id}
+                  className="p-2 rounded-xl border border-border bg-secondary text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                >
+                  {deletingContact === selected.id
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <Trash2 className="w-3.5 h-3.5" />}
+                </button>
               </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-3 opacity-60">
+                    <MessageSquare className="w-8 h-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      {isConnected ? 'No messages yet. Send the first one.' : 'Connect WhatsApp to send messages.'}
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((msg) => (
+                    <div key={msg.id} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                      {msg.role === 'system' ? (
+                        <div className="w-full text-center">
+                          <span className="inline-block px-3 py-1.5 bg-secondary border border-border rounded-xl text-[11px] text-muted-foreground font-mono">
+                            {msg.text}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className={cn(
+                          'max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
+                          msg.role === 'user'
+                            ? 'bg-[var(--aro-green)] text-[var(--aro-bg)] rounded-br-sm'
+                            : 'bg-card text-foreground border border-border rounded-bl-sm',
+                        )}>
+                          {msg.role === 'bot' && (
+                            <div className="flex items-center gap-1 mb-1.5 opacity-60">
+                              <Bot className="w-3 h-3" />
+                              <span className="text-[10px] font-medium uppercase tracking-wide">AI</span>
+                            </div>
+                          )}
+                          <p>{msg.text}</p>
+                          <p className="text-[10px] opacity-50 mt-1 text-right">{fmtTime(msg.ts)}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                <div ref={bottomRef} />
+              </div>
+
+              {/* Input bar */}
+              <form
+                onSubmit={handleSend}
+                className="flex items-center gap-2.5 px-4 py-3 border-t border-border bg-card shrink-0"
+              >
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  disabled={!isConnected || sending}
+                  placeholder={isConnected ? `Message ${selected.name}…` : 'Connect WhatsApp first…'}
+                  className="flex-1 bg-secondary border border-border rounded-2xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--aro-green)]/30 disabled:opacity-50 transition-all"
+                />
+                <button
+                  type="submit"
+                  disabled={!isConnected || !input.trim() || sending}
+                  className="flex items-center justify-center w-10 h-10 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] disabled:opacity-40 text-[var(--aro-bg)] rounded-2xl transition-colors shrink-0 shadow-md shadow-[var(--aro-green)]/20"
+                  aria-label="Send"
+                >
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </button>
+              </form>
             </>
           )}
         </main>
       </div>
 
-      {/* ── Mobile: Connection Sheet ── */}
-      <BottomSheet
-        open={showConnectionSheet}
-        onClose={() => setShowConnectionSheet(false)}
-        title={
-          <div className="flex items-center gap-2">
-            <StatusDot status={status} />
-            <span>Connection</span>
-          </div>
-        }
+      {/* ── Settings Modal ── */}
+      <Modal
+        open={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        title={<div className="flex items-center gap-2"><Settings className="w-4 h-4 text-[var(--aro-green)]" /><span>Chat Settings</span></div>}
+        size="md"
       >
-        {ConnectionContent}
-      </BottomSheet>
+        <div className="p-5 space-y-5">
+          {/* Connection status */}
+          <div className={cn(
+            'flex items-center gap-3 p-4 rounded-2xl border',
+            'bg-emerald-500/8 border-emerald-500/20',
+          )}>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <Wifi className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <StatusDot status={status} />
+                <p className="text-sm font-semibold text-emerald-400">Connected</p>
+              </div>
+              <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">{phone}</p>
+            </div>
+          </div>
 
-      {/* ── Mobile: AI Settings Sheet ── */}
-      <BottomSheet
-        open={showAiSheet && !!selected}
-        onClose={() => setShowAiSheet(false)}
-        title={
-          <div className="flex items-center gap-2">
-            <Bot className="w-4 h-4 text-[var(--aro-green)]" />
-            <span>AI — {selected?.name}</span>
+          {/* Global AI */}
+          <div className="flex items-center justify-between p-4 bg-secondary/60 rounded-2xl border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
+                <Bot className="w-4 h-4 text-[var(--aro-green)]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Global AI</p>
+                <p className="text-xs text-muted-foreground">Auto-reply all incoming messages</p>
+              </div>
+            </div>
+            <Toggle checked={globalAi} onChange={() => setGlobalAi((v) => !v)} disabled={!isConnected} />
           </div>
-        }
+
+          {/* Notifications */}
+          <div className="flex items-center justify-between p-4 bg-secondary/60 rounded-2xl border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0 border border-border">
+                {notifPermission === 'granted' ? <Bell className="w-4 h-4 text-[var(--aro-green)]" /> : <BellOff className="w-4 h-4 text-muted-foreground" />}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Notifications</p>
+                <p className="text-xs text-muted-foreground capitalize">{notifPermission === 'granted' ? 'Enabled' : notifPermission === 'denied' ? 'Blocked by browser' : 'Not enabled'}</p>
+              </div>
+            </div>
+            {notifPermission !== 'granted' && notifPermission !== 'denied' && (
+              <Button size="sm" onClick={requestNotifications} className="text-xs h-8 bg-[var(--aro-green)] text-[var(--aro-bg)] rounded-xl">
+                Enable
+              </Button>
+            )}
+          </div>
+
+          {/* Webhook URL */}
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5" /> Webhook URL
+            </p>
+            <div className="flex gap-2">
+              <code className="flex-1 min-w-0 bg-secondary border border-border rounded-xl px-3 py-2.5 text-[var(--aro-green)] text-xs font-mono truncate">
+                {webhookUrl}
+              </code>
+              <button
+                onClick={handleCopy}
+                className="flex items-center justify-center w-10 h-10 bg-secondary hover:bg-card border border-border rounded-xl transition-colors shrink-0"
+                aria-label="Copy webhook URL"
+              >
+                {copied ? <CheckCheck className="w-4 h-4 text-[var(--aro-green)]" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+              </button>
+            </div>
+          </div>
+
+          {/* PWA install */}
+          {!pwaInstalled && deferredPrompt && (
+            <button
+              onClick={handleInstallPWA}
+              className="w-full flex items-center justify-between p-4 bg-secondary/60 rounded-2xl border border-border hover:bg-secondary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
+                  <Download className="w-4 h-4 text-[var(--aro-green)]" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-foreground">Install App</p>
+                  <p className="text-xs text-muted-foreground">Download as a native app</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
+
+          {/* Disconnect */}
+          <Button
+            onClick={handleDisconnect}
+            variant="outline"
+            className="w-full h-11 border-destructive/30 text-destructive hover:bg-destructive/8 hover:border-destructive/50 rounded-2xl font-semibold gap-2"
+          >
+            <Unplug className="w-4 h-4" /> Disconnect WhatsApp
+          </Button>
+        </div>
+      </Modal>
+
+      {/* ── Add Contact Modal ── */}
+      <Modal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title={<div className="flex items-center gap-2"><Plus className="w-4 h-4 text-[var(--aro-green)]" /><span>Add Contact</span></div>}
+        size="sm"
       >
-        {AiSettingsContent}
-      </BottomSheet>
+        <form onSubmit={handleAddContact} className="p-5 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Phone Number *</label>
+            <Input
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value)}
+              placeholder="e.g. 2348012345678"
+              className="h-11 bg-secondary border-border rounded-2xl"
+              required
+            />
+            <p className="text-xs text-muted-foreground">Include country code, no + or spaces</p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Name (optional)</label>
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. John Doe"
+              className="h-11 bg-secondary border-border rounded-2xl"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={() => setShowAddModal(false)} className="flex-1 h-11 rounded-2xl">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={addingContact}
+              className="flex-1 h-11 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-2xl font-semibold"
+            >
+              {addingContact ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Contact'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── AI Settings Modal ── */}
+      <Modal
+        open={showAiModal && !!selected}
+        onClose={() => setShowAiModal(false)}
+        title={<div className="flex items-center gap-2"><Bot className="w-4 h-4 text-[var(--aro-green)]" /><span>AI Settings — {selected?.name}</span></div>}
+        size="sm"
+      >
+        {selected && (
+          <div className="p-5 space-y-5">
+            {/* Toggle */}
+            <div className="flex items-center justify-between p-4 bg-secondary/60 rounded-2xl border border-border">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 text-[var(--aro-green)]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">AI Replies</p>
+                  <p className="text-xs text-muted-foreground">Auto-respond to this contact</p>
+                </div>
+              </div>
+              <Toggle
+                checked={selected.aiEnabled}
+                onChange={() => handleUpdateContact(selected.id, { aiEnabled: !selected.aiEnabled })}
+                disabled={!isConnected}
+              />
+            </div>
+
+            {selected.aiEnabled && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-[var(--aro-green)]/8 border border-[var(--aro-green)]/20 rounded-xl">
+                <Zap className="w-3.5 h-3.5 text-[var(--aro-green)] shrink-0" />
+                <p className="text-xs text-[var(--aro-green)] font-medium">AI is active for this contact</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Custom Personality</label>
+              <textarea
+                value={selected.aiPersonality || ''}
+                onChange={(e) => handleUpdateContact(selected.id, { aiPersonality: e.target.value })}
+                placeholder="e.g. Reply formally in English. Focus on product inquiries only."
+                rows={4}
+                className="w-full bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--aro-green)]/40 resize-none transition-colors"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">AI Model</label>
+              <select
+                value={selected.aiModel || 'default'}
+                onChange={(e) => handleUpdateContact(selected.id, { aiModel: e.target.value })}
+                className="w-full bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--aro-green)]/40"
+              >
+                <option value="default">Default (Business Config)</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                <option value="claude-opus-4.6">Claude Opus</option>
+                <option value="gemini-3-flash">Gemini Flash</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

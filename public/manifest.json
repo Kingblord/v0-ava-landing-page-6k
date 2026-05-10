@@ -1,0 +1,37 @@
+{
+  "name": "AroMsg — AI WhatsApp Sales",
+  "short_name": "AroMsg",
+  "description": "AI-powered WhatsApp sales automation dashboard",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0B1410",
+  "theme_color": "#25D366",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/aromsg-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/aromsg-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "WhatsApp Chat",
+      "url": "/dashboard/whatsapp",
+      "description": "Open chat interface"
+    },
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "View analytics"
+    }
+  ]
+}
