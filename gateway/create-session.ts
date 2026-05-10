@@ -21,13 +21,9 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL; // e.g. https://yourapp.vercel.app
-const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY; // Shared secret with Next.js backend
 
 if (!AI_BACKEND_URL) {
   console.warn("[gateway] WARNING: AI_BACKEND_URL is not set — webhooks will not be forwarded");
-}
-if (!GATEWAY_API_KEY) {
-  console.warn("[gateway] WARNING: GATEWAY_API_KEY is not set — webhook calls will be unauthenticated");
 }
 
 // Ensure sessions directory exists
@@ -65,10 +61,7 @@ async function forwardToBackend(payload: {
   try {
     await axios.post(
       webhookUrl,
-      {
-        ...payload,
-        apiKey: GATEWAY_API_KEY, // Send API key for authentication on backend
-      },
+      { ...payload },
       {
         timeout: 15000,
         headers: { "Content-Type": "application/json" },
@@ -306,6 +299,7 @@ app.get("/health", (_, res) =>
     status: "ok",
     sessions: Object.keys(sessions).length,
     backendUrl: AI_BACKEND_URL || "NOT SET",
+    authenticated: false,
   })
 );
 
