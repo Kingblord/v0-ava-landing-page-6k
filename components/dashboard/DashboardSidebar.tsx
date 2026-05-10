@@ -14,91 +14,37 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  Menu,
-  X,
   Zap,
   Sun,
   Moon,
   ArrowLeft,
+  ChevronRight,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 
 const navItems = [
-  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
+  { href: '/dashboard', label: 'Home', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/products', label: 'Products', icon: Package },
   { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageSquare },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
-function NavLink({
-  href,
-  label,
-  icon: Icon,
-  exact,
-  onClick,
-}: {
-  href: string
-  label: string
-  icon: React.ElementType
-  exact?: boolean
-  onClick?: () => void
-}) {
+function useActiveNav() {
   const pathname = usePathname()
-  const isActive = exact ? pathname === href : pathname.startsWith(href)
-
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={cn(
-        'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-        isActive
-          ? 'bg-[var(--aro-green)]/15 text-[var(--aro-green)] border border-[var(--aro-green)]/25'
-          : 'text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)]',
-      )}
-    >
-      <Icon
-        className={cn(
-          'w-4 h-4 shrink-0 transition-colors',
-          isActive ? 'text-[var(--aro-green)]' : 'text-current',
-        )}
-      />
-      {label}
-    </Link>
-  )
+  return (href: string, exact?: boolean) =>
+    exact ? pathname === href : pathname.startsWith(href)
 }
 
-function ThemeToggle({ full = false }: { full?: boolean }) {
+function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
-  if (full) {
-    return (
-      <button
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        className={cn(
-          'flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-          'text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)]',
-          'border border-[var(--aro-border)]',
-        )}
-      >
-        {isDark ? (
-          <Sun className="w-4 h-4 shrink-0 text-[var(--aro-green)]" />
-        ) : (
-          <Moon className="w-4 h-4 shrink-0 text-[var(--aro-green)]" />
-        )}
-        {isDark ? 'Light Mode' : 'Dark Mode'}
-      </button>
-    )
-  }
   return (
     <button
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)] transition-colors"
+      className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
     >
-      {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+      {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
     </button>
   )
 }
@@ -106,141 +52,161 @@ function ThemeToggle({ full = false }: { full?: boolean }) {
 export default function DashboardSidebar() {
   const router = useRouter()
   const pathname = usePathname()
-  const [mobileOpen, setMobileOpen] = useState(false)
-
-  // The nav is only shown on the root dashboard page.
-  // All sub-pages get a simple back-to-dashboard header instead.
+  const isActive = useActiveNav()
   const isRootDashboard = pathname === '/dashboard'
+
+  const currentPage = navItems.find((n) => !n.exact && pathname.startsWith(n.href))
 
   async function handleLogout() {
     await logOut()
     router.push('/auth/login')
   }
 
-  // ── Desktop sidebar (always visible on lg+) ─────────────────────────────────
-  const sidebarContent = (
-    <div className="flex flex-col h-full">
+  // ── Desktop side rail ──────────────────────────────────────────────────────
+  const DesktopSidebar = (
+    <aside className="hidden lg:flex flex-col w-[220px] shrink-0 bg-card border-r border-border h-screen sticky top-0 overflow-y-auto">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-[var(--aro-border)]">
-        <Image
-          src="/aromsg-logo.png"
-          alt="AroMsg"
-          width={36}
-          height={36}
-          className="object-contain"
-          style={{ width: 36, height: 'auto' }}
-        />
-        <div>
-          <p className="font-bold text-sm leading-none">
+      <div className="flex items-center gap-2.5 px-5 py-5">
+        <div className="w-8 h-8 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
+          <Zap className="w-4 h-4 text-[var(--aro-green)]" />
+        </div>
+        <div className="leading-none">
+          <p className="font-bold text-sm">
             <span className="text-[var(--aro-green)]">Aro</span>
             <span className="text-foreground">Msg</span>
           </p>
-          <p className="text-muted-foreground text-xs mt-0.5">Sales Platform</p>
+          <p className="text-muted-foreground text-[10px] mt-0.5 font-medium tracking-wide uppercase">Platform</p>
         </div>
       </div>
 
-      {/* Status badge */}
-      <div className="mx-4 mt-4 flex items-center gap-2 bg-[var(--aro-green)]/10 border border-[var(--aro-green)]/20 rounded-lg px-3 py-2">
-        <span className="w-2 h-2 rounded-full bg-[var(--aro-green)] animate-pulse shrink-0" />
-        <span className="text-[var(--aro-green)] text-xs font-medium">Arobi Active</span>
-        <Zap className="w-3 h-3 text-[var(--aro-green)] ml-auto" />
-      </div>
+      {/* Nav section label */}
+      <p className="px-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        Navigation
+      </p>
 
-      {/* Nav */}
-      <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.href}
-            {...item}
-            onClick={() => setMobileOpen(false)}
-          />
-        ))}
+      {/* Nav links */}
+      <nav className="flex-1 flex flex-col gap-0.5 px-3">
+        {navItems.map((item) => {
+          const active = isActive(item.href, item.exact)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                active
+                  ? 'bg-[var(--aro-green)] text-[var(--aro-bg)]'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
+              )}
+            >
+              <item.icon className={cn('w-4 h-4 shrink-0', active ? 'text-[var(--aro-bg)]' : 'text-current')} />
+              {item.label}
+              {active && <ChevronRight className="w-3.5 h-3.5 ml-auto text-[var(--aro-bg)]/60" />}
+            </Link>
+          )
+        })}
       </nav>
 
-      {/* Theme toggle + Logout */}
-      <div className="px-3 pb-4 border-t border-[var(--aro-border)] pt-4 flex flex-col gap-1">
-        <ThemeToggle full />
+      {/* Bottom actions */}
+      <div className="px-3 pb-5 pt-4 border-t border-border mt-2 flex flex-col gap-1">
+        <div className="flex items-center justify-between px-3 py-2">
+          <span className="text-xs text-muted-foreground font-medium">Appearance</span>
+          <ThemeToggle />
+        </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all duration-200 w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-all duration-150 w-full"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           Sign Out
         </button>
       </div>
-    </div>
+    </aside>
+  )
+
+  // ── Mobile top header ──────────────────────────────────────────────────────
+  const MobileHeader = (
+    <header className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-card/95 backdrop-blur-xl border-b border-border flex items-center px-4 gap-3">
+      {isRootDashboard ? (
+        <>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
+              <Zap className="w-3.5 h-3.5 text-[var(--aro-green)]" />
+            </div>
+            <span className="font-bold text-sm">
+              <span className="text-[var(--aro-green)]">Aro</span>
+              <span className="text-foreground">Msg</span>
+            </span>
+          </div>
+          <ThemeToggle />
+        </>
+      ) : (
+        <>
+          <button
+            onClick={() => router.push('/dashboard')}
+            aria-label="Back to dashboard"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="sr-only">Back</span>
+          </button>
+          <span className="flex-1 text-sm font-semibold text-foreground truncate">
+            {currentPage?.label ?? 'Dashboard'}
+          </span>
+          <ThemeToggle />
+        </>
+      )}
+    </header>
+  )
+
+  // ── Mobile bottom nav bar ──────────────────────────────────────────────────
+  const BottomNav = (
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border">
+      <div className="flex items-center justify-around px-2 py-1 safe-area-pb">
+        {navItems.map((item) => {
+          const active = isActive(item.href, item.exact)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all min-w-0 flex-1"
+              aria-label={item.label}
+            >
+              <span
+                className={cn(
+                  'flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200',
+                  active
+                    ? 'bg-[var(--aro-green)] shadow-lg shadow-[var(--aro-green)]/25'
+                    : 'bg-transparent',
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    'w-4 h-4 transition-colors',
+                    active ? 'text-[var(--aro-bg)]' : 'text-muted-foreground',
+                  )}
+                />
+              </span>
+              <span
+                className={cn(
+                  'text-[9px] font-semibold tracking-wide uppercase transition-colors leading-none',
+                  active ? 'text-[var(--aro-green)]' : 'text-muted-foreground',
+                )}
+              >
+                {item.label === 'WhatsApp' ? 'Chat' : item.label}
+              </span>
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
   )
 
   return (
     <>
-      {/* ── Desktop sidebar ─────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-card border-r border-[var(--aro-border)] h-screen sticky top-0">
-        {sidebarContent}
-      </aside>
-
-      {/* ── Mobile header ───────────────────────────────────────────────────── */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-b border-[var(--aro-border)] h-14 flex items-center px-4 gap-3">
-
-        {isRootDashboard ? (
-          /* Root dashboard — show logo + hamburger */
-          <>
-            <div className="flex items-center gap-2 flex-1">
-              <Image
-                src="/aromsg-logo.png"
-                alt="AroMsg"
-                width={28}
-                height={28}
-                className="object-contain"
-                style={{ width: 28, height: 'auto' }}
-              />
-              <span className="font-bold text-sm">
-                <span className="text-[var(--aro-green)]">Aro</span>
-                <span className="text-foreground">Msg</span>
-              </span>
-            </div>
-            <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          </>
-        ) : (
-          /* Sub-page — show back button + page title + theme toggle */
-          <>
-            <button
-              onClick={() => router.push('/dashboard')}
-              aria-label="Back to dashboard"
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)] transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <span className="flex-1 text-sm font-semibold text-foreground truncate">
-              {navItems.find((n) => !n.exact && pathname.startsWith(n.href))?.label ?? 'Dashboard'}
-            </span>
-            <ThemeToggle />
-          </>
-        )}
-      </header>
-
-      {/* ── Mobile drawer (root dashboard only) ─────────────────────────────── */}
-      {mobileOpen && isRootDashboard && (
-        <div
-          className="lg:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-        >
-          <aside
-            className="absolute top-14 left-0 bottom-0 w-72 bg-card border-r border-[var(--aro-border)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {sidebarContent}
-          </aside>
-        </div>
-      )}
+      {DesktopSidebar}
+      {MobileHeader}
+      {BottomNav}
     </>
   )
 }

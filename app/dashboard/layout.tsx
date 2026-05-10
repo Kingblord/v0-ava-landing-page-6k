@@ -32,12 +32,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-background flex">
       <DashboardSidebar />
-      <main className="flex-1 min-w-0 lg:overflow-auto">
-        <div className="pt-14 lg:pt-0">
-          {children}
-        </div>
+      {/* 
+        Mobile: pt-14 (top header) + pb-20 (bottom nav clearance)
+        Desktop: no extra padding needed – sidebar is sticky aside
+      */}
+      <main className="flex-1 min-w-0 overflow-y-auto pt-14 pb-20 lg:pt-0 lg:pb-0">
+        {children}
       </main>
-      <Toaster position="bottom-right" theme="dark" />
+      <Toaster position="bottom-center" theme="dark" />
     </div>
   )
 }

@@ -292,4 +292,9 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* iOS safe area for bottom nav */
+  .safe-area-pb {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
 }

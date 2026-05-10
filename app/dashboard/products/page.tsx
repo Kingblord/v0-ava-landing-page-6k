@@ -27,11 +27,14 @@ import {
   Pencil,
   Trash2,
   Package,
-  ToggleLeft,
-  ToggleRight,
   X,
   ImageIcon,
+  DollarSign,
+  Tag,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const EMPTY_FORM = {
   name: '',
@@ -52,7 +55,6 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
 
-  // Real-time listener
   useEffect(() => {
     if (!user) return
     const q = query(
@@ -71,11 +73,7 @@ export default function ProductsPage() {
     return unsub
   }, [user])
 
-  function openNew() {
-    setForm(EMPTY_FORM)
-    setEditingId(null)
-    setShowForm(true)
-  }
+  function openNew() { setForm(EMPTY_FORM); setEditingId(null); setShowForm(true) }
 
   function openEdit(p: Product) {
     setForm({
@@ -90,53 +88,43 @@ export default function ProductsPage() {
     setShowForm(true)
   }
 
-  function closeForm() {
-    setShowForm(false)
-    setEditingId(null)
-    setForm(EMPTY_FORM)
-  }
+  function closeForm() { setShowForm(false); setEditingId(null); setForm(EMPTY_FORM) }
 
-  const handleSave = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault()
-      if (!user) return
-      const price = parseFloat(form.price)
-      const minPrice = parseFloat(form.minPrice)
-      if (!form.name.trim()) { toast.error('Product name is required.'); return }
-      if (isNaN(price) || price <= 0) { toast.error('Enter a valid selling price.'); return }
-      if (isNaN(minPrice) || minPrice < 0) { toast.error('Enter a valid floor price.'); return }
-      if (minPrice > price) { toast.error('Floor price cannot exceed selling price.'); return }
+  const handleSave = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    const price = parseFloat(form.price)
+    const minPrice = parseFloat(form.minPrice)
+    if (!form.name.trim()) { toast.error('Product name is required.'); return }
+    if (isNaN(price) || price <= 0) { toast.error('Enter a valid selling price.'); return }
+    if (isNaN(minPrice) || minPrice < 0) { toast.error('Enter a valid floor price.'); return }
+    if (minPrice > price) { toast.error('Floor price cannot exceed selling price.'); return }
 
-      setSaving(true)
-      try {
-        const payload = {
-          name: form.name.trim(),
-          description: form.description.trim(),
-          price,
-          minPrice,
-          negotiationEnabled: form.negotiationEnabled,
-          imageUrl: form.imageUrl || '',
-          businessId: user.uid,
-        }
-        if (editingId) {
-          await updateDoc(doc(db, 'products', editingId), payload)
-          toast.success('Product updated.')
-        } else {
-          await addDoc(collection(db, 'products'), {
-            ...payload,
-            createdAt: serverTimestamp(),
-          })
-          toast.success('Product added.')
-        }
-        closeForm()
-      } catch {
-        toast.error('Failed to save product.')
-      } finally {
-        setSaving(false)
+    setSaving(true)
+    try {
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        price,
+        minPrice,
+        negotiationEnabled: form.negotiationEnabled,
+        imageUrl: form.imageUrl || '',
+        businessId: user.uid,
       }
-    },
-    [user, form, editingId],
-  )
+      if (editingId) {
+        await updateDoc(doc(db, 'products', editingId), payload)
+        toast.success('Product updated.')
+      } else {
+        await addDoc(collection(db, 'products'), { ...payload, createdAt: serverTimestamp() })
+        toast.success('Product added.')
+      }
+      closeForm()
+    } catch {
+      toast.error('Failed to save product.')
+    } finally {
+      setSaving(false)
+    }
+  }, [user, form, editingId])
 
   async function handleDelete(id: string) {
     setDeleting(id)
@@ -144,7 +132,7 @@ export default function ProductsPage() {
       await deleteDoc(doc(db, 'products', id))
       toast.success('Product deleted.')
     } catch {
-      toast.error('Failed to delete product.')
+      toast.error('Failed to delete.')
     } finally {
       setDeleting(null)
     }
@@ -152,157 +140,165 @@ export default function ProductsPage() {
 
   async function toggleNegotiation(p: Product) {
     try {
-      await updateDoc(doc(db, 'products', p.id), {
-        negotiationEnabled: !p.negotiationEnabled,
-      })
+      await updateDoc(doc(db, 'products', p.id), { negotiationEnabled: !p.negotiationEnabled })
     } catch {
-      toast.error('Failed to update product.')
+      toast.error('Failed to update.')
     }
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="min-h-full bg-background">
+
+      {/* ── Header ── */}
+      <div className="px-4 pt-6 pb-4 lg:px-8 lg:pt-8 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Products</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-xl font-bold text-foreground">Products</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             {products.length} product{products.length !== 1 ? 's' : ''} — AVA sells these via WhatsApp
           </p>
         </div>
         <Button
           onClick={openNew}
-          className="bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl gap-2"
+          className="bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl gap-2 h-9 px-4 text-sm font-semibold shrink-0"
         >
-          <Plus className="w-4 h-4" /> Add Product
+          <Plus className="w-4 h-4" /> Add
         </Button>
       </div>
 
-      {/* Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-64 rounded-2xl bg-secondary animate-pulse" />
-          ))}
-        </div>
-      ) : products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4 bg-card border border-border rounded-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center">
-            <Package className="w-8 h-8 text-[var(--aro-green)]" />
+      <div className="px-4 lg:px-8 pb-6">
+        {loading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="aspect-[3/4] rounded-2xl bg-secondary animate-pulse" />
+            ))}
           </div>
-          <p className="text-foreground font-semibold">No products yet</p>
-          <p className="text-muted-foreground text-sm text-center max-w-xs">
-            Add your first product so AVA knows what to sell on WhatsApp.
-          </p>
-          <Button
-            onClick={openNew}
-            className="bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl gap-2 mt-2"
-          >
-            <Plus className="w-4 h-4" /> Add First Product
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((p) => (
-            <div
-              key={p.id}
-              className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col hover:border-[var(--aro-green)]/40 transition-colors group"
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 bg-card border border-border rounded-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center">
+              <Package className="w-7 h-7 text-[var(--aro-green)]" />
+            </div>
+            <div className="text-center">
+              <p className="text-foreground font-semibold">No products yet</p>
+              <p className="text-muted-foreground text-sm mt-1 max-w-xs">
+                Add your first product so AVA knows what to sell on WhatsApp.
+              </p>
+            </div>
+            <Button
+              onClick={openNew}
+              className="bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl gap-2"
             >
-              {/* Product image */}
-              <div className="relative aspect-video bg-secondary flex-shrink-0">
-                {p.imageUrl ? (
-                  <Image
-                    src={p.imageUrl}
-                    alt={p.name}
-                    fill
-                    className="object-cover"
-                    sizes="400px"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <ImageIcon className="w-10 h-10 text-[var(--aro-green)]/25" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="flex flex-col gap-2 p-4 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-foreground font-semibold text-sm leading-snug line-clamp-2">
-                    {p.name}
-                  </p>
-                  <button
-                    onClick={() => toggleNegotiation(p)}
-                    className="shrink-0 mt-0.5"
-                    aria-label="Toggle negotiation"
-                  >
-                    {p.negotiationEnabled
-                      ? <ToggleRight className="w-5 h-5 text-[var(--aro-teal)]" />
-                      : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
-                  </button>
-                </div>
-                {p.description && (
-                  <p className="text-muted-foreground text-xs line-clamp-2">{p.description}</p>
-                )}
-                <div className="flex items-center gap-3 mt-auto pt-2 border-t border-border">
-                  <span className="text-foreground font-bold text-sm">${p.price.toFixed(2)}</span>
-                  <span className="text-muted-foreground text-xs">floor ${p.minPrice.toFixed(2)}</span>
+              <Plus className="w-4 h-4" /> Add First Product
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {products.map((p) => (
+              <div
+                key={p.id}
+                className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col hover:border-[var(--aro-green)]/30 transition-all duration-200"
+              >
+                {/* Image */}
+                <div className="relative aspect-video bg-secondary shrink-0">
+                  {p.imageUrl ? (
+                    <Image src={p.imageUrl} alt={p.name} fill className="object-cover" sizes="400px" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <ImageIcon className="w-8 h-8 text-muted-foreground/25" />
+                    </div>
+                  )}
+                  {/* Negotiable badge */}
                   {p.negotiationEnabled && (
-                    <span className="ml-auto text-[10px] font-medium bg-[var(--aro-teal)]/10 text-[var(--aro-teal)] border border-[var(--aro-teal)]/20 rounded-full px-2 py-0.5">
-                      Negotiable
+                    <span className="absolute top-2 right-2 text-[9px] font-bold bg-[var(--aro-teal)] text-white px-2 py-0.5 rounded-full">
+                      NEG
                     </span>
                   )}
                 </div>
-              </div>
 
-              {/* Actions */}
-              <div className="flex border-t border-border">
-                <button
-                  onClick={() => openEdit(p)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" /> Edit
-                </button>
-                <div className="w-px bg-border" />
-                <button
-                  onClick={() => handleDelete(p.id)}
-                  disabled={deleting === p.id}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  {deleting === p.id ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                {/* Body */}
+                <div className="p-3 flex flex-col gap-2 flex-1">
+                  <p className="text-foreground text-sm font-semibold leading-snug line-clamp-2">{p.name}</p>
+                  {p.description && (
+                    <p className="text-muted-foreground text-[11px] line-clamp-2 leading-relaxed">{p.description}</p>
+                  )}
 
-      {/* Slide-in panel */}
+                  {/* Price row */}
+                  <div className="flex items-center gap-2 mt-auto pt-1">
+                    <span className="flex items-center gap-0.5 text-[var(--aro-green)] font-bold text-sm">
+                      <DollarSign className="w-3 h-3" />{p.price.toFixed(2)}
+                    </span>
+                    <span className="flex items-center gap-0.5 text-muted-foreground text-[10px]">
+                      <Tag className="w-2.5 h-2.5" />{p.minPrice.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex border-t border-border">
+                  <button
+                    onClick={() => openEdit(p)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <Pencil className="w-3 h-3" /> Edit
+                  </button>
+                  <div className="w-px bg-border" />
+                  <button
+                    onClick={() => toggleNegotiation(p)}
+                    className="flex-1 flex items-center justify-center py-2.5 transition-colors hover:bg-secondary"
+                    aria-label="Toggle negotiation"
+                  >
+                    {p.negotiationEnabled
+                      ? <ToggleRight className="w-4 h-4 text-[var(--aro-teal)]" />
+                      : <ToggleLeft className="w-4 h-4 text-muted-foreground" />}
+                  </button>
+                  <div className="w-px bg-border" />
+                  <button
+                    onClick={() => handleDelete(p.id)}
+                    disabled={deleting === p.id}
+                    className="flex-1 flex items-center justify-center py-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom sheet form (mobile) / slide-in panel (desktop) ── */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex">
-          <div
-            className="flex-1 bg-black/60 backdrop-blur-sm"
-            onClick={closeForm}
-          />
-          <div className="w-full max-w-md bg-card border-l border-border h-full overflow-y-auto flex flex-col">
-            {/* Panel header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-border sticky top-0 bg-card z-10">
-              <h2 className="text-foreground font-semibold text-base">
+        <div className="fixed inset-0 z-50 flex items-end lg:items-stretch lg:justify-end">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeForm} />
+
+          {/* Sheet / Panel */}
+          <div className={cn(
+            'relative bg-card w-full overflow-y-auto flex flex-col',
+            'rounded-t-2xl max-h-[92vh]',
+            'lg:rounded-none lg:max-h-none lg:h-full lg:w-[420px] lg:border-l lg:border-border',
+          )}>
+            {/* Handle (mobile) */}
+            <div className="flex justify-center pt-3 pb-1 lg:hidden">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 className="text-foreground font-semibold">
                 {editingId ? 'Edit Product' : 'New Product'}
               </h2>
               <button
                 onClick={closeForm}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="flex flex-col gap-6 p-6 flex-1">
-              {/* Image upload */}
+            <form onSubmit={handleSave} className="flex flex-col gap-5 p-5 flex-1">
+              {/* Image */}
               <div className="flex flex-col gap-2">
-                <Label className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Product Image
                 </Label>
                 <ImageUpload
@@ -310,45 +306,45 @@ export default function ProductsPage() {
                   onChange={(url) => setForm({ ...form, imageUrl: url })}
                   folder="products"
                   variant="rect"
-                  label="Click to upload product image"
+                  label="Tap to upload image"
                 />
               </div>
 
               {/* Name */}
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="prod-name" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
-                  Product Name *
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="prod-name" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Name *
                 </Label>
                 <Input
                   id="prod-name"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Nike Air Max 90"
-                  className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
+                  className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 h-11 rounded-xl"
                   required
                 />
               </div>
 
               {/* Description */}
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="prod-desc" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="prod-desc" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Description
                 </Label>
                 <textarea
                   id="prod-desc"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Describe the product for AVA to reference in conversations..."
+                  placeholder="Describe the product..."
                   rows={3}
-                  className="bg-background border border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 rounded-lg px-3 py-2 text-sm resize-none outline-none transition-colors"
+                  className="bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 rounded-xl px-3 py-2.5 text-sm resize-none outline-none transition-colors leading-relaxed"
                 />
               </div>
 
               {/* Prices */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="prod-price" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
-                    Selling Price *
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="prod-price" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Price *
                   </Label>
                   <Input
                     id="prod-price"
@@ -358,12 +354,12 @@ export default function ProductsPage() {
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
                     placeholder="0.00"
-                    className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 h-11 rounded-xl"
                     required
                   />
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="prod-floor" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="prod-floor" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Floor Price *
                   </Label>
                   <Input
@@ -374,44 +370,46 @@ export default function ProductsPage() {
                     value={form.minPrice}
                     onChange={(e) => setForm({ ...form, minPrice: e.target.value })}
                     placeholder="0.00"
-                    className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 h-11 rounded-xl"
                     required
                   />
                 </div>
               </div>
 
-              {/* Negotiation toggle */}
-              <div className="flex items-center justify-between bg-background border border-border rounded-xl px-4 py-3">
-                <div>
-                  <p className="text-foreground text-sm font-medium">Allow Negotiation</p>
-                  <p className="text-muted-foreground text-xs mt-0.5">
-                    AVA will negotiate between floor and selling price
-                  </p>
+              {/* Negotiation */}
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, negotiationEnabled: !form.negotiationEnabled })}
+                className={cn(
+                  'flex items-center justify-between p-4 rounded-xl border transition-all',
+                  form.negotiationEnabled
+                    ? 'bg-[var(--aro-green)]/8 border-[var(--aro-green)]/30'
+                    : 'bg-secondary border-border',
+                )}
+              >
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-foreground">Allow Negotiation</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">AVA negotiates between floor and price</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, negotiationEnabled: !form.negotiationEnabled })}
-                >
-                  {form.negotiationEnabled
-                    ? <ToggleRight className="w-8 h-8 text-[var(--aro-teal)]" />
-                    : <ToggleLeft className="w-8 h-8 text-muted-foreground" />}
-                </button>
-              </div>
+                {form.negotiationEnabled
+                  ? <ToggleRight className="w-8 h-8 text-[var(--aro-green)] shrink-0" />
+                  : <ToggleLeft className="w-8 h-8 text-muted-foreground shrink-0" />}
+              </button>
 
-              {/* Actions */}
-              <div className="flex gap-3 pt-2 mt-auto">
+              {/* Submit */}
+              <div className="flex gap-3 mt-auto pt-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={closeForm}
-                  className="flex-1 border-border text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl"
+                  className="flex-1 border-border text-muted-foreground hover:text-foreground rounded-xl h-11"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl disabled:opacity-60"
+                  className="flex-1 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl h-11 font-semibold disabled:opacity-60"
                 >
                   {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Add Product'}
                 </Button>
