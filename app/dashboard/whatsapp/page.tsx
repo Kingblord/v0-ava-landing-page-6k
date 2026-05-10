@@ -35,10 +35,44 @@ export default function WhatsAppPage() {
   /* ── webhook url ── */
   const [webhookUrl, setWebhookUrl] = useState('/api/whatsapp/webhook')
   const [copied, setCopied] = useState(false)
+  const [initialising, setInitialising] = useState(true)
 
+  // On mount: set webhook URL + check if session is already connected (persistence)
   useEffect(() => {
     setWebhookUrl(`${window.location.origin}/api/whatsapp/webhook`)
   }, [])
+
+  // Wait for auth then auto-check existing session
+  useEffect(() => {
+    if (!user) return
+    checkExistingSession()
+  }, [user])
+
+  async function checkExistingSession() {
+    setInitialising(true)
+    try {
+      const res = await fetch(`${GATEWAY}/status/${user!.uid}`)
+      const data = await res.json()
+      const already =
+        data.status === 'connected' ||
+        data.status === 'CONNECTED' ||
+        data.connected === true ||
+        data.state === 'open' ||
+        data.state === 'connected' ||
+        data.isConnected === true
+
+      if (already) {
+        const phoneNum = data.phone || data.phoneNumber || data.number || 'Connected'
+        setStatus('connected')
+        setPhone(phoneNum)
+        addSystem(`Session restored. Phone: ${phoneNum}`)
+      }
+    } catch {
+      // Gateway unreachable — start fresh
+    } finally {
+      setInitialising(false)
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -190,7 +224,16 @@ export default function WhatsAppPage() {
     </div>
   )
 
+  if (initialising) return (
+    <div className="flex flex-col items-center justify-center h-screen gap-3">
+      <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
+      <p className="text-slate-400 text-sm font-mono">Checking session…</p>
+    </div>
+  )
+
   const isConnected = status === 'connected'
+  // Button is only disabled while the async connect flow is actively running
+  const connectBusy = status === 'loading' || status === 'qr'
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 p-4 md:p-8">
@@ -240,11 +283,13 @@ export default function WhatsAppPage() {
             {!isConnected ? (
               <button
                 onClick={handleConnect}
-                disabled={status === 'loading' || status === 'qr'}
+                disabled={connectBusy}
                 className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors"
               >
                 {status === 'loading' ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Connecting…</>
+                ) : status === 'qr' ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Waiting for scan…</>
                 ) : (
                   <><SmartphoneNfc className="w-4 h-4" /> Connect WhatsApp</>
                 )}
