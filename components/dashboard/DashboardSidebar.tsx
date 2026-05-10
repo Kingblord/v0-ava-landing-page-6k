@@ -19,6 +19,7 @@ import {
   Zap,
   Sun,
   Moon,
+  ArrowLeft,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -68,44 +69,67 @@ function NavLink({
   )
 }
 
-function ThemeToggle() {
+function ThemeToggle({ full = false }: { full?: boolean }) {
   const { theme, setTheme } = useTheme()
   const isDark = theme === 'dark'
+  if (full) {
+    return (
+      <button
+        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        className={cn(
+          'flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+          'text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)]',
+          'border border-[var(--aro-border)]',
+        )}
+      >
+        {isDark ? (
+          <Sun className="w-4 h-4 shrink-0 text-[var(--aro-green)]" />
+        ) : (
+          <Moon className="w-4 h-4 shrink-0 text-[var(--aro-green)]" />
+        )}
+        {isDark ? 'Light Mode' : 'Dark Mode'}
+      </button>
+    )
+  }
   return (
     <button
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className={cn(
-        'flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-        'text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)]',
-        'border border-[var(--aro-border)]',
-      )}
+      className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)] transition-colors"
     >
-      {isDark ? (
-        <Sun className="w-4 h-4 shrink-0 text-[var(--aro-green)]" />
-      ) : (
-        <Moon className="w-4 h-4 shrink-0 text-[var(--aro-green)]" />
-      )}
-      {isDark ? 'Light Mode' : 'Dark Mode'}
+      {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </button>
   )
 }
 
 export default function DashboardSidebar() {
   const router = useRouter()
+  const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
+
+  // The nav is only shown on the root dashboard page.
+  // All sub-pages get a simple back-to-dashboard header instead.
+  const isRootDashboard = pathname === '/dashboard'
 
   async function handleLogout() {
     await logOut()
     router.push('/auth/login')
   }
 
+  // ── Desktop sidebar (always visible on lg+) ─────────────────────────────────
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-[var(--aro-border)]">
-        <Image src="/aromsg-logo.png" alt="AroMsg" width={36} height={36} className="object-contain" style={{ width: 36, height: 'auto' }} />
+        <Image
+          src="/aromsg-logo.png"
+          alt="AroMsg"
+          width={36}
+          height={36}
+          className="object-contain"
+          style={{ width: 36, height: 'auto' }}
+        />
         <div>
           <p className="font-bold text-sm leading-none">
             <span className="text-[var(--aro-green)]">Aro</span>
@@ -135,7 +159,7 @@ export default function DashboardSidebar() {
 
       {/* Theme toggle + Logout */}
       <div className="px-3 pb-4 border-t border-[var(--aro-border)] pt-4 flex flex-col gap-1">
-        <ThemeToggle />
+        <ThemeToggle full />
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all duration-200 w-full"
@@ -149,42 +173,62 @@ export default function DashboardSidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
+      {/* ── Desktop sidebar ─────────────────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-card border-r border-[var(--aro-border)] h-screen sticky top-0">
         {sidebarContent}
       </aside>
 
-      {/* Mobile header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-b border-[var(--aro-border)] flex items-center justify-between px-4 h-14">
-        <div className="flex items-center gap-2">
-          <Image src="/aromsg-logo.png" alt="AroMsg" width={28} height={28} className="object-contain" style={{ width: 28, height: 'auto' }} />
-          <span className="font-bold text-sm">
-            <span className="text-[var(--aro-green)]">Aro</span>
-            <span className="text-foreground">Msg</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            aria-label="Toggle theme"
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)] transition-colors"
-          >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
-        </div>
+      {/* ── Mobile header ───────────────────────────────────────────────────── */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-b border-[var(--aro-border)] h-14 flex items-center px-4 gap-3">
+
+        {isRootDashboard ? (
+          /* Root dashboard — show logo + hamburger */
+          <>
+            <div className="flex items-center gap-2 flex-1">
+              <Image
+                src="/aromsg-logo.png"
+                alt="AroMsg"
+                width={28}
+                height={28}
+                className="object-contain"
+                style={{ width: 28, height: 'auto' }}
+              />
+              <span className="font-bold text-sm">
+                <span className="text-[var(--aro-green)]">Aro</span>
+                <span className="text-foreground">Msg</span>
+              </span>
+            </div>
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          </>
+        ) : (
+          /* Sub-page — show back button + page title + theme toggle */
+          <>
+            <button
+              onClick={() => router.push('/dashboard')}
+              aria-label="Back to dashboard"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)] transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <span className="flex-1 text-sm font-semibold text-foreground truncate">
+              {navItems.find((n) => !n.exact && pathname.startsWith(n.href))?.label ?? 'Dashboard'}
+            </span>
+            <ThemeToggle />
+          </>
+        )}
       </header>
 
-      {/* Mobile drawer */}
-      {mobileOpen && (
+      {/* ── Mobile drawer (root dashboard only) ─────────────────────────────── */}
+      {mobileOpen && isRootDashboard && (
         <div
           className="lg:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
           onClick={() => setMobileOpen(false)}

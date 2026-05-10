@@ -22,7 +22,6 @@ import {
   Plus,
   Search,
   Trash2,
-  ChevronLeft,
   X,
   ArrowLeft,
   Wifi,
@@ -30,6 +29,7 @@ import {
   Activity,
   MessageSquare,
   Phone,
+  Link2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -87,23 +87,37 @@ function avatarColor(name: string) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StatusPill({ connected, phone }: { connected: boolean; phone: string }) {
+// Status light: green=connected, yellow=pending, red=disconnected
+function StatusLight({ status, phone }: { status: 'idle' | 'loading' | 'qr' | 'connected'; phone: string }) {
+  const isPending = status === 'loading' || status === 'qr'
+  const isConnected = status === 'connected'
+
   return (
-    <div
-      className={cn(
-        'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border',
-        connected
-          ? 'bg-[var(--aro-green)]/10 border-[var(--aro-green)]/30 text-[var(--aro-green)]'
-          : 'bg-muted border-border text-muted-foreground',
-      )}
-    >
+    <div className="flex items-center gap-2">
+      {/* The light */}
       <span
         className={cn(
-          'w-1.5 h-1.5 rounded-full',
-          connected ? 'bg-[var(--aro-green)] animate-pulse' : 'bg-muted-foreground',
+          'w-2.5 h-2.5 rounded-full shrink-0 shadow-sm',
+          isConnected
+            ? 'bg-emerald-400 shadow-emerald-400/60 animate-pulse'
+            : isPending
+            ? 'bg-yellow-400 shadow-yellow-400/60 animate-pulse'
+            : 'bg-red-500 shadow-red-500/40',
         )}
       />
-      {connected ? `Connected · ${phone}` : 'Disconnected'}
+      {/* Label — hidden on very small screens */}
+      <span
+        className={cn(
+          'text-xs font-medium hidden sm:block',
+          isConnected
+            ? 'text-emerald-400'
+            : isPending
+            ? 'text-yellow-400'
+            : 'text-red-500',
+        )}
+      >
+        {isConnected ? (phone || 'Connected') : isPending ? 'Connecting…' : 'Disconnected'}
+      </span>
     </div>
   )
 }
@@ -163,8 +177,12 @@ export default function WhatsAppPage() {
   // ── Global AI toggle ──
   const [globalAi, setGlobalAi] = useState(false)
 
-  // ── Mobile nav view: 'connections' | 'contacts' | 'chat' ──
-  const [mobileView, setMobileView] = useState<'connections' | 'contacts' | 'chat'>('connections')
+  // ── Mobile nav view: 'contacts' | 'chat' ──
+  const [mobileView, setMobileView] = useState<'contacts' | 'chat'>('contacts')
+
+  // ── Mobile sheet overlays ──
+  const [showConnectionSheet, setShowConnectionSheet] = useState(false)
+  const [showAiSheet, setShowAiSheet] = useState(false)
 
   // ── Init ──
   useEffect(() => {
@@ -226,6 +244,7 @@ export default function WhatsAppPage() {
       setShowAddContact(false)
       setSelected(contact)
       setMobileView('chat')
+      setShowConnectionSheet(false)
       toast.success('Contact saved')
     } catch {
       toast.error('Failed to save contact')
@@ -254,6 +273,7 @@ export default function WhatsAppPage() {
       if (selected?.id === id) {
         setSelected(null)
         setMobileView('contacts')
+        setShowAiSheet(false)
       }
       toast.success('Contact removed')
     } catch {
@@ -452,7 +472,7 @@ export default function WhatsAppPage() {
 
   const isConnected = status === 'connected'
   const connectBusy = status === 'loading' || status === 'qr'
-  const messages = selected ? (convos[selected.id] ?? []) : (convos['__global__'] ?? [])
+  const messages = selected ? (convos[selected.id] ?? []) : []
   const filteredContacts = contacts.filter(
     (c) =>
       c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
@@ -472,7 +492,7 @@ export default function WhatsAppPage() {
     </div>
   )
 
-  // ── Panel: Connection + Activity ─────────────────────────────────────────────
+  // ── Panel: Connection + Activity ─���───────────────────────────────────────────
 
   const ConnectionPanel = (
     <div className="flex flex-col h-full overflow-hidden">
@@ -772,13 +792,19 @@ export default function WhatsAppPage() {
               </button>
             </div>
 
-            {/* AI settings */}
+            {/* AI settings — desktop opens inline panel, mobile opens sheet */}
             <button
-              onClick={() => setShowAiPanel((v) => !v)}
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  setShowAiSheet((v) => !v)
+                } else {
+                  setShowAiPanel((v) => !v)
+                }
+              }}
               aria-label="AI settings"
               className={cn(
                 'p-1.5 rounded-lg border transition-colors',
-                showAiPanel
+                (showAiPanel || showAiSheet)
                   ? 'bg-[var(--aro-green)]/15 border-[var(--aro-green)]/25 text-[var(--aro-green)]'
                   : 'bg-card border-border text-muted-foreground hover:bg-secondary',
               )}
@@ -954,20 +980,19 @@ export default function WhatsAppPage() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-[calc(100vh-0px)] lg:h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-[calc(100vh-56px)] lg:h-screen flex flex-col bg-background overflow-hidden">
 
       {/* ── Top bar ── */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card shrink-0">
-        {/* Mobile: show back button if in contacts or chat */}
-        {mobileView !== 'connections' && (
+
+        {/* Mobile: back when in chat view */}
+        {mobileView === 'chat' && (
           <button
-            onClick={() =>
-              setMobileView(mobileView === 'chat' ? 'contacts' : 'connections')
-            }
+            onClick={() => setMobileView('contacts')}
             className="lg:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            aria-label="Go back"
+            aria-label="Back to contacts"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
         )}
 
@@ -980,46 +1005,41 @@ export default function WhatsAppPage() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-bold text-foreground tracking-tight">WhatsApp Gateway</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm font-bold text-foreground tracking-tight">WhatsApp</h1>
+            {/* Status light always visible */}
+            <StatusLight status={status} phone={phone} />
+          </div>
           <p className="text-xs text-muted-foreground font-mono truncate hidden sm:block">{GATEWAY}</p>
         </div>
 
-        <StatusPill connected={isConnected} phone={phone} />
-
-        {/* Mobile tab switcher */}
-        <div className="flex items-center lg:hidden gap-0.5 bg-secondary rounded-lg p-0.5 border border-border">
-          {(['connections', 'contacts', 'chat'] as const).map((view) => (
-            <button
-              key={view}
-              onClick={() => setMobileView(view)}
-              className={cn(
-                'px-2.5 py-1 rounded-md text-[10px] font-medium transition-all capitalize',
-                mobileView === view
-                  ? 'bg-[var(--aro-green)] text-[var(--aro-bg)]'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {view === 'connections' ? 'Link' : view === 'contacts' ? 'Chats' : 'Chat'}
-            </button>
-          ))}
-        </div>
+        {/* Mobile: Connection sheet trigger */}
+        <button
+          onClick={() => setShowConnectionSheet(true)}
+          className={cn(
+            'lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors',
+            isConnected
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : connectBusy
+              ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
+              : 'border-border bg-secondary text-muted-foreground hover:text-foreground',
+          )}
+          aria-label="Connection settings"
+        >
+          <Link2 className="w-3.5 h-3.5" />
+          {isConnected ? 'Linked' : connectBusy ? 'Linking…' : 'Link'}
+        </button>
       </header>
 
-      {/* ── 3-column layout (desktop) / single panel (mobile) ── */}
+      {/* ── 3-column layout (desktop) / 2-panel (mobile) ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* COL 1: Connection panel */}
-        <aside
-          className={cn(
-            'w-72 shrink-0 border-r border-border bg-background',
-            'lg:flex flex-col',
-            mobileView === 'connections' ? 'flex flex-col w-full' : 'hidden',
-          )}
-        >
+        {/* COL 1: Connection panel — desktop only */}
+        <aside className="hidden lg:flex flex-col w-72 shrink-0 border-r border-border bg-background">
           {ConnectionPanel}
         </aside>
 
-        {/* COL 2: Contact list */}
+        {/* COL 2: Contact list — desktop always visible, mobile only when mobileView=contacts */}
         <aside
           className={cn(
             'w-64 shrink-0 border-r border-border bg-background',
@@ -1041,6 +1061,123 @@ export default function WhatsAppPage() {
           {ChatPanel}
         </main>
       </div>
+
+      {/* ── Mobile: Connection Sheet ──────────────────────────────────────────── */}
+      {showConnectionSheet && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowConnectionSheet(false)}
+          />
+          {/* Sheet */}
+          <div className="relative bg-card border-t border-border rounded-t-2xl max-h-[85vh] overflow-y-auto">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <StatusLight status={status} phone={phone} />
+                <h2 className="text-sm font-semibold text-foreground">Connection</h2>
+              </div>
+              <button
+                onClick={() => setShowConnectionSheet(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {/* Content — reuse ConnectionPanel */}
+            <div className="max-h-[70vh] overflow-y-auto">
+              {ConnectionPanel}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile: AI Settings Sheet ─────────────────────────────────────────── */}
+      {showAiSheet && selected && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowAiSheet(false)}
+          />
+          <div className="relative bg-card border-t border-border rounded-t-2xl max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Bot className="w-4 h-4 text-[var(--aro-green)]" />
+                <h2 className="text-sm font-semibold text-foreground">AI Settings — {selected.name}</h2>
+              </div>
+              <button
+                onClick={() => setShowAiSheet(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 space-y-5">
+              {/* AI toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">AI Replies</p>
+                  <p className="text-xs text-muted-foreground">Auto-respond to this contact</p>
+                </div>
+                <button
+                  onClick={() => handleUpdateContact(selected.id, { aiEnabled: !selected.aiEnabled })}
+                  disabled={!isConnected}
+                  aria-label="Toggle AI replies"
+                  className={cn(
+                    'relative w-10 h-5 rounded-full transition-colors disabled:opacity-40',
+                    selected.aiEnabled ? 'bg-[var(--aro-green)]' : 'bg-border',
+                  )}
+                >
+                  <span className={cn('absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', selected.aiEnabled ? 'translate-x-5' : '')} />
+                </button>
+              </div>
+
+              {/* Personality */}
+              <div>
+                <label className="text-xs text-muted-foreground font-mono block mb-1.5">Custom Personality</label>
+                <textarea
+                  value={selected.aiPersonality || ''}
+                  onChange={(e) => handleUpdateContact(selected.id, { aiPersonality: e.target.value })}
+                  placeholder="e.g. Reply formally in English. Focus on product inquiries only."
+                  rows={4}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--aro-green)]/30 resize-none"
+                />
+              </div>
+
+              {/* Model */}
+              <div>
+                <label className="text-xs text-muted-foreground font-mono block mb-1.5">AI Model</label>
+                <select
+                  value={selected.aiModel || 'default'}
+                  onChange={(e) => handleUpdateContact(selected.id, { aiModel: e.target.value })}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--aro-green)]/30"
+                >
+                  <option value="default">Default (Business Config)</option>
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini</option>
+                  <option value="claude-opus-4.6">Claude Opus</option>
+                  <option value="gemini-3-flash">Gemini Flash</option>
+                </select>
+              </div>
+
+              {selected.aiEnabled && (
+                <div className="flex items-center gap-2 p-3 bg-[var(--aro-green)]/8 border border-[var(--aro-green)]/20 rounded-lg">
+                  <Bot className="w-4 h-4 text-[var(--aro-green)] shrink-0" />
+                  <p className="text-sm text-[var(--aro-green)]">AI is active for this contact</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
