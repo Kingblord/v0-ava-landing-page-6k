@@ -119,7 +119,7 @@ export interface SiteContent {
 
 export const DEFAULT_CONTENT: SiteContent = {
   navbar: {
-    brandName: 'AVA',
+    brandName: 'AroMsg',
     links: [
       { label: 'Features', href: '#features' },
       { label: 'How It Works', href: '#how-it-works' },
@@ -135,7 +135,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     headline: 'Close Deals',
     headlineAccent: 'While You Sleep',
     subheadline:
-      'AVA handles every WhatsApp customer — answering questions, negotiating prices, and confirming orders automatically. You wake up to revenue, not messages.',
+      'Arobi handles every WhatsApp customer — answering questions, negotiating prices, and confirming orders automatically. You wake up to revenue, not messages.',
     ctaPrimary: 'Start for Free',
     ctaSecondary: 'See How It Works',
     socialProofText: 'Loved by 200+ business owners',
@@ -153,12 +153,12 @@ export const DEFAULT_CONTENT: SiteContent = {
     headlineAccent: 'automate sales',
     subheadline: 'One platform. Your AI agent, your products, your orders — all in one place.',
     cards: [
-      { title: 'Human-Like Conversations', desc: "AVA chats like a real salesperson — handles objections, builds rapport, and closes deals naturally." },
-      { title: 'Product Catalogue', desc: "Add products once. AVA knows them all and never recommends items you don't sell." },
+      { title: 'Human-Like Conversations', desc: "Arobi chats like a real salesperson — handles objections, builds rapport, and closes deals naturally." },
+      { title: 'Product Catalogue', desc: "Add products once. Arobi knows them all and never recommends items you don't sell." },
       { title: 'Auto Order Creation', desc: "Orders appear in your dashboard automatically the moment a customer commits." },
-      { title: 'Price Negotiation Control', desc: "Set floor prices per product. AVA negotiates within your limits so you never sell at a loss." },
+      { title: 'Price Negotiation Control', desc: "Set floor prices per product. Arobi negotiates within your limits so you never sell at a loss." },
       { title: 'Instant Responses', desc: "Responds to every message in under a second — 24 hours a day, 7 days a week." },
-      { title: 'Customisable Personality', desc: "Define how AVA speaks. Formal, casual, aggressive closer, or soft advisor — your brand, your voice." },
+      { title: 'Customisable Personality', desc: "Define how Arobi speaks. Formal, casual, aggressive closer, or soft advisor — your brand, your voice." },
       { title: 'Revenue Analytics', desc: "Track conversations, conversion rates, and revenue from a single dashboard." },
       { title: '0 Messages Missed', desc: "Every customer gets a reply — even at 3am. Never lose a sale to slow response times again." },
     ],
@@ -168,22 +168,22 @@ export const DEFAULT_CONTENT: SiteContent = {
     sectionLabel: 'How It Works',
     headline: 'Up and running in',
     headlineAccent: '3 steps',
-    subheadline: 'No developers needed. No complex setup. Just plug in and let AVA work.',
+    subheadline: 'No developers needed. No complex setup. Just plug in and let Arobi work.',
     steps: [
       {
         n: '01',
         title: 'Connect WhatsApp',
-        desc: 'Paste your Twilio webhook URL into your WhatsApp Sandbox. Takes under 2 minutes — no code required.',
+        desc: 'Scan the QR code to link your WhatsApp number. Takes under 2 minutes — no code required.',
       },
       {
         n: '02',
         title: 'Add Your Products',
-        desc: 'Create your product catalogue with names, prices, and negotiation floor prices. AVA learns everything instantly.',
+        desc: 'Create your product catalogue with names, prices, and negotiation floor prices. Arobi learns everything instantly.',
       },
       {
         n: '03',
-        title: 'AVA Takes Over',
-        desc: 'Every incoming WhatsApp message is handled by AVA — automatically, intelligently, around the clock.',
+        title: 'Arobi Takes Over',
+        desc: 'Every incoming WhatsApp message is handled by Arobi — automatically, intelligently, around the clock.',
       },
     ],
   },
@@ -193,11 +193,11 @@ export const DEFAULT_CONTENT: SiteContent = {
     headline: 'Businesses already',
     headlineAccent: 'closing more',
     testimonials: [
-      { name: 'Amara Diallo', role: 'Sneaker Reseller, Lagos', text: "AVA made $4,200 in sales while I was sleeping. I woke up to 17 confirmed orders. It handles the negotiating better than I do honestly.", metric: '$4,200 overnight' },
-      { name: 'Thabo Nkosi', role: 'Clothing Brand Owner, Johannesburg', text: "I was spending 6 hours a day on WhatsApp. Now I spend 20 minutes reviewing orders AVA already closed. Complete game changer.", metric: '6hrs → 20min/day' },
-      { name: 'Fatima Al-Hassan', role: 'Beauty Store, Dubai', text: "My customers can't tell it's AI. The conversations are so natural. I had one customer say AVA was the most helpful sales rep she'd ever talked to.", metric: '100% retention' },
-      { name: 'Kwame Mensah', role: 'Electronics Retailer, Accra', text: "The price negotiation feature is brilliant. I set floor prices and AVA handles everything. My margins are actually up 12% since I started.", metric: '+12% margins' },
-      { name: 'Priya Sharma', role: 'Fashion Boutique, Mumbai', text: "Setup took 8 minutes. Literally 8 minutes. And by the end of the day AVA had already handled 43 customer conversations. Mind-blowing.", metric: '43 convos day 1' },
+      { name: 'Amara Diallo', role: 'Sneaker Reseller, Lagos', text: "Arobi made $4,200 in sales while I was sleeping. I woke up to 17 confirmed orders. It handles the negotiating better than I do honestly.", metric: '$4,200 overnight' },
+      { name: 'Thabo Nkosi', role: 'Clothing Brand Owner, Johannesburg', text: "I was spending 6 hours a day on WhatsApp. Now I spend 20 minutes reviewing orders Arobi already closed. Complete game changer.", metric: '6hrs → 20min/day' },
+      { name: 'Fatima Al-Hassan', role: 'Beauty Store, Dubai', text: "My customers can't tell it's AI. The conversations are so natural. I had one customer say Arobi was the most helpful sales rep she'd ever talked to.", metric: '100% retention' },
+      { name: 'Kwame Mensah', role: 'Electronics Retailer, Accra', text: "The price negotiation feature is brilliant. I set floor prices and Arobi handles everything. My margins are actually up 12% since I started.", metric: '+12% margins' },
+      { name: 'Priya Sharma', role: 'Fashion Boutique, Mumbai', text: "Setup took 8 minutes. Literally 8 minutes. And by the end of the day Arobi had already handled 43 customer conversations. Mind-blowing.", metric: '43 convos day 1' },
       { name: 'Carlos Mendez', role: 'Tech Store, Mexico City', text: "I was sceptical about AI handling my customers but the trial convinced me in one day. It upsells better than my staff does. Wild.", metric: 'Revenue up 34%' },
     ],
   },
@@ -243,11 +243,11 @@ export const DEFAULT_CONTENT: SiteContent = {
     headline: 'Questions',
     headlineAccent: 'answered',
     items: [
-      { q: 'Does AVA really sound human?', a: "Yes. AVA is powered by the latest large language models via OpenRouter. Customers consistently report that conversations feel completely natural. You can also customise the tone, style, and personality to match your brand." },
-      { q: "What happens if AVA can't answer a question?", a: "If a customer asks something outside AVA's knowledge base (your products and configured responses), AVA will politely let them know and can optionally escalate or flag the conversation for you to review." },
-      { q: 'How does price negotiation work?', a: "For each product you set a \"floor price\" — the minimum you're willing to accept. AVA will negotiate naturally within that range, starting from your listed price and moving down strategically, never going below your floor." },
-      { q: 'Do I need technical knowledge to set up AVA?', a: "No. Setup involves pasting a webhook URL into Twilio and filling in your product details. It takes under 10 minutes. No code, no servers, no developers needed." },
-      { q: 'What WhatsApp providers does AVA support?', a: "AVA currently works with Twilio's WhatsApp API (Sandbox and Production). Support for Meta Business API and other providers is on the roadmap." },
+      { q: 'Does Arobi really sound human?', a: "Yes. Arobi is powered by the latest large language models. Customers consistently report that conversations feel completely natural. You can also customise the tone, style, and personality to match your brand." },
+      { q: "What happens if Arobi can't answer a question?", a: "If a customer asks something outside Arobi's knowledge base (your products and configured responses), Arobi will politely let them know and can optionally escalate or flag the conversation for you to review." },
+      { q: 'How does price negotiation work?', a: "For each product you set a \"floor price\" — the minimum you're willing to accept. Arobi will negotiate naturally within that range, starting from your listed price and moving down strategically, never going below your floor." },
+      { q: 'Do I need technical knowledge to set up AroMsg?', a: "No. Setup involves scanning a QR code and filling in your product details. It takes under 10 minutes. No code, no servers, no developers needed." },
+      { q: 'What WhatsApp providers does AroMsg support?', a: "AroMsg uses a direct WhatsApp connection via QR code linking — no Twilio or third-party API required. Just scan and go." },
       { q: 'Is there a free trial?', a: "Yes — every plan starts with a 14-day free trial. No credit card required to get started. You can upgrade, downgrade, or cancel anytime." },
     ],
   },
@@ -255,7 +255,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   footer: {
     ctaHeadline: 'Start closing deals',
     ctaHeadlineAccent: 'tonight',
-    ctaSubheadline: 'Join hundreds of business owners who let AVA handle their WhatsApp sales. Set up in under 10 minutes. No credit card required.',
+    ctaSubheadline: 'Join hundreds of business owners who let Arobi handle their WhatsApp sales. Set up in under 10 minutes. No credit card required.',
     ctaButton: 'Get Started Free',
     stats: [
       { value: '200+', label: 'Businesses' },
@@ -292,7 +292,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       },
     ],
     contact: {
-      email: 'hello@ava.ai',
+      email: 'hello@aromsg.ai',
       phone: '+1 (555) 000-0000',
       address: '123 Main St, San Francisco, CA 94105',
     },
@@ -301,8 +301,8 @@ export const DEFAULT_CONTENT: SiteContent = {
       instagram: '#',
       linkedin: '#',
     },
-    copyright: `© ${new Date().getFullYear()} AVA. All rights reserved.`,
-    poweredBy: 'Built with AI. Powered by OpenRouter.',
+    copyright: `© ${new Date().getFullYear()} AroMsg. All rights reserved.`,
+    poweredBy: 'Built with AI. Powered by AroMsg.',
   },
 }
 

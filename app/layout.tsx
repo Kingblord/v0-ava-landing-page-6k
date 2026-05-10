@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/lib/auth-context'
 import { AppShell } from '@/components/AppShell'
 import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const geistSans = Geist({
@@ -19,42 +20,42 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'AVA — AI Sales Agent That Closes Deals While You Sleep',
+  title: 'AroMsg — AI Sales Agent That Closes Deals While You Sleep',
   description:
-    'AVA is an Artificial Virtual Agent that automates your sales on WhatsApp and Telegram with human-like conversations, auto-payments, and smart negotiation. Never lose a customer in your DMs again.',
+    'AroMsg powers Arobi, an AI Sales Agent that automates your sales on WhatsApp with human-like conversations, auto-payments, and smart negotiation. Never lose a customer in your DMs again.',
   keywords: [
     'AI sales agent',
     'WhatsApp automation',
-    'Telegram bot',
+    'AroMsg',
+    'Arobi AI',
     'sales automation',
-    'AVA AI',
     'conversational AI',
     'payment automation',
   ],
-  authors: [{ name: 'AVA' }],
-  creator: 'AVA',
+  authors: [{ name: 'AroMsg' }],
+  creator: 'AroMsg',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    title: 'AVA — AI Sales Agent That Closes Deals While You Sleep',
+    title: 'AroMsg — AI Sales Agent That Closes Deals While You Sleep',
     description:
-      'Automate your sales on WhatsApp and Telegram with human-like AI conversations and built-in payments.',
-    siteName: 'AVA',
+      'Automate your sales on WhatsApp with human-like AI conversations and built-in payments.',
+    siteName: 'AroMsg',
     images: [
       {
-        url: '/logo.png',
+        url: '/aromsg-logo.png',
         width: 1200,
         height: 630,
-        alt: 'AVA — Artificial Virtual Agent',
+        alt: 'AroMsg — AI Sales Automation',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AVA — AI Sales Agent That Closes Deals While You Sleep',
+    title: 'AroMsg — AI Sales Agent That Closes Deals While You Sleep',
     description:
-      'Automate your sales on WhatsApp and Telegram with human-like AI conversations and built-in payments.',
-    images: ['/logo.png'],
+      'Automate your sales on WhatsApp with human-like AI conversations and built-in payments.',
+    images: ['/aromsg-logo.png'],
   },
   robots: {
     index: true,
@@ -63,7 +64,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0B0F1A',
+  themeColor: '#0B1410',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -77,16 +78,24 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} bg-[#0B0F1A]`}
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable}`}
       data-scroll-behavior="smooth"
     >
-      <body className="font-sans antialiased bg-[#0B0F1A] text-[#f0f4ff] overflow-x-hidden ava-loading">
-        <AuthProvider>
-          <AppShell>
-            {children}
-          </AppShell>
-          <Toaster position="bottom-right" theme="dark" />
-        </AuthProvider>
+      <body className="font-sans antialiased bg-background text-foreground overflow-x-hidden ava-loading">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange={false}
+        >
+          <AuthProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+            <Toaster position="bottom-right" />
+          </AuthProvider>
+        </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

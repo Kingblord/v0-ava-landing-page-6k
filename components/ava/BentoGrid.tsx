@@ -11,14 +11,14 @@ import { DEFAULT_CONTENT } from '@/lib/content'
 
 // Fixed visual/icon/size/accent metadata — not editable, only text is editable
 const CARD_META = [
-  { icon: MessageSquare, size: 'lg', accent: '#6C5CE7', visual: 'chat' },
-  { icon: Package, size: 'sm', accent: '#00D1B2', visual: 'products' },
-  { icon: ShoppingCart, size: 'sm', accent: '#e040fb', visual: 'orders' },
-  { icon: Shield, size: 'md', accent: '#6C5CE7', visual: 'negotiation' },
-  { icon: Zap, size: 'md', accent: '#00D1B2', visual: 'speed' },
-  { icon: Bot, size: 'sm', accent: '#e040fb', visual: 'bot' },
-  { icon: TrendingUp, size: 'sm', accent: '#6C5CE7', visual: 'analytics' },
-  { icon: Clock, size: 'lg', accent: '#00D1B2', visual: 'clock' },
+  { icon: MessageSquare, size: 'lg', accent: '#25D366', visual: 'chat' },
+  { icon: Package, size: 'sm', accent: '#00a884', visual: 'products' },
+  { icon: ShoppingCart, size: 'sm', accent: '#4fde82', visual: 'orders' },
+  { icon: Shield, size: 'md', accent: '#25D366', visual: 'negotiation' },
+  { icon: Zap, size: 'md', accent: '#00a884', visual: 'speed' },
+  { icon: Bot, size: 'sm', accent: '#4fde82', visual: 'bot' },
+  { icon: TrendingUp, size: 'sm', accent: '#25D366', visual: 'analytics' },
+  { icon: Clock, size: 'lg', accent: '#00a884', visual: 'clock' },
 ]
 
 const BAR_DATA = [40, 65, 45, 80, 55, 90, 70]
@@ -105,7 +105,7 @@ function BentoCard({ card, index }: { card: MergedCard; index: number }) {
       className={`relative group bg-[var(--ava-surface)] rounded-2xl p-5 overflow-hidden cursor-default transition-transform duration-300 hover:-translate-y-1 ${
         card.size === 'lg' ? 'md:col-span-2' : card.size === 'md' ? 'md:col-span-1' : ''
       }`}
-      style={{ border: '1px solid rgba(108,92,231,0.12)' }}
+      style={{ border: '1px solid rgba(37,211,102,0.12)' }}
     >
       {/* Radial border glow on hover */}
       <div

@@ -127,18 +127,18 @@ export function ChatDemo() {
       {/* Phone frame */}
       <div className="bg-[#0d1424] border border-[var(--ava-border)] rounded-[2rem] overflow-hidden shadow-2xl shadow-[var(--ava-purple)]/20">
         {/* Header */}
-        <div className="bg-[#111827] px-4 py-3 flex items-center gap-3 border-b border-[var(--ava-border)]">
-          <div className="w-9 h-9 rounded-full bg-[var(--ava-purple)]/20 flex items-center justify-center flex-shrink-0">
-            <Image src="/logo.png" alt="AVA" width={20} height={16} className="object-contain" />
+        <div className="bg-[var(--ava-surface)] px-4 py-3 flex items-center gap-3 border-b border-[var(--ava-border)]">
+          <div className="w-9 h-9 rounded-full bg-[var(--aro-green)]/20 flex items-center justify-center flex-shrink-0">
+            <Image src="/aromsg-logo.png" alt="Arobi" width={24} height={24} className="object-contain" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-semibold">AVA Sales Agent</p>
+            <p className="text-foreground text-sm font-semibold">Arobi Sales Agent</p>
             <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--ava-teal)] animate-pulse" />
-              <span className="text-[var(--ava-teal)] text-xs">Online</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--aro-green)] animate-pulse" />
+              <span className="text-[var(--aro-green)] text-xs">Online</span>
             </div>
           </div>
-          <div className="text-[var(--ava-text-muted)] text-xs">WhatsApp</div>
+          <div className="text-muted-foreground text-xs">WhatsApp</div>
         </div>
 
         {/* Messages */}

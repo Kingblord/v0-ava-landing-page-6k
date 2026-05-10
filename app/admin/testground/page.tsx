@@ -280,7 +280,7 @@ export default function TestgroundPage() {
             <h1 className="text-2xl font-bold text-white mb-6">Testground Configuration</h1>
 
             {/* AI Configuration */}
-            <Card className="bg-[#111827] border-[#6C5CE7]/15 p-4">
+            <Card className="bg-[#111827] border-[#25D366]/15 p-4">
               <h2 className="text-sm font-semibold text-white mb-3">AI Configuration</h2>
               <div className="space-y-3">
                 <div>
@@ -289,7 +289,7 @@ export default function TestgroundPage() {
                     value={business.name}
                     onChange={(e) => setBusiness({ ...business, name: e.target.value })}
                     placeholder="Test Store"
-                    className="mt-1 bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
+                    className="mt-1 bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
                   />
                 </div>
 
@@ -299,7 +299,7 @@ export default function TestgroundPage() {
                     value={business.aiPersonality}
                     onChange={(e) => setBusiness({ ...business, aiPersonality: e.target.value })}
                     placeholder="Describe how the AI should behave..."
-                    className="mt-1 w-full h-24 bg-[#0d1120] border border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 p-2 rounded text-xs resize-none"
+                    className="mt-1 w-full h-24 bg-[#0d1120] border border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 p-2 rounded text-xs resize-none"
                   />
                 </div>
 
@@ -308,7 +308,7 @@ export default function TestgroundPage() {
                   <select
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
-                    className="mt-1 w-full bg-[#0d1120] border border-[#6C5CE7]/20 text-white text-xs p-2 rounded-lg focus:border-[#6C5CE7]/60 focus:outline-none"
+                    className="mt-1 w-full bg-[#0d1120] border border-[#25D366]/20 text-white text-xs p-2 rounded-lg focus:border-[#25D366]/60 focus:outline-none"
                   >
                     {AI_MODELS.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -321,10 +321,10 @@ export default function TestgroundPage() {
             </Card>
 
             {/* Webhook URLs */}
-            <Card className="bg-[#111827] border-[#6C5CE7]/15 p-4">
+            <Card className="bg-[#111827] border-[#25D366]/15 p-4">
               <button
                 onClick={() => setShowWebhookUrls(!showWebhookUrls)}
-                className="w-full flex items-center justify-between text-sm font-semibold text-white hover:text-[#6C5CE7] transition-colors"
+                className="w-full flex items-center justify-between text-sm font-semibold text-white hover:text-[#25D366] transition-colors"
               >
                 <span>Webhook URLs</span>
                 <span className="text-xs text-[#8892a4]">{showWebhookUrls ? '▼' : '▶'}</span>
@@ -335,12 +335,12 @@ export default function TestgroundPage() {
                   <div>
                     <p className="text-[#8892a4] text-xs font-medium mb-2">Main Platform Webhook</p>
                     <div className="flex gap-2">
-                      <code className="flex-1 bg-[#0d1120] border border-[#6C5CE7]/20 p-2 rounded text-[#6C5CE7] text-xs overflow-x-auto break-all">
+                      <code className="flex-1 bg-[#0d1120] border border-[#25D366]/20 p-2 rounded text-[#25D366] text-xs overflow-x-auto break-all">
                         {getMainWebhookUrl()}
                       </code>
                       <button
                         onClick={() => copyWebhookUrl('main')}
-                        className="flex items-center justify-center w-8 h-8 bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white rounded transition-colors"
+                        className="flex items-center justify-center w-8 h-8 bg-[#25D366] hover:bg-[#25D366]/80 text-white rounded transition-colors"
                       >
                         {copiedUrl === 'main' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </button>
@@ -350,12 +350,12 @@ export default function TestgroundPage() {
                   <div>
                     <p className="text-[#8892a4] text-xs font-medium mb-2">Testground Webhook</p>
                     <div className="flex gap-2">
-                      <code className="flex-1 bg-[#0d1120] border border-[#6C5CE7]/20 p-2 rounded text-[#6C5CE7] text-xs overflow-x-auto break-all">
+                      <code className="flex-1 bg-[#0d1120] border border-[#25D366]/20 p-2 rounded text-[#25D366] text-xs overflow-x-auto break-all">
                         {getTestgroundWebhookUrl()}
                       </code>
                       <button
                         onClick={() => copyWebhookUrl('testground')}
-                        className="flex items-center justify-center w-8 h-8 bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white rounded transition-colors"
+                        className="flex items-center justify-center w-8 h-8 bg-[#25D366] hover:bg-[#25D366]/80 text-white rounded transition-colors"
                       >
                         {copiedUrl === 'testground' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </button>
@@ -368,7 +368,7 @@ export default function TestgroundPage() {
             {/* Conversation Logs */}
             <Button
               onClick={handleShowLogs}
-              className="w-full bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white text-xs"
+              className="w-full bg-[#25D366] hover:bg-[#25D366]/80 text-white text-xs"
             >
               View Conversation Logs
             </Button>
@@ -381,7 +381,7 @@ export default function TestgroundPage() {
               <Button
                 onClick={() => setShowProductForm(!showProductForm)}
                 size="sm"
-                className="bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white flex items-center gap-2"
+                className="bg-[#25D366] hover:bg-[#25D366]/80 text-white flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add Product
@@ -390,18 +390,18 @@ export default function TestgroundPage() {
 
             {/* Product Form */}
             {showProductForm && (
-              <Card className="bg-[#111827] border-[#6C5CE7]/15 p-4 space-y-3">
+              <Card className="bg-[#111827] border-[#25D366]/15 p-4 space-y-3">
                 <Input
                   value={newProduct.name || ''}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                   placeholder="Product name"
-                  className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 text-sm"
+                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 text-sm"
                 />
                 <textarea
                   value={newProduct.description || ''}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                   placeholder="Product description"
-                  className="w-full h-16 bg-[#0d1120] border border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 p-2 rounded text-sm resize-none"
+                  className="w-full h-16 bg-[#0d1120] border border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 p-2 rounded text-sm resize-none"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <Input
@@ -409,14 +409,14 @@ export default function TestgroundPage() {
                     value={newProduct.price || 0}
                     onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
                     placeholder="Price"
-                    className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 text-sm"
+                    className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 text-sm"
                   />
                   <Input
                     type="number"
                     value={newProduct.minPrice || 0}
                     onChange={(e) => setNewProduct({ ...newProduct, minPrice: parseFloat(e.target.value) })}
                     placeholder="Min price"
-                    className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 text-sm"
+                    className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 text-sm"
                   />
                 </div>
                 <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
@@ -432,7 +432,7 @@ export default function TestgroundPage() {
                   <Button
                     onClick={addTestProduct}
                     disabled={loadingAddProduct}
-                    className="flex-1 bg-[#6C5CE7] hover:bg-[#6C5CE7]/80 text-white text-xs flex items-center justify-center gap-2"
+                    className="flex-1 bg-[#25D366] hover:bg-[#25D366]/80 text-white text-xs flex items-center justify-center gap-2"
                   >
                     {loadingAddProduct ? (
                       <>
@@ -462,7 +462,7 @@ export default function TestgroundPage() {
                 Loading products...
               </div>
             ) : products.length === 0 ? (
-              <Card className="bg-[#111827] border-[#6C5CE7]/15 p-6 text-center text-[#8892a4] text-sm">
+              <Card className="bg-[#111827] border-[#25D366]/15 p-6 text-center text-[#8892a4] text-sm">
                 No test products yet. Add one to get started.
               </Card>
             ) : (
@@ -470,12 +470,12 @@ export default function TestgroundPage() {
                 {products.map((p) => (
                   <Card
                     key={p.id}
-                    className="bg-[#111827] border-[#6C5CE7]/15 p-3 flex items-start justify-between hover:border-[#6C5CE7]/30 transition-colors"
+                    className="bg-[#111827] border-[#25D366]/15 p-3 flex items-start justify-between hover:border-[#25D366]/30 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-white text-sm truncate">{p.name}</p>
                       <p className="text-xs text-[#8892a4] line-clamp-1">{p.description}</p>
-                      <div className="flex gap-2 mt-1 text-xs text-[#6C5CE7]">
+                      <div className="flex gap-2 mt-1 text-xs text-[#25D366]">
                         <span>${p.price}</span>
                         {p.negotiationEnabled && <span className="text-[#8892a4]">(min: ${p.minPrice})</span>}
                       </div>
@@ -496,7 +496,7 @@ export default function TestgroundPage() {
               </div>
             )}
 
-            <Card className="bg-[#111827] border-[#6C5CE7]/15 p-4">
+            <Card className="bg-[#111827] border-[#25D366]/15 p-4">
               <p className="text-xs text-[#8892a4]">
                 <strong>How to test:</strong> Copy the testground webhook URL and add it to Twilio. Send messages from WhatsApp to your Twilio sandbox number. The AI will respond using your configured products and personality.
               </p>
@@ -507,8 +507,8 @@ export default function TestgroundPage() {
         {/* Conversation Logs Modal */}
         {showConversationLogs && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="bg-[#111827] border-[#6C5CE7]/15 w-full max-w-3xl max-h-[90vh] overflow-auto flex flex-col">
-              <div className="sticky top-0 bg-[#111827] border-b border-[#6C5CE7]/15 p-4 flex items-center justify-between">
+            <Card className="bg-[#111827] border-[#25D366]/15 w-full max-w-3xl max-h-[90vh] overflow-auto flex flex-col">
+              <div className="sticky top-0 bg-[#111827] border-b border-[#25D366]/15 p-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">Conversation Logs</h3>
                 <button
                   onClick={() => setShowConversationLogs(false)}
@@ -531,7 +531,7 @@ export default function TestgroundPage() {
                 ) : (
                   <div className="space-y-3">
                     {conversationLogs.map((log) => (
-                      <Card key={log.id} className="bg-[#0d1120] border-[#6C5CE7]/15 p-3 space-y-2">
+                      <Card key={log.id} className="bg-[#0d1120] border-[#25D366]/15 p-3 space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-[#8892a4] mb-1">
@@ -539,17 +539,17 @@ export default function TestgroundPage() {
                             </p>
                             <div className="bg-[#111827] rounded p-2 mb-2">
                               <p className="text-xs text-white break-words">
-                                <strong className="text-[#6C5CE7]">User:</strong> {log.userMessage}
+                                <strong className="text-[#25D366]">User:</strong> {log.userMessage}
                               </p>
                             </div>
                             <div className="bg-[#0f1419] rounded p-2 mb-2">
-                              <p className="text-xs text-[#6C5CE7] break-words">
+                              <p className="text-xs text-[#25D366] break-words">
                                 <strong>AI:</strong> {log.aiResponse}
                               </p>
                             </div>
                             {log.orderIntent && (
-                              <div className="bg-[#111827] rounded p-2 mb-2 border-l-2 border-[#6C5CE7]">
-                                <p className="text-xs text-[#6C5CE7]">
+                              <div className="bg-[#111827] rounded p-2 mb-2 border-l-2 border-[#25D366]">
+                                <p className="text-xs text-[#25D366]">
                                   <strong>Order Intent:</strong> {log.orderIntent.productName} @ ${log.orderIntent.amount}
                                 </p>
                               </div>
@@ -571,7 +571,7 @@ export default function TestgroundPage() {
                 )}
               </div>
 
-              <div className="sticky bottom-0 bg-[#111827] border-t border-[#6C5CE7]/15 p-4">
+              <div className="sticky bottom-0 bg-[#111827] border-t border-[#25D366]/15 p-4">
                 <Button
                   onClick={() => setShowConversationLogs(false)}
                   variant="outline"

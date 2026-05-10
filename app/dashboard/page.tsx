@@ -17,7 +17,7 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, label, value, color, bg }: StatCardProps) {
   return (
-    <div className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl p-5 flex items-center gap-4">
+    <div className="bg-[#111827] border border-[#25D366]/15 rounded-2xl p-5 flex items-center gap-4">
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
         <Icon className={`w-5 h-5 ${color}`} />
       </div>
@@ -87,7 +87,7 @@ export default function OverviewPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl p-5 h-24 animate-pulse" />
+            <div key={i} className="bg-[#111827] border border-[#25D366]/15 rounded-2xl p-5 h-24 animate-pulse" />
           ))}
         </div>
       ) : (
@@ -96,8 +96,8 @@ export default function OverviewPage() {
             icon={MessageSquare}
             label="Total Conversations"
             value={conversations.length}
-            color="text-[#6C5CE7]"
-            bg="bg-[#6C5CE7]/10"
+            color="text-[#25D366]"
+            bg="bg-[#25D366]/10"
           />
           <StatCard
             icon={ShoppingCart}
@@ -117,17 +117,17 @@ export default function OverviewPage() {
             icon={Package}
             label="Products Listed"
             value={productCount}
-            color="text-[#e040fb]"
-            bg="bg-[#e040fb]/10"
+            color="text-[#00a884]"
+            bg="bg-[#00a884]/10"
           />
         </div>
       )}
 
       {/* Recent Activity */}
-      <div className="mt-8 bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#6C5CE7]/15">
+      <div className="mt-8 bg-[#111827] border border-[#25D366]/15 rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#25D366]/15">
           <h2 className="text-white font-semibold flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#6C5CE7]" />
+            <TrendingUp className="w-4 h-4 text-[#25D366]" />
             Recent Activity
           </h2>
         </div>
@@ -144,18 +144,18 @@ export default function OverviewPage() {
             <p className="text-[#8892a4] text-sm">No activity yet. Connect WhatsApp to get started.</p>
           </div>
         ) : (
-          <ul className="divide-y divide-[#6C5CE7]/10">
+          <ul className="divide-y divide-[#25D366]/10">
             {recentActivity.map((item) => (
               <li key={item.id} className="flex items-center gap-4 px-6 py-4 hover:bg-[#1a2235]/50 transition-colors">
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    item.type === 'order' ? 'bg-[#00D1B2]/10' : 'bg-[#6C5CE7]/10'
+                    item.type === 'order' ? 'bg-[#00D1B2]/10' : 'bg-[#25D366]/10'
                   }`}
                 >
                   {item.type === 'order' ? (
                     <ShoppingCart className="w-4 h-4 text-[#00D1B2]" />
                   ) : (
-                    <MessageSquare className="w-4 h-4 text-[#6C5CE7]" />
+                    <MessageSquare className="w-4 h-4 text-[#25D366]" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">

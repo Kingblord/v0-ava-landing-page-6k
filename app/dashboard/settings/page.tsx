@@ -46,13 +46,13 @@ function SectionCard({
     <div
       className={cn(
         'bg-[#111827] border rounded-2xl p-6 transition-all duration-200',
-        active ? 'border-[#6C5CE7]/50' : 'border-[#6C5CE7]/15',
+        active ? 'border-[#25D366]/50' : 'border-[#25D366]/15',
       )}
       onFocus={() => onFocus(id)}
     >
       <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-7 h-7 rounded-lg bg-[#6C5CE7]/15 flex items-center justify-center shrink-0">
-          <Icon className="w-3.5 h-3.5 text-[#6C5CE7]" />
+        <div className="w-7 h-7 rounded-lg bg-[#25D366]/15 flex items-center justify-center shrink-0">
+          <Icon className="w-3.5 h-3.5 text-[#25D366]" />
         </div>
         <div>
           <h2 className="text-white font-semibold text-sm">{title}</h2>
@@ -132,7 +132,7 @@ export default function SettingsPage() {
           'text-white rounded-xl h-9 px-5 text-sm font-medium transition-all gap-2',
           isSaved
             ? 'bg-[#00D1B2]/20 text-[#00D1B2] border border-[#00D1B2]/30 hover:bg-[#00D1B2]/20'
-            : 'bg-[#6C5CE7] hover:bg-[#5548c7]',
+            : 'bg-[#25D366] hover:bg-[#128C7E]',
         )}
       >
         {isSaved ? (
@@ -170,12 +170,12 @@ export default function SettingsPage() {
           >
             <div className="flex items-center gap-6 mb-4">
               {/* Current avatar preview */}
-              <div className="relative w-20 h-20 rounded-full bg-[#1a2235] border-2 border-[#6C5CE7]/25 overflow-hidden shrink-0">
+              <div className="relative w-20 h-20 rounded-full bg-[#1a2235] border-2 border-[#25D366]/25 overflow-hidden shrink-0">
                 {avatarUrl ? (
                   <Image src={avatarUrl} alt="Avatar" fill className="object-cover" sizes="80px" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <User className="w-8 h-8 text-[#6C5CE7]/40" />
+                    <User className="w-8 h-8 text-[#25D366]/40" />
                   </div>
                 )}
               </div>
@@ -225,14 +225,14 @@ export default function SettingsPage() {
                   onChange={(e) => setBusinessName(e.target.value)}
                   placeholder="e.g. Kicks & Co."
                   required
-                  className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
+                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
                 />
               </FieldRow>
               <FieldRow label="Account Email">
                 <Input
                   value={user?.email ?? ''}
                   disabled
-                  className="bg-[#0d1120] border-[#6C5CE7]/10 text-[#8892a4] cursor-not-allowed"
+                  className="bg-[#0d1120] border-[#25D366]/10 text-[#8892a4] cursor-not-allowed"
                 />
               </FieldRow>
             </div>
@@ -269,7 +269,7 @@ export default function SettingsPage() {
                   value={openrouterModel}
                   onChange={(e) => setOpenrouterModel(e.target.value)}
                   placeholder="openai/gpt-4o-mini"
-                  className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
+                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
                 />
               </FieldRow>
               <FieldRow
@@ -282,7 +282,7 @@ export default function SettingsPage() {
                     onChange={(e) => setAiPersonality(e.target.value)}
                     rows={7}
                     placeholder="Describe how AVA should behave..."
-                    className="w-full bg-[#0d1120] border border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 rounded-xl px-3 py-2.5 text-sm resize-y outline-none transition-colors leading-relaxed"
+                    className="w-full bg-[#0d1120] border border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 rounded-xl px-3 py-2.5 text-sm resize-y outline-none transition-colors leading-relaxed"
                   />
                 </div>
               </FieldRow>
@@ -291,7 +291,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setAiPersonality(DEFAULT_PERSONALITY)}
-                className="flex items-center gap-1.5 text-xs text-[#8892a4] hover:text-[#6C5CE7] transition-colors"
+                className="flex items-center gap-1.5 text-xs text-[#8892a4] hover:text-[#25D366] transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />
                 Reset to default
@@ -327,7 +327,7 @@ export default function SettingsPage() {
                   value={whatsappPhone}
                   onChange={(e) => setWhatsappPhone(e.target.value)}
                   placeholder="+1234567890"
-                  className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
+                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
                 />
               </FieldRow>
               <p className="text-[#8892a4] text-xs">
@@ -354,14 +354,14 @@ export default function SettingsPage() {
               <Input
                 value={user?.email ?? ''}
                 disabled
-                className="bg-[#0d1120] border-[#6C5CE7]/10 text-[#8892a4] cursor-not-allowed"
+                className="bg-[#0d1120] border-[#25D366]/10 text-[#8892a4] cursor-not-allowed"
               />
             </FieldRow>
             <FieldRow label="Account ID">
               <Input
                 value={user?.uid ?? ''}
                 disabled
-                className="bg-[#0d1120] border-[#6C5CE7]/10 text-[#8892a4] cursor-not-allowed font-mono text-xs"
+                className="bg-[#0d1120] border-[#25D366]/10 text-[#8892a4] cursor-not-allowed font-mono text-xs"
               />
             </FieldRow>
           </div>

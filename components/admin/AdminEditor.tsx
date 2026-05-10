@@ -23,20 +23,20 @@ interface FieldProps {
 export function AdminField({ label, value, onChange, textarea, placeholder }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="text-[#f0f4ff] text-xs font-medium uppercase tracking-wide">{label}</Label>
+      <Label className="text-foreground text-xs font-medium uppercase tracking-wide">{label}</Label>
       {textarea ? (
         <Textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="bg-[#1a2235] border-[#6C5CE7]/25 text-white placeholder:text-[#8892a4] focus:border-[#6C5CE7] min-h-[80px] resize-y text-sm"
+          className="bg-[var(--aro-surface-2)] border-[var(--aro-border)] text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)] min-h-[80px] resize-y text-sm"
         />
       ) : (
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="bg-[#1a2235] border-[#6C5CE7]/25 text-white placeholder:text-[#8892a4] focus:border-[#6C5CE7] h-10 text-sm"
+          className="bg-[var(--aro-surface-2)] border-[var(--aro-border)] text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)] h-10 text-sm"
         />
       )}
     </div>
@@ -55,10 +55,10 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ title, description, onSave, onReset, saving }: SectionHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-8 pb-6 border-b border-[#6C5CE7]/15">
+    <div className="flex items-start justify-between gap-4 mb-8 pb-6 border-b border-[var(--aro-border)]">
       <div>
-        <h1 className="text-xl font-bold text-white">{title}</h1>
-        {description && <p className="text-[#8892a4] text-sm mt-1">{description}</p>}
+        <h1 className="text-xl font-bold text-foreground">{title}</h1>
+        {description && <p className="text-muted-foreground text-sm mt-1">{description}</p>}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <Button
@@ -66,7 +66,7 @@ export function SectionHeader({ title, description, onSave, onReset, saving }: S
           size="sm"
           onClick={onReset}
           disabled={saving}
-          className="border-[#6C5CE7]/25 text-[#8892a4] hover:text-white hover:bg-[#6C5CE7]/10 gap-1.5"
+          className="border-[var(--aro-border)] text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)] gap-1.5"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           Reset
@@ -75,7 +75,7 @@ export function SectionHeader({ title, description, onSave, onReset, saving }: S
           size="sm"
           onClick={onSave}
           disabled={saving}
-          className="bg-[#6C5CE7] hover:bg-[#5548c7] text-white gap-1.5 min-w-[90px]"
+          className="bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] gap-1.5 min-w-[90px]"
         >
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
           {saving ? 'Saving...' : 'Save'}
@@ -115,14 +115,14 @@ export function ListEditor<T extends Record<string, string>>({
 
   return (
     <div className="flex flex-col gap-3">
-      <Label className="text-[#f0f4ff] text-xs font-medium uppercase tracking-wide">{label}</Label>
+      <Label className="text-foreground text-xs font-medium uppercase tracking-wide">{label}</Label>
       {items.map((item, i) => (
-        <div key={i} className="bg-[#1a2235] border border-[#6C5CE7]/15 rounded-xl p-4 flex flex-col gap-3">
+        <div key={i} className="bg-[var(--aro-surface-2)] border border-[var(--aro-border)] rounded-xl p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[#8892a4] text-xs font-medium">Item {i + 1}</span>
+            <span className="text-muted-foreground text-xs font-medium">Item {i + 1}</span>
             <button
               onClick={() => removeItem(i)}
-              className="text-[#8892a4] hover:text-red-400 transition-colors"
+              className="text-muted-foreground hover:text-red-500 transition-colors"
               aria-label="Remove item"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -142,7 +142,7 @@ export function ListEditor<T extends Record<string, string>>({
       ))}
       <button
         onClick={addItem}
-        className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-[#6C5CE7]/25 rounded-xl text-[#8892a4] hover:text-white hover:border-[#6C5CE7]/50 transition-all text-sm"
+        className="flex items-center justify-center gap-2 py-2.5 border border-dashed border-[var(--aro-border)] rounded-xl text-muted-foreground hover:text-foreground hover:border-[var(--aro-green)]/50 transition-all text-sm"
       >
         <Plus className="w-4 h-4" />
         Add Item

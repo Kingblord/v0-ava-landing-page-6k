@@ -92,8 +92,8 @@ export default function OrdersPage() {
             className={cn(
               'px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all border',
               filter === f
-                ? 'bg-[#6C5CE7] text-white border-[#6C5CE7]'
-                : 'text-[#8892a4] border-[#6C5CE7]/15 hover:text-white hover:bg-[#1a2235]',
+                ? 'bg-[#25D366] text-white border-[#25D366]'
+                : 'text-[#8892a4] border-[#25D366]/15 hover:text-white hover:bg-[#1a2235]',
             )}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -105,11 +105,11 @@ export default function OrdersPage() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl h-24 animate-pulse" />
+            <div key={i} className="bg-[#111827] border border-[#25D366]/15 rounded-2xl h-24 animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl">
+        <div className="text-center py-20 bg-[#111827] border border-[#25D366]/15 rounded-2xl">
           <ShoppingCart className="w-12 h-12 text-[#8892a4] mx-auto mb-3 opacity-40" />
           <p className="text-[#f0f4ff] font-medium">No orders yet</p>
           <p className="text-[#8892a4] text-sm mt-1">Orders will appear here once customers start buying through AVA.</p>
@@ -122,7 +122,7 @@ export default function OrdersPage() {
             return (
               <div
                 key={order.id}
-                className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-[#6C5CE7]/30 transition-colors"
+                className="bg-[#111827] border border-[#25D366]/15 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-[#25D366]/30 transition-colors"
               >
                 {/* Info */}
                 <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-3">

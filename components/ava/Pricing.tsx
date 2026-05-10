@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import type { PricingContent } from '@/lib/content'
 import { DEFAULT_CONTENT } from '@/lib/content'
 
-const PLAN_ACCENTS = ['#6C5CE7', '#00D1B2', '#e040fb']
+const PLAN_ACCENTS = ['#25D366', '#00D1B2', '#00a884']
 
 interface PricingProps { content?: PricingContent }
 

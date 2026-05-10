@@ -11,14 +11,14 @@ import { DEFAULT_CONTENT } from '@/lib/content'
 const STEP_META = [
   {
     icon: Link2,
-    accent: '#6C5CE7',
+    accent: '#25D366',
     phone: {
       header: 'WhatsApp Setup',
       body: (
         <div className="p-4 space-y-3">
           <div className="bg-[#1a2235] rounded-xl p-3">
             <p className="text-[#8892a4] text-xs mb-1">Webhook URL</p>
-            <p className="text-[#6C5CE7] text-xs font-mono break-all">https://yourapp.com/api/whatsapp/webhook</p>
+            <p className="text-[#25D366] text-xs font-mono break-all">https://yourapp.com/api/whatsapp/webhook</p>
           </div>
           <div className="flex items-center gap-2 bg-[#00D1B2]/10 border border-[#00D1B2]/25 rounded-xl px-3 py-2">
             <Check className="w-4 h-4 text-[#00D1B2]" />
@@ -58,7 +58,7 @@ const STEP_META = [
   },
   {
     icon: Bot,
-    accent: '#e040fb',
+    accent: '#00a884',
     phone: {
       header: 'Live Conversations',
       body: (
@@ -74,7 +74,7 @@ const STEP_META = [
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#8892a4] text-xs">{c.time}</span>
-                <span className="text-[#e040fb] text-xs">{c.status}</span>
+                <span className="text-[#00a884] text-xs">{c.status}</span>
               </div>
             </div>
           ))}

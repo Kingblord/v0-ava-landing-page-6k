@@ -5,7 +5,7 @@ import { Star } from 'lucide-react'
 import type { TestimonialsContent } from '@/lib/content'
 import { DEFAULT_CONTENT } from '@/lib/content'
 
-const COLORS = ['#6C5CE7', '#00D1B2', '#e040fb']
+const COLORS = ['#25D366', '#00D1B2', '#00a884']
 
 interface TestimonialsProps { content?: TestimonialsContent }
 

@@ -50,7 +50,7 @@ export default function AdminFooter() {
 
         {/* CTA Band */}
         <section className="flex flex-col gap-4">
-          <p className="text-white text-sm font-semibold border-b border-[#6C5CE7]/15 pb-2">CTA Band</p>
+          <p className="text-white text-sm font-semibold border-b border-[#25D366]/15 pb-2">CTA Band</p>
           <AdminField label="CTA Headline" value={data.ctaHeadline} onChange={(v) => setData({ ...data, ctaHeadline: v })} />
           <AdminField label="CTA Headline Accent (gradient)" value={data.ctaHeadlineAccent} onChange={(v) => setData({ ...data, ctaHeadlineAccent: v })} />
           <AdminField label="CTA Subheadline" value={data.ctaSubheadline} onChange={(v) => setData({ ...data, ctaSubheadline: v })} textarea />
@@ -69,7 +69,7 @@ export default function AdminFooter() {
 
         {/* Brand */}
         <section className="flex flex-col gap-4">
-          <p className="text-white text-sm font-semibold border-b border-[#6C5CE7]/15 pb-2">Brand</p>
+          <p className="text-white text-sm font-semibold border-b border-[#25D366]/15 pb-2">Brand</p>
           <AdminField label="Brand Tagline" value={data.brandTagline} onChange={(v) => setData({ ...data, brandTagline: v })} textarea />
           <AdminField label="Copyright" value={data.copyright} onChange={(v) => setData({ ...data, copyright: v })} />
           <AdminField label="Powered By Text" value={data.poweredBy} onChange={(v) => setData({ ...data, poweredBy: v })} />
@@ -77,7 +77,7 @@ export default function AdminFooter() {
 
         {/* Contact Info */}
         <section className="flex flex-col gap-4">
-          <p className="text-white text-sm font-semibold border-b border-[#6C5CE7]/15 pb-2">Contact Info</p>
+          <p className="text-white text-sm font-semibold border-b border-[#25D366]/15 pb-2">Contact Info</p>
           <AdminField label="Email" value={data.contact.email} onChange={(v) => setData({ ...data, contact: { ...data.contact, email: v } })} />
           <AdminField label="Phone" value={data.contact.phone} onChange={(v) => setData({ ...data, contact: { ...data.contact, phone: v } })} />
           <AdminField label="Address" value={data.contact.address} onChange={(v) => setData({ ...data, contact: { ...data.contact, address: v } })} />
@@ -85,7 +85,7 @@ export default function AdminFooter() {
 
         {/* Social Links */}
         <section className="flex flex-col gap-4">
-          <p className="text-white text-sm font-semibold border-b border-[#6C5CE7]/15 pb-2">Social Links</p>
+          <p className="text-white text-sm font-semibold border-b border-[#25D366]/15 pb-2">Social Links</p>
           <AdminField label="Twitter / X URL" value={data.socialLinks.twitter} onChange={(v) => setData({ ...data, socialLinks: { ...data.socialLinks, twitter: v } })} />
           <AdminField label="Instagram URL" value={data.socialLinks.instagram} onChange={(v) => setData({ ...data, socialLinks: { ...data.socialLinks, instagram: v } })} />
           <AdminField label="LinkedIn URL" value={data.socialLinks.linkedin} onChange={(v) => setData({ ...data, socialLinks: { ...data.socialLinks, linkedin: v } })} />
@@ -93,9 +93,9 @@ export default function AdminFooter() {
 
         {/* Link Groups */}
         <section className="flex flex-col gap-4">
-          <p className="text-white text-sm font-semibold border-b border-[#6C5CE7]/15 pb-2">Footer Link Columns</p>
+          <p className="text-white text-sm font-semibold border-b border-[#25D366]/15 pb-2">Footer Link Columns</p>
           {data.linkGroups.map((group, gi) => (
-            <div key={gi} className="bg-[#1a2235] border border-[#6C5CE7]/15 rounded-xl p-4 flex flex-col gap-3">
+            <div key={gi} className="bg-[#1a2235] border border-[#25D366]/15 rounded-xl p-4 flex flex-col gap-3">
               <p className="text-[#8892a4] text-xs font-medium uppercase">{group.group}</p>
               {group.links.map((link, li) => (
                 <div key={li} className="flex items-center gap-2">
@@ -103,13 +103,13 @@ export default function AdminFooter() {
                     value={link.label}
                     onChange={(e) => updateLinkGroup(gi, li, 'label', e.target.value)}
                     placeholder="Label"
-                    className="bg-[#0d1120] border-[#6C5CE7]/20 text-white h-8 text-sm flex-1"
+                    className="bg-[#0d1120] border-[#25D366]/20 text-white h-8 text-sm flex-1"
                   />
                   <Input
                     value={link.href}
                     onChange={(e) => updateLinkGroup(gi, li, 'href', e.target.value)}
                     placeholder="URL"
-                    className="bg-[#0d1120] border-[#6C5CE7]/20 text-white h-8 text-sm flex-1"
+                    className="bg-[#0d1120] border-[#25D366]/20 text-white h-8 text-sm flex-1"
                   />
                   <button onClick={() => removeLink(gi, li)} className="text-[#8892a4] hover:text-red-400 transition-colors flex-shrink-0">
                     <Trash2 className="w-3.5 h-3.5" />

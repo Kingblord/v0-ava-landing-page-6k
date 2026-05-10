@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
 import { logOut } from '@/lib/firebase-auth'
 import {
@@ -16,6 +17,8 @@ import {
   Menu,
   X,
   Zap,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -50,14 +53,14 @@ function NavLink({
       className={cn(
         'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
         isActive
-          ? 'bg-[#6C5CE7]/15 text-[#8b7cf0] border border-[#6C5CE7]/25'
-          : 'text-[#8892a4] hover:text-[#f0f4ff] hover:bg-[#1a2235]',
+          ? 'bg-[var(--aro-green)]/15 text-[var(--aro-green)] border border-[var(--aro-green)]/25'
+          : 'text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)]',
       )}
     >
       <Icon
         className={cn(
           'w-4 h-4 shrink-0 transition-colors',
-          isActive ? 'text-[#6C5CE7]' : 'text-current',
+          isActive ? 'text-[var(--aro-green)]' : 'text-current',
         )}
       />
       {label}
@@ -65,9 +68,33 @@ function NavLink({
   )
 }
 
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === 'dark'
+  return (
+    <button
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      className={cn(
+        'flex items-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+        'text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)]',
+        'border border-[var(--aro-border)]',
+      )}
+    >
+      {isDark ? (
+        <Sun className="w-4 h-4 shrink-0 text-[var(--aro-green)]" />
+      ) : (
+        <Moon className="w-4 h-4 shrink-0 text-[var(--aro-green)]" />
+      )}
+      {isDark ? 'Light Mode' : 'Dark Mode'}
+    </button>
+  )
+}
+
 export default function DashboardSidebar() {
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
   async function handleLogout() {
     await logOut()
@@ -77,19 +104,22 @@ export default function DashboardSidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-[#6C5CE7]/15">
-        <Image src="/logo.png" alt="AVA" width={36} height={36} className="object-contain" style={{ width: 36, height: 'auto' }} />
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-[var(--aro-border)]">
+        <Image src="/aromsg-logo.png" alt="AroMsg" width={36} height={36} className="object-contain" style={{ width: 36, height: 'auto' }} />
         <div>
-          <p className="text-white font-bold text-sm leading-none">AVA</p>
-          <p className="text-[#8892a4] text-xs mt-0.5">Sales Agent</p>
+          <p className="font-bold text-sm leading-none">
+            <span className="text-[var(--aro-green)]">Aro</span>
+            <span className="text-foreground">Msg</span>
+          </p>
+          <p className="text-muted-foreground text-xs mt-0.5">Sales Platform</p>
         </div>
       </div>
 
       {/* Status badge */}
-      <div className="mx-4 mt-4 flex items-center gap-2 bg-[#00D1B2]/10 border border-[#00D1B2]/20 rounded-lg px-3 py-2">
-        <span className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse shrink-0" />
-        <span className="text-[#00D1B2] text-xs font-medium">Agent Active</span>
-        <Zap className="w-3 h-3 text-[#00D1B2] ml-auto" />
+      <div className="mx-4 mt-4 flex items-center gap-2 bg-[var(--aro-green)]/10 border border-[var(--aro-green)]/20 rounded-lg px-3 py-2">
+        <span className="w-2 h-2 rounded-full bg-[var(--aro-green)] animate-pulse shrink-0" />
+        <span className="text-[var(--aro-green)] text-xs font-medium">Arobi Active</span>
+        <Zap className="w-3 h-3 text-[var(--aro-green)] ml-auto" />
       </div>
 
       {/* Nav */}
@@ -103,11 +133,12 @@ export default function DashboardSidebar() {
         ))}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 pb-4 border-t border-[#6C5CE7]/15 pt-4">
+      {/* Theme toggle + Logout */}
+      <div className="px-3 pb-4 border-t border-[var(--aro-border)] pt-4 flex flex-col gap-1">
+        <ThemeToggle />
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#8892a4] hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 w-full"
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all duration-200 w-full"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           Sign Out
@@ -119,25 +150,37 @@ export default function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-[#111827] border-r border-[#6C5CE7]/15 h-screen sticky top-0">
+      <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-card border-r border-[var(--aro-border)] h-screen sticky top-0">
         {sidebarContent}
       </aside>
 
       {/* Mobile header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-[#111827]/95 backdrop-blur-md border-b border-[#6C5CE7]/15 flex items-center justify-between px-4 h-14">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-b border-[var(--aro-border)] flex items-center justify-between px-4 h-14">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="AVA" width={28} height={28} className="object-contain" style={{ width: 28, height: 'auto' }} />
-          <span className="text-white font-bold text-sm">AVA</span>
+          <Image src="/aromsg-logo.png" alt="AroMsg" width={28} height={28} className="object-contain" style={{ width: 28, height: 'auto' }} />
+          <span className="font-bold text-sm">
+            <span className="text-[var(--aro-green)]">Aro</span>
+            <span className="text-foreground">Msg</span>
+          </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-[#8892a4] hover:text-white"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </Button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label="Toggle theme"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)] transition-colors"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
+        </div>
       </header>
 
       {/* Mobile drawer */}
@@ -147,7 +190,7 @@ export default function DashboardSidebar() {
           onClick={() => setMobileOpen(false)}
         >
           <aside
-            className="absolute top-14 left-0 bottom-0 w-72 bg-[#111827] border-r border-[#6C5CE7]/15"
+            className="absolute top-14 left-0 bottom-0 w-72 bg-card border-r border-[var(--aro-border)]"
             onClick={(e) => e.stopPropagation()}
           >
             {sidebarContent}

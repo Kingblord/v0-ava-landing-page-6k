@@ -35,8 +35,11 @@ export function Navbar({ content = DEFAULT_CONTENT.navbar }: NavbarProps) {
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-12 h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="AVA" width={40} height={30} className="object-contain" />
-            <span className="text-white font-bold text-xl tracking-tight">{content.brandName}</span>
+            <Image src="/aromsg-logo.png" alt="AroMsg" width={36} height={36} className="object-contain" />
+            <span className="font-bold text-xl tracking-tight">
+              <span className="text-[var(--aro-green)]">Aro</span>
+              <span className="text-foreground">Msg</span>
+            </span>
           </Link>
 
           {/* Desktop nav */}
@@ -94,7 +97,7 @@ export function Navbar({ content = DEFAULT_CONTENT.navbar }: NavbarProps) {
                 key={l.href}
                 href={l.href}
                 onClick={() => setMobileOpen(false)}
-                className="text-2xl font-semibold text-white hover:text-[var(--ava-purple-light)] transition-colors"
+                className="text-2xl font-semibold text-foreground hover:text-[var(--aro-green)] transition-colors"
               >
                 {l.label}
               </Link>

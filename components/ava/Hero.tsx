@@ -19,7 +19,7 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
 }
 
-const AVATARS = ['#6C5CE7', '#00D1B2', '#e040fb', '#f59e0b', '#3b82f6']
+const AVATARS = ['#25D366', '#00a884', '#128C7E', '#075E54', '#4fde82']
 
 export function Hero({ content = DEFAULT_CONTENT.hero }: HeroProps) {
   return (

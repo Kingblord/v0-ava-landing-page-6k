@@ -99,8 +99,11 @@ export function Footer({ content = DEFAULT_CONTENT.footer }: FooterProps) {
           {/* Brand */}
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <Image src="/logo.png" alt="AVA" width={36} height={28} className="object-contain" />
-              <span className="text-white font-bold text-xl">AVA</span>
+              <Image src="/aromsg-logo.png" alt="AroMsg" width={32} height={32} className="object-contain" />
+              <span className="font-bold text-xl">
+                <span className="text-[var(--aro-green)]">Aro</span>
+                <span className="text-foreground">Msg</span>
+              </span>
             </Link>
             <p className="text-[var(--ava-text-muted)] text-sm leading-relaxed max-w-xs">
               {content.brandTagline}

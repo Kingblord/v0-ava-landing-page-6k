@@ -61,7 +61,7 @@ export default function AdminPricing() {
         <div className="flex flex-col gap-4">
           <Label className="text-[#f0f4ff] text-xs font-medium uppercase tracking-wide">Pricing Plans</Label>
           {data.plans.map((plan, i) => (
-            <div key={i} className="bg-[#1a2235] border border-[#6C5CE7]/15 rounded-xl p-5 flex flex-col gap-4">
+            <div key={i} className="bg-[#1a2235] border border-[#25D366]/15 rounded-xl p-5 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-white text-sm font-semibold">{plan.name || `Plan ${i + 1}`}</span>
                 {plan.popular && (
@@ -71,30 +71,30 @@ export default function AdminPricing() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[#8892a4] text-xs">Plan Name</Label>
-                  <Input value={plan.name} onChange={(e) => updatePlan(i, 'name', e.target.value)} className="bg-[#0d1120] border-[#6C5CE7]/20 text-white h-9 text-sm" />
+                  <Input value={plan.name} onChange={(e) => updatePlan(i, 'name', e.target.value)} className="bg-[#0d1120] border-[#25D366]/20 text-white h-9 text-sm" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[#8892a4] text-xs">CTA Button Text</Label>
-                  <Input value={plan.cta} onChange={(e) => updatePlan(i, 'cta', e.target.value)} className="bg-[#0d1120] border-[#6C5CE7]/20 text-white h-9 text-sm" />
+                  <Input value={plan.cta} onChange={(e) => updatePlan(i, 'cta', e.target.value)} className="bg-[#0d1120] border-[#25D366]/20 text-white h-9 text-sm" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[#8892a4] text-xs">Monthly Price ($)</Label>
-                  <Input type="number" value={plan.monthlyPrice} onChange={(e) => updatePlan(i, 'monthlyPrice', Number(e.target.value))} className="bg-[#0d1120] border-[#6C5CE7]/20 text-white h-9 text-sm" />
+                  <Input type="number" value={plan.monthlyPrice} onChange={(e) => updatePlan(i, 'monthlyPrice', Number(e.target.value))} className="bg-[#0d1120] border-[#25D366]/20 text-white h-9 text-sm" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[#8892a4] text-xs">Annual Price ($)</Label>
-                  <Input type="number" value={plan.annualPrice} onChange={(e) => updatePlan(i, 'annualPrice', Number(e.target.value))} className="bg-[#0d1120] border-[#6C5CE7]/20 text-white h-9 text-sm" />
+                  <Input type="number" value={plan.annualPrice} onChange={(e) => updatePlan(i, 'annualPrice', Number(e.target.value))} className="bg-[#0d1120] border-[#25D366]/20 text-white h-9 text-sm" />
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[#8892a4] text-xs">Plan Description</Label>
-                <Textarea value={plan.desc} onChange={(e) => updatePlan(i, 'desc', e.target.value)} className="bg-[#0d1120] border-[#6C5CE7]/20 text-white text-sm min-h-[60px] resize-none" />
+                <Textarea value={plan.desc} onChange={(e) => updatePlan(i, 'desc', e.target.value)} className="bg-[#0d1120] border-[#25D366]/20 text-white text-sm min-h-[60px] resize-none" />
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-[#8892a4] text-xs">Features</Label>
                 {plan.features.map((f, fi) => (
                   <div key={fi} className="flex items-center gap-2">
-                    <Input value={f} onChange={(e) => updateFeature(i, fi, e.target.value)} className="bg-[#0d1120] border-[#6C5CE7]/20 text-white h-8 text-sm flex-1" />
+                    <Input value={f} onChange={(e) => updateFeature(i, fi, e.target.value)} className="bg-[#0d1120] border-[#25D366]/20 text-white h-8 text-sm flex-1" />
                     <button onClick={() => removeFeature(i, fi)} className="text-[#8892a4] hover:text-red-400 transition-colors flex-shrink-0">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

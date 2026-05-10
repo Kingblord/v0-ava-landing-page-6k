@@ -59,7 +59,7 @@ export function ImageUpload({
     <div className={cn('flex flex-col gap-2', className)}>
       <div
         className={cn(
-          'relative overflow-hidden border-2 border-dashed border-[#6C5CE7]/30 bg-[#0d1120] transition-colors hover:border-[#6C5CE7]/60 cursor-pointer group',
+          'relative overflow-hidden border-2 border-dashed border-[#25D366]/30 bg-[#0d1120] transition-colors hover:border-[#25D366]/60 cursor-pointer group',
           isAvatar ? 'w-24 h-24 rounded-full' : 'w-full rounded-xl aspect-video',
         )}
         onClick={() => !uploading && inputRef.current?.click()}
@@ -103,7 +103,7 @@ export function ImageUpload({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[#8892a4] group-hover:text-[#b0b8c8] transition-colors">
             {uploading ? (
-              <Loader2 className="w-7 h-7 animate-spin text-[#6C5CE7]" />
+              <Loader2 className="w-7 h-7 animate-spin text-[#25D366]" />
             ) : (
               <>
                 <Upload className={cn(isAvatar ? 'w-6 h-6' : 'w-8 h-8')} />

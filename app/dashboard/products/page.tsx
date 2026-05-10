@@ -172,7 +172,7 @@ export default function ProductsPage() {
         </div>
         <Button
           onClick={openNew}
-          className="bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl gap-2"
+          className="bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl gap-2"
         >
           <Plus className="w-4 h-4" /> Add Product
         </Button>
@@ -186,9 +186,9 @@ export default function ProductsPage() {
           ))}
         </div>
       ) : products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl">
+        <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[#111827] border border-[#25D366]/15 rounded-2xl">
           <div className="w-16 h-16 rounded-2xl bg-[#1a2235] flex items-center justify-center">
-            <Package className="w-8 h-8 text-[#6C5CE7]" />
+            <Package className="w-8 h-8 text-[#25D366]" />
           </div>
           <p className="text-white font-semibold">No products yet</p>
           <p className="text-[#8892a4] text-sm text-center max-w-xs">
@@ -196,7 +196,7 @@ export default function ProductsPage() {
           </p>
           <Button
             onClick={openNew}
-            className="bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl gap-2 mt-2"
+            className="bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl gap-2 mt-2"
           >
             <Plus className="w-4 h-4" /> Add First Product
           </Button>
@@ -206,7 +206,7 @@ export default function ProductsPage() {
           {products.map((p) => (
             <div
               key={p.id}
-              className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl overflow-hidden flex flex-col hover:border-[#6C5CE7]/40 transition-colors group"
+              className="bg-[#111827] border border-[#25D366]/15 rounded-2xl overflow-hidden flex flex-col hover:border-[#25D366]/40 transition-colors group"
             >
               {/* Product image */}
               <div className="relative aspect-video bg-[#1a2235] flex-shrink-0">
@@ -220,7 +220,7 @@ export default function ProductsPage() {
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <ImageIcon className="w-10 h-10 text-[#6C5CE7]/25" />
+                    <ImageIcon className="w-10 h-10 text-[#25D366]/25" />
                   </div>
                 )}
               </div>
@@ -244,7 +244,7 @@ export default function ProductsPage() {
                 {p.description && (
                   <p className="text-[#8892a4] text-xs line-clamp-2">{p.description}</p>
                 )}
-                <div className="flex items-center gap-3 mt-auto pt-2 border-t border-[#6C5CE7]/10">
+                <div className="flex items-center gap-3 mt-auto pt-2 border-t border-[#25D366]/10">
                   <span className="text-white font-bold text-sm">${p.price.toFixed(2)}</span>
                   <span className="text-[#8892a4] text-xs">floor ${p.minPrice.toFixed(2)}</span>
                   {p.negotiationEnabled && (
@@ -256,14 +256,14 @@ export default function ProductsPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex border-t border-[#6C5CE7]/10">
+              <div className="flex border-t border-[#25D366]/10">
                 <button
                   onClick={() => openEdit(p)}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-[#8892a4] hover:text-white hover:bg-[#1a2235] transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>
-                <div className="w-px bg-[#6C5CE7]/10" />
+                <div className="w-px bg-[#25D366]/10" />
                 <button
                   onClick={() => handleDelete(p.id)}
                   disabled={deleting === p.id}
@@ -285,9 +285,9 @@ export default function ProductsPage() {
             className="flex-1 bg-black/60 backdrop-blur-sm"
             onClick={closeForm}
           />
-          <div className="w-full max-w-md bg-[#111827] border-l border-[#6C5CE7]/20 h-full overflow-y-auto flex flex-col">
+          <div className="w-full max-w-md bg-[#111827] border-l border-[#25D366]/20 h-full overflow-y-auto flex flex-col">
             {/* Panel header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#6C5CE7]/15 sticky top-0 bg-[#111827] z-10">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#25D366]/15 sticky top-0 bg-[#111827] z-10">
               <h2 className="text-white font-semibold text-base">
                 {editingId ? 'Edit Product' : 'New Product'}
               </h2>
@@ -324,7 +324,7 @@ export default function ProductsPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Nike Air Max 90"
-                  className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
+                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
                   required
                 />
               </div>
@@ -340,7 +340,7 @@ export default function ProductsPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Describe the product for AVA to reference in conversations..."
                   rows={3}
-                  className="bg-[#0d1120] border border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 rounded-lg px-3 py-2 text-sm resize-none outline-none transition-colors"
+                  className="bg-[#0d1120] border border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 rounded-lg px-3 py-2 text-sm resize-none outline-none transition-colors"
                 />
               </div>
 
@@ -358,7 +358,7 @@ export default function ProductsPage() {
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
                     placeholder="0.00"
-                    className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
+                    className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
                     required
                   />
                 </div>
@@ -374,14 +374,14 @@ export default function ProductsPage() {
                     value={form.minPrice}
                     onChange={(e) => setForm({ ...form, minPrice: e.target.value })}
                     placeholder="0.00"
-                    className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
+                    className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
                     required
                   />
                 </div>
               </div>
 
               {/* Negotiation toggle */}
-              <div className="flex items-center justify-between bg-[#0d1120] border border-[#6C5CE7]/20 rounded-xl px-4 py-3">
+              <div className="flex items-center justify-between bg-[#0d1120] border border-[#25D366]/20 rounded-xl px-4 py-3">
                 <div>
                   <p className="text-white text-sm font-medium">Allow Negotiation</p>
                   <p className="text-[#8892a4] text-xs mt-0.5">
@@ -404,14 +404,14 @@ export default function ProductsPage() {
                   type="button"
                   variant="outline"
                   onClick={closeForm}
-                  className="flex-1 border-[#6C5CE7]/20 text-[#8892a4] hover:text-white hover:bg-[#1a2235] rounded-xl"
+                  className="flex-1 border-[#25D366]/20 text-[#8892a4] hover:text-white hover:bg-[#1a2235] rounded-xl"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-[#6C5CE7] hover:bg-[#5548c7] text-white rounded-xl disabled:opacity-60"
+                  className="flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl disabled:opacity-60"
                 >
                   {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Add Product'}
                 </Button>

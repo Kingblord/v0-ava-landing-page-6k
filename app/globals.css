@@ -3,44 +3,113 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── DARK MODE (default) ── */
 :root {
-  /* AVA Brand Colors */
-  --ava-bg: #0B0F1A;
-  --ava-surface: #111827;
-  --ava-surface-2: #1a2235;
-  --ava-purple: #6C5CE7;
-  --ava-purple-light: #8b7cf0;
-  --ava-purple-dark: #5548c7;
-  --ava-teal: #00D1B2;
-  --ava-teal-light: #33dbc2;
-  --ava-teal-dark: #00a98f;
-  --ava-pink: #e040fb;
-  --ava-text: #f0f4ff;
-  --ava-text-muted: #8892a4;
-  --ava-border: rgba(108, 92, 231, 0.2);
-  --ava-glass: rgba(17, 24, 39, 0.6);
+  /* AroMsg Brand Colors — WhatsApp green palette */
+  --aro-bg: #0B1410;
+  --aro-surface: #111f18;
+  --aro-surface-2: #1a2e22;
+  --aro-green: #25D366;
+  --aro-green-light: #4fde82;
+  --aro-green-dark: #128C7E;
+  --aro-teal: #00a884;
+  --aro-teal-light: #25D366;
+  --aro-teal-dark: #075E54;
+  --aro-text: #e9f5ee;
+  --aro-text-muted: #7a9e8a;
+  --aro-border: rgba(37, 211, 102, 0.18);
+  --aro-glass: rgba(17, 31, 24, 0.6);
 
-  /* shadcn tokens mapped to AVA theme */
-  --background: #0B0F1A;
-  --foreground: #f0f4ff;
-  --card: #111827;
-  --card-foreground: #f0f4ff;
-  --popover: #111827;
-  --popover-foreground: #f0f4ff;
-  --primary: #6C5CE7;
-  --primary-foreground: #ffffff;
-  --secondary: #1a2235;
-  --secondary-foreground: #f0f4ff;
-  --muted: #1a2235;
-  --muted-foreground: #8892a4;
-  --accent: #00D1B2;
-  --accent-foreground: #0B0F1A;
+  /* shadcn tokens */
+  --background: #0B1410;
+  --foreground: #e9f5ee;
+  --card: #111f18;
+  --card-foreground: #e9f5ee;
+  --popover: #111f18;
+  --popover-foreground: #e9f5ee;
+  --primary: #25D366;
+  --primary-foreground: #0B1410;
+  --secondary: #1a2e22;
+  --secondary-foreground: #e9f5ee;
+  --muted: #1a2e22;
+  --muted-foreground: #7a9e8a;
+  --accent: #00a884;
+  --accent-foreground: #0B1410;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(108, 92, 231, 0.2);
-  --input: rgba(108, 92, 231, 0.15);
-  --ring: #6C5CE7;
+  --border: rgba(37, 211, 102, 0.18);
+  --input: rgba(37, 211, 102, 0.12);
+  --ring: #25D366;
   --radius: 0.75rem;
+
+  /* Legacy ava- vars mapped to green for backward compat */
+  --ava-bg: var(--aro-bg);
+  --ava-surface: var(--aro-surface);
+  --ava-surface-2: var(--aro-surface-2);
+  --ava-purple: var(--aro-green);
+  --ava-purple-light: var(--aro-green-light);
+  --ava-purple-dark: var(--aro-green-dark);
+  --ava-teal: var(--aro-teal);
+  --ava-teal-light: var(--aro-teal-light);
+  --ava-teal-dark: var(--aro-teal-dark);
+  --ava-pink: var(--aro-green-light);
+  --ava-text: var(--aro-text);
+  --ava-text-muted: var(--aro-text-muted);
+  --ava-border: var(--aro-border);
+  --ava-glass: var(--aro-glass);
+}
+
+/* ── LIGHT MODE ── */
+.light {
+  --aro-bg: #f0faf4;
+  --aro-surface: #ffffff;
+  --aro-surface-2: #e8f5ec;
+  --aro-green: #128C7E;
+  --aro-green-light: #25D366;
+  --aro-green-dark: #075E54;
+  --aro-teal: #075E54;
+  --aro-teal-light: #128C7E;
+  --aro-teal-dark: #054740;
+  --aro-text: #0d1f16;
+  --aro-text-muted: #4a7560;
+  --aro-border: rgba(18, 140, 126, 0.2);
+  --aro-glass: rgba(255, 255, 255, 0.8);
+
+  --background: #f0faf4;
+  --foreground: #0d1f16;
+  --card: #ffffff;
+  --card-foreground: #0d1f16;
+  --popover: #ffffff;
+  --popover-foreground: #0d1f16;
+  --primary: #128C7E;
+  --primary-foreground: #ffffff;
+  --secondary: #e8f5ec;
+  --secondary-foreground: #0d1f16;
+  --muted: #e8f5ec;
+  --muted-foreground: #4a7560;
+  --accent: #25D366;
+  --accent-foreground: #0d1f16;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(18, 140, 126, 0.2);
+  --input: rgba(18, 140, 126, 0.1);
+  --ring: #128C7E;
+
+  /* Legacy ava- vars for light mode */
+  --ava-bg: var(--aro-bg);
+  --ava-surface: var(--aro-surface);
+  --ava-surface-2: var(--aro-surface-2);
+  --ava-purple: var(--aro-green);
+  --ava-purple-light: var(--aro-green-light);
+  --ava-purple-dark: var(--aro-green-dark);
+  --ava-teal: var(--aro-teal);
+  --ava-teal-light: var(--aro-teal-light);
+  --ava-teal-dark: var(--aro-teal-dark);
+  --ava-pink: var(--aro-green-light);
+  --ava-text: var(--aro-text);
+  --ava-text-muted: var(--aro-text-muted);
+  --ava-border: var(--aro-border);
+  --ava-glass: var(--aro-glass);
 }
 
 @theme inline {
@@ -71,19 +140,30 @@
   --radius-xl: calc(var(--radius) + 8px);
   --radius-2xl: calc(var(--radius) + 16px);
 
-  /* AVA custom colors for Tailwind */
-  --color-ava-bg: var(--ava-bg);
-  --color-ava-surface: var(--ava-surface);
-  --color-ava-surface-2: var(--ava-surface-2);
-  --color-ava-purple: var(--ava-purple);
-  --color-ava-purple-light: var(--ava-purple-light);
-  --color-ava-purple-dark: var(--ava-purple-dark);
-  --color-ava-teal: var(--ava-teal);
-  --color-ava-teal-light: var(--ava-teal-light);
-  --color-ava-teal-dark: var(--ava-teal-dark);
-  --color-ava-pink: var(--ava-pink);
-  --color-ava-text: var(--ava-text);
-  --color-ava-text-muted: var(--ava-text-muted);
+  /* AroMsg Tailwind custom colors */
+  --color-aro-bg: var(--aro-bg);
+  --color-aro-surface: var(--aro-surface);
+  --color-aro-surface-2: var(--aro-surface-2);
+  --color-aro-green: var(--aro-green);
+  --color-aro-green-light: var(--aro-green-light);
+  --color-aro-green-dark: var(--aro-green-dark);
+  --color-aro-teal: var(--aro-teal);
+  --color-aro-text: var(--aro-text);
+  --color-aro-text-muted: var(--aro-text-muted);
+
+  /* Legacy ava- colour aliases */
+  --color-ava-bg: var(--aro-bg);
+  --color-ava-surface: var(--aro-surface);
+  --color-ava-surface-2: var(--aro-surface-2);
+  --color-ava-purple: var(--aro-green);
+  --color-ava-purple-light: var(--aro-green-light);
+  --color-ava-purple-dark: var(--aro-green-dark);
+  --color-ava-teal: var(--aro-teal);
+  --color-ava-teal-light: var(--aro-teal-light);
+  --color-ava-teal-dark: var(--aro-teal-dark);
+  --color-ava-pink: var(--aro-green-light);
+  --color-ava-text: var(--aro-text);
+  --color-ava-text-muted: var(--aro-text-muted);
 }
 
 @layer base {
@@ -92,18 +172,13 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    background-color: var(--ava-bg);
   }
 
-  /* Hide all page content while the loader is active.
-     The loader itself is position:fixed so it is unaffected.
-     Class is removed by AppShell once fully ready. */
   body.ava-loading > *:not(#ava-loader-root) {
     visibility: hidden !important;
   }
 }
 
-/* Noise texture overlay utility */
 @layer utilities {
   .noise-texture {
     position: relative;
@@ -119,29 +194,29 @@
   }
 
   .glass {
-    background: var(--ava-glass);
+    background: var(--aro-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(108, 92, 231, 0.15);
+    border: 1px solid var(--aro-border);
   }
 
-  .glow-purple {
-    box-shadow: 0 0 30px rgba(108, 92, 231, 0.35), 0 0 60px rgba(108, 92, 231, 0.15);
+  .glow-green {
+    box-shadow: 0 0 30px rgba(37, 211, 102, 0.3), 0 0 60px rgba(37, 211, 102, 0.12);
   }
 
-  .glow-teal {
-    box-shadow: 0 0 30px rgba(0, 209, 178, 0.35), 0 0 60px rgba(0, 209, 178, 0.15);
-  }
+  /* Keep legacy class names working */
+  .glow-purple { box-shadow: 0 0 30px rgba(37, 211, 102, 0.3), 0 0 60px rgba(37, 211, 102, 0.12); }
+  .glow-teal   { box-shadow: 0 0 30px rgba(0, 168, 132, 0.3), 0 0 60px rgba(0, 168, 132, 0.12); }
 
   .text-gradient {
-    background: linear-gradient(135deg, #6C5CE7 0%, #00D1B2 100%);
+    background: linear-gradient(135deg, #25D366 0%, #00a884 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-gradient-pink {
-    background: linear-gradient(135deg, #e040fb 0%, #6C5CE7 50%, #00D1B2 100%);
+    background: linear-gradient(135deg, #4fde82 0%, #25D366 50%, #00a884 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -159,7 +234,7 @@
     inset: -1px;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(108, 92, 231, 0.6), rgba(0, 209, 178, 0.6));
+    background: linear-gradient(135deg, rgba(37, 211, 102, 0.5), rgba(0, 168, 132, 0.5));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -192,15 +267,9 @@
     100% { left: 200%; }
   }
 
-  @keyframes border-beam {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(108, 92, 231, 0.3); }
-    50% { box-shadow: 0 0 50px rgba(108, 92, 231, 0.6), 0 0 80px rgba(0, 209, 178, 0.2); }
+    0%, 100% { box-shadow: 0 0 20px rgba(37, 211, 102, 0.25); }
+    50% { box-shadow: 0 0 50px rgba(37, 211, 102, 0.5), 0 0 80px rgba(0, 168, 132, 0.2); }
   }
 
   @keyframes float {

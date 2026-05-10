@@ -27,10 +27,10 @@ export default function AdminOverview() {
           <Link
             key={href}
             href={href}
-            className="group bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl p-5 flex items-start gap-4 hover:border-[#6C5CE7]/40 hover:bg-[#6C5CE7]/5 transition-all duration-200"
+            className="group bg-[#111827] border border-[#25D366]/15 rounded-2xl p-5 flex items-start gap-4 hover:border-[#25D366]/40 hover:bg-[#25D366]/5 transition-all duration-200"
           >
-            <div className="w-9 h-9 rounded-xl bg-[#6C5CE7]/15 flex items-center justify-center flex-shrink-0 group-hover:bg-[#6C5CE7]/25 transition-colors">
-              <Icon className="w-4.5 h-4.5 text-[#6C5CE7]" style={{ width: 18, height: 18 }} />
+            <div className="w-9 h-9 rounded-xl bg-[#25D366]/15 flex items-center justify-center flex-shrink-0 group-hover:bg-[#25D366]/25 transition-colors">
+              <Icon className="w-4.5 h-4.5 text-[#25D366]" style={{ width: 18, height: 18 }} />
             </div>
             <div>
               <p className="text-white font-semibold text-sm">{label}</p>

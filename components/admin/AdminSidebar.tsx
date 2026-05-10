@@ -27,13 +27,17 @@ export function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-60 min-h-screen bg-[#0d1120] border-r border-[#6C5CE7]/15 flex flex-col flex-shrink-0">
+    <aside className="w-60 min-h-screen bg-card border-r border-[var(--aro-border)] flex flex-col flex-shrink-0">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-5 h-16 border-b border-[#6C5CE7]/15">
-        <Image src="/logo.png" alt="AVA" width={32} height={32} className="object-contain" style={{ width: 32, height: 'auto' }} />
+      <div className="flex items-center gap-2.5 px-5 h-16 border-b border-[var(--aro-border)]">
+        <Image src="/aromsg-logo.png" alt="AroMsg" width={32} height={32} className="object-contain" style={{ width: 32, height: 'auto' }} />
         <div>
-          <p className="text-white font-bold text-sm">AVA Admin</p>
-          <p className="text-[#8892a4] text-xs">Landing Editor</p>
+          <p className="font-bold text-sm">
+            <span className="text-[var(--aro-green)]">Aro</span>
+            <span className="text-foreground">Msg</span>
+            <span className="text-muted-foreground font-normal"> Admin</span>
+          </p>
+          <p className="text-muted-foreground text-xs">Landing Editor</p>
         </div>
       </div>
 
@@ -47,8 +51,8 @@ export function AdminSidebar() {
               href={href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 active
-                  ? 'bg-[#6C5CE7]/20 text-white border border-[#6C5CE7]/30'
-                  : 'text-[#8892a4] hover:text-white hover:bg-[#6C5CE7]/10'
+                  ? 'bg-[var(--aro-green)]/15 text-[var(--aro-green)] border border-[var(--aro-green)]/25'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)]'
               }`}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
@@ -59,11 +63,11 @@ export function AdminSidebar() {
       </nav>
 
       {/* Bottom links */}
-      <div className="px-3 pb-4 border-t border-[#6C5CE7]/15 pt-4 flex flex-col gap-1">
+      <div className="px-3 pb-4 border-t border-[var(--aro-border)] pt-4 flex flex-col gap-1">
         <Link
           href="/"
           target="_blank"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#8892a4] hover:text-white hover:bg-[#6C5CE7]/10 transition-all"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[var(--aro-surface-2)] transition-all"
         >
           <ExternalLink className="w-4 h-4 flex-shrink-0" />
           View Landing Page

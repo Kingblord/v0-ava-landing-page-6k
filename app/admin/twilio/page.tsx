@@ -33,13 +33,13 @@ function SectionCard({
     <div
       className={cn(
         'bg-[#111827] border rounded-2xl p-6 transition-all duration-200',
-        active ? 'border-[#6C5CE7]/50' : 'border-[#6C5CE7]/15',
+        active ? 'border-[#25D366]/50' : 'border-[#25D366]/15',
       )}
       onFocus={() => onFocus(id)}
     >
       <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-7 h-7 rounded-lg bg-[#6C5CE7]/15 flex items-center justify-center shrink-0">
-          <Icon className="w-3.5 h-3.5 text-[#6C5CE7]" />
+        <div className="w-7 h-7 rounded-lg bg-[#25D366]/15 flex items-center justify-center shrink-0">
+          <Icon className="w-3.5 h-3.5 text-[#25D366]" />
         </div>
         <div>
           <h2 className="text-white font-semibold text-sm">{title}</h2>
@@ -76,7 +76,7 @@ function SecretInput({ value, onChange, placeholder, id }: {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60 pr-10"
+        className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 pr-10"
       />
       <button
         type="button"
@@ -97,7 +97,7 @@ function SaveButton({ section, isSaving, isSaved }: { section: Section; isSaving
       disabled={isSaving || isSaved}
       className={cn(
         'text-white rounded-xl h-9 px-5 text-sm font-medium transition-all gap-2',
-        isSaved ? 'bg-emerald-600/60 hover:bg-emerald-600/60' : 'bg-[#6C5CE7] hover:bg-[#7970e6]',
+        isSaved ? 'bg-emerald-600/60 hover:bg-emerald-600/60' : 'bg-[#25D366] hover:bg-[#7970e6]',
       )}
     >
       {isSaved && <CheckCircle2 className="w-4 h-4" />}
@@ -173,13 +173,13 @@ export default function AdminTwilioPage() {
                   href="https://console.twilio.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#6C5CE7] hover:underline"
+                  className="text-[#25D366] hover:underline"
                 >
                   Twilio Console
                 </a>.
               </p>
 
-              <div className="h-px bg-[#6C5CE7]/10" />
+              <div className="h-px bg-[#25D366]/10" />
 
               <FieldRow label="Twilio Account SID" hint="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
                 <SecretInput
@@ -207,7 +207,7 @@ export default function AdminTwilioPage() {
                   value={twilioWhatsappNumber}
                   onChange={(e) => setTwilioWhatsappNumber(e.target.value)}
                   placeholder="whatsapp:+14155238886"
-                  className="bg-[#0d1120] border-[#6C5CE7]/20 text-white placeholder:text-[#4a5568] focus:border-[#6C5CE7]/60"
+                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
                 />
               </FieldRow>
             </div>
@@ -218,7 +218,7 @@ export default function AdminTwilioPage() {
           </SectionCard>
         </form>
 
-        <div className="bg-[#111827] border border-[#6C5CE7]/15 rounded-2xl p-6">
+        <div className="bg-[#111827] border border-[#25D366]/15 rounded-2xl p-6">
           <h3 className="text-white font-semibold text-sm mb-3">How It Works</h3>
           <ul className="space-y-2 text-[#8892a4] text-xs">
             <li>• Users link their phone number in Dashboard Settings → Link Phone Number</li>
