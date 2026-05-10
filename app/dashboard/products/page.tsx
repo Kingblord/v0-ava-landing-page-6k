@@ -165,14 +165,14 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Products</h1>
-          <p className="text-[#8892a4] text-sm mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Products</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             {products.length} product{products.length !== 1 ? 's' : ''} — AVA sells these via WhatsApp
           </p>
         </div>
         <Button
           onClick={openNew}
-          className="bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl gap-2"
+          className="bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl gap-2"
         >
           <Plus className="w-4 h-4" /> Add Product
         </Button>
@@ -182,21 +182,21 @@ export default function ProductsPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-64 rounded-2xl bg-[#1a2235] animate-pulse" />
+            <div key={i} className="h-64 rounded-2xl bg-secondary animate-pulse" />
           ))}
         </div>
       ) : products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[#111827] border border-[#25D366]/15 rounded-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-[#1a2235] flex items-center justify-center">
-            <Package className="w-8 h-8 text-[#25D366]" />
+        <div className="flex flex-col items-center justify-center py-24 gap-4 bg-card border border-border rounded-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center">
+            <Package className="w-8 h-8 text-[var(--aro-green)]" />
           </div>
-          <p className="text-white font-semibold">No products yet</p>
-          <p className="text-[#8892a4] text-sm text-center max-w-xs">
+          <p className="text-foreground font-semibold">No products yet</p>
+          <p className="text-muted-foreground text-sm text-center max-w-xs">
             Add your first product so AVA knows what to sell on WhatsApp.
           </p>
           <Button
             onClick={openNew}
-            className="bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl gap-2 mt-2"
+            className="bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl gap-2 mt-2"
           >
             <Plus className="w-4 h-4" /> Add First Product
           </Button>
@@ -206,10 +206,10 @@ export default function ProductsPage() {
           {products.map((p) => (
             <div
               key={p.id}
-              className="bg-[#111827] border border-[#25D366]/15 rounded-2xl overflow-hidden flex flex-col hover:border-[#25D366]/40 transition-colors group"
+              className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col hover:border-[var(--aro-green)]/40 transition-colors group"
             >
               {/* Product image */}
-              <div className="relative aspect-video bg-[#1a2235] flex-shrink-0">
+              <div className="relative aspect-video bg-secondary flex-shrink-0">
                 {p.imageUrl ? (
                   <Image
                     src={p.imageUrl}
@@ -220,7 +220,7 @@ export default function ProductsPage() {
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <ImageIcon className="w-10 h-10 text-[#25D366]/25" />
+                    <ImageIcon className="w-10 h-10 text-[var(--aro-green)]/25" />
                   </div>
                 )}
               </div>
@@ -228,7 +228,7 @@ export default function ProductsPage() {
               {/* Info */}
               <div className="flex flex-col gap-2 p-4 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-white font-semibold text-sm leading-snug line-clamp-2">
+                  <p className="text-foreground font-semibold text-sm leading-snug line-clamp-2">
                     {p.name}
                   </p>
                   <button
@@ -237,18 +237,18 @@ export default function ProductsPage() {
                     aria-label="Toggle negotiation"
                   >
                     {p.negotiationEnabled
-                      ? <ToggleRight className="w-5 h-5 text-[#00D1B2]" />
-                      : <ToggleLeft className="w-5 h-5 text-[#8892a4]" />}
+                      ? <ToggleRight className="w-5 h-5 text-[var(--aro-teal)]" />
+                      : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
                   </button>
                 </div>
                 {p.description && (
-                  <p className="text-[#8892a4] text-xs line-clamp-2">{p.description}</p>
+                  <p className="text-muted-foreground text-xs line-clamp-2">{p.description}</p>
                 )}
-                <div className="flex items-center gap-3 mt-auto pt-2 border-t border-[#25D366]/10">
-                  <span className="text-white font-bold text-sm">${p.price.toFixed(2)}</span>
-                  <span className="text-[#8892a4] text-xs">floor ${p.minPrice.toFixed(2)}</span>
+                <div className="flex items-center gap-3 mt-auto pt-2 border-t border-border">
+                  <span className="text-foreground font-bold text-sm">${p.price.toFixed(2)}</span>
+                  <span className="text-muted-foreground text-xs">floor ${p.minPrice.toFixed(2)}</span>
                   {p.negotiationEnabled && (
-                    <span className="ml-auto text-[10px] font-medium bg-[#00D1B2]/10 text-[#00D1B2] border border-[#00D1B2]/20 rounded-full px-2 py-0.5">
+                    <span className="ml-auto text-[10px] font-medium bg-[var(--aro-teal)]/10 text-[var(--aro-teal)] border border-[var(--aro-teal)]/20 rounded-full px-2 py-0.5">
                       Negotiable
                     </span>
                   )}
@@ -256,18 +256,18 @@ export default function ProductsPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex border-t border-[#25D366]/10">
+              <div className="flex border-t border-border">
                 <button
                   onClick={() => openEdit(p)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-[#8892a4] hover:text-white hover:bg-[#1a2235] transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>
-                <div className="w-px bg-[#25D366]/10" />
+                <div className="w-px bg-border" />
                 <button
                   onClick={() => handleDelete(p.id)}
                   disabled={deleting === p.id}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-[#8892a4] hover:text-red-400 hover:bg-red-500/5 transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   {deleting === p.id ? 'Deleting...' : 'Delete'}
@@ -285,15 +285,15 @@ export default function ProductsPage() {
             className="flex-1 bg-black/60 backdrop-blur-sm"
             onClick={closeForm}
           />
-          <div className="w-full max-w-md bg-[#111827] border-l border-[#25D366]/20 h-full overflow-y-auto flex flex-col">
+          <div className="w-full max-w-md bg-card border-l border-border h-full overflow-y-auto flex flex-col">
             {/* Panel header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#25D366]/15 sticky top-0 bg-[#111827] z-10">
-              <h2 className="text-white font-semibold text-base">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-border sticky top-0 bg-card z-10">
+              <h2 className="text-foreground font-semibold text-base">
                 {editingId ? 'Edit Product' : 'New Product'}
               </h2>
               <button
                 onClick={closeForm}
-                className="text-[#8892a4] hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -302,7 +302,7 @@ export default function ProductsPage() {
             <form onSubmit={handleSave} className="flex flex-col gap-6 p-6 flex-1">
               {/* Image upload */}
               <div className="flex flex-col gap-2">
-                <Label className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                <Label className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
                   Product Image
                 </Label>
                 <ImageUpload
@@ -316,7 +316,7 @@ export default function ProductsPage() {
 
               {/* Name */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="prod-name" className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                <Label htmlFor="prod-name" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
                   Product Name *
                 </Label>
                 <Input
@@ -324,14 +324,14 @@ export default function ProductsPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Nike Air Max 90"
-                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
                   required
                 />
               </div>
 
               {/* Description */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="prod-desc" className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                <Label htmlFor="prod-desc" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
                   Description
                 </Label>
                 <textarea
@@ -340,14 +340,14 @@ export default function ProductsPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Describe the product for AVA to reference in conversations..."
                   rows={3}
-                  className="bg-[#0d1120] border border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 rounded-lg px-3 py-2 text-sm resize-none outline-none transition-colors"
+                  className="bg-background border border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 rounded-lg px-3 py-2 text-sm resize-none outline-none transition-colors"
                 />
               </div>
 
               {/* Prices */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="prod-price" className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                  <Label htmlFor="prod-price" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
                     Selling Price *
                   </Label>
                   <Input
@@ -358,12 +358,12 @@ export default function ProductsPage() {
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
                     placeholder="0.00"
-                    className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
                     required
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="prod-floor" className="text-[#8892a4] text-xs font-medium uppercase tracking-wider">
+                  <Label htmlFor="prod-floor" className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
                     Floor Price *
                   </Label>
                   <Input
@@ -374,17 +374,17 @@ export default function ProductsPage() {
                     value={form.minPrice}
                     onChange={(e) => setForm({ ...form, minPrice: e.target.value })}
                     placeholder="0.00"
-                    className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
                     required
                   />
                 </div>
               </div>
 
               {/* Negotiation toggle */}
-              <div className="flex items-center justify-between bg-[#0d1120] border border-[#25D366]/20 rounded-xl px-4 py-3">
+              <div className="flex items-center justify-between bg-background border border-border rounded-xl px-4 py-3">
                 <div>
-                  <p className="text-white text-sm font-medium">Allow Negotiation</p>
-                  <p className="text-[#8892a4] text-xs mt-0.5">
+                  <p className="text-foreground text-sm font-medium">Allow Negotiation</p>
+                  <p className="text-muted-foreground text-xs mt-0.5">
                     AVA will negotiate between floor and selling price
                   </p>
                 </div>
@@ -393,8 +393,8 @@ export default function ProductsPage() {
                   onClick={() => setForm({ ...form, negotiationEnabled: !form.negotiationEnabled })}
                 >
                   {form.negotiationEnabled
-                    ? <ToggleRight className="w-8 h-8 text-[#00D1B2]" />
-                    : <ToggleLeft className="w-8 h-8 text-[#8892a4]" />}
+                    ? <ToggleRight className="w-8 h-8 text-[var(--aro-teal)]" />
+                    : <ToggleLeft className="w-8 h-8 text-muted-foreground" />}
                 </button>
               </div>
 
@@ -404,14 +404,14 @@ export default function ProductsPage() {
                   type="button"
                   variant="outline"
                   onClick={closeForm}
-                  className="flex-1 border-[#25D366]/20 text-[#8892a4] hover:text-white hover:bg-[#1a2235] rounded-xl"
+                  className="flex-1 border-border text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl disabled:opacity-60"
+                  className="flex-1 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] rounded-xl disabled:opacity-60"
                 >
                   {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Add Product'}
                 </Button>

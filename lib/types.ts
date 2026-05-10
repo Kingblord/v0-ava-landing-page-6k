@@ -52,6 +52,21 @@ export interface Conversation {
   lastActiveAt: number
 }
 
+export interface Contact {
+  id: string            // Firestore doc ID
+  businessId: string
+  jid: string           // WhatsApp JID e.g. 2348012345678@s.whatsapp.net
+  phone: string         // raw digits
+  name: string
+  lastMessage?: string
+  lastTs?: number
+  unread?: number
+  aiEnabled: boolean
+  aiPersonality?: string
+  aiModel?: string
+  createdAt: number
+}
+
 export interface TestgroundConversationLog {
   id: string
   phoneNumber: string

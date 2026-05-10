@@ -13,7 +13,7 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase-auth'
-import type { Product, Order, Conversation, Business, Message, ConversationState, TestgroundConversationLog } from '@/lib/types'
+import type { Product, Order, Conversation, Business, Message, ConversationState, TestgroundConversationLog, Contact } from '@/lib/types'
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 
@@ -126,6 +126,42 @@ export async function updateBusiness(
   data: Partial<Omit<Business, 'id' | 'email' | 'createdAt'>>,
 ): Promise<void> {
   await updateDoc(doc(db, 'businesses', businessId), data)
+}
+
+// ─── Contacts ─────────────────────────────────────────────────────────────────
+
+export async function getContacts(businessId: string): Promise<Contact[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'businesses', businessId, 'contacts'),
+      orderBy('createdAt', 'desc'),
+    ),
+  )
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Contact))
+}
+
+export async function createContact(
+  businessId: string,
+  data: Omit<Contact, 'id' | 'businessId' | 'createdAt'>,
+): Promise<Contact> {
+  const payload: Omit<Contact, 'id'> = { ...data, businessId, createdAt: Date.now() }
+  const ref = await addDoc(
+    collection(db, 'businesses', businessId, 'contacts'),
+    payload,
+  )
+  return { id: ref.id, ...payload }
+}
+
+export async function updateContact(
+  businessId: string,
+  contactId: string,
+  data: Partial<Omit<Contact, 'id' | 'businessId' | 'createdAt'>>,
+): Promise<void> {
+  await updateDoc(doc(db, 'businesses', businessId, 'contacts', contactId), data)
+}
+
+export async function deleteContact(businessId: string, contactId: string): Promise<void> {
+  await deleteDoc(doc(db, 'businesses', businessId, 'contacts', contactId))
 }
 
 // ─── Testground Products ──────────────────────────────────────────────────────

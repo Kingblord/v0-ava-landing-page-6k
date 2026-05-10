@@ -45,18 +45,18 @@ function SectionCard({
   return (
     <div
       className={cn(
-        'bg-[#111827] border rounded-2xl p-6 transition-all duration-200',
-        active ? 'border-[#25D366]/50' : 'border-[#25D366]/15',
+        'bg-card border rounded-2xl p-6 transition-all duration-200',
+        active ? 'border-[var(--aro-green)]/50' : 'border-border',
       )}
       onFocus={() => onFocus(id)}
     >
       <div className="flex items-center gap-2.5 mb-5">
-        <div className="w-7 h-7 rounded-lg bg-[#25D366]/15 flex items-center justify-center shrink-0">
-          <Icon className="w-3.5 h-3.5 text-[#25D366]" />
+        <div className="w-7 h-7 rounded-lg bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
+          <Icon className="w-3.5 h-3.5 text-[var(--aro-green)]" />
         </div>
         <div>
-          <h2 className="text-white font-semibold text-sm">{title}</h2>
-          <p className="text-[#8892a4] text-xs">{description}</p>
+          <h2 className="text-foreground font-semibold text-sm">{title}</h2>
+          <p className="text-muted-foreground text-xs">{description}</p>
         </div>
       </div>
       {children}
@@ -67,9 +67,9 @@ function SectionCard({
 function FieldRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="text-[#c9d1e0] text-xs font-medium uppercase tracking-wider">{label}</Label>
+      <Label className="text-muted-foreground text-xs font-medium uppercase tracking-wider">{label}</Label>
       {children}
-      {hint && <p className="text-[#8892a4] text-xs">{hint}</p>}
+      {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
     </div>
   )
 }
@@ -77,30 +77,20 @@ function FieldRow({ label, hint, children }: { label: string; hint?: string; chi
 export default function SettingsPage() {
   const { user, business } = useAuth()
 
-  // Profile
   const [avatarUrl, setAvatarUrl] = useState('')
-
-  // Business
   const [businessName, setBusinessName] = useState('')
-  const [email, setEmail] = useState('')
-
-  // AI
   const [aiPersonality, setAiPersonality] = useState(DEFAULT_PERSONALITY)
   const [openrouterModel, setOpenrouterModel] = useState('openai/gpt-4o-mini')
-
-  // User's phone number for AVA to control conversations
   const [whatsappPhone, setWhatsappPhone] = useState('')
 
   const [activeSection, setActiveSection] = useState<Section>('profile')
   const [saving, setSaving] = useState<Section | null>(null)
   const [saved, setSaved] = useState<Section | null>(null)
 
-  // Sync real-time business data into local state
   useEffect(() => {
     if (!business) return
     setAvatarUrl(business.avatarUrl ?? '')
     setBusinessName(business.name ?? '')
-    setEmail(business.email ?? '')
     setAiPersonality(business.aiPersonality ?? DEFAULT_PERSONALITY)
     setOpenrouterModel(business.openrouterModel ?? 'openai/gpt-4o-mini')
     setWhatsappPhone(business.whatsappPhone ?? '')
@@ -129,15 +119,21 @@ export default function SettingsPage() {
         type="submit"
         disabled={isSaving || isSaved}
         className={cn(
-          'text-white rounded-xl h-9 px-5 text-sm font-medium transition-all gap-2',
+          'text-[var(--aro-bg)] rounded-xl h-9 px-5 text-sm font-medium transition-all gap-2',
           isSaved
-            ? 'bg-[#00D1B2]/20 text-[#00D1B2] border border-[#00D1B2]/30 hover:bg-[#00D1B2]/20'
-            : 'bg-[#25D366] hover:bg-[#128C7E]',
+            ? 'bg-[var(--aro-teal)]/20 text-[var(--aro-teal)] border border-[var(--aro-teal)]/30 hover:bg-[var(--aro-teal)]/20'
+            : 'bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)]',
         )}
       >
         {isSaved ? (
-          <><CheckCircle2 className="w-3.5 h-3.5" /> Saved</>
-        ) : isSaving ? 'Saving...' : 'Save'}
+          <>
+            <CheckCircle2 className="w-3.5 h-3.5" /> Saved
+          </>
+        ) : isSaving ? (
+          'Saving...'
+        ) : (
+          'Save'
+        )}
       </Button>
     )
   }
@@ -145,15 +141,15 @@ export default function SettingsPage() {
   return (
     <div className="p-6 lg:p-8 max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-[#8892a4] text-sm mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-muted-foreground text-sm mt-1">
           Configure your business, AVA agent, and WhatsApp integration
         </p>
       </div>
 
       <div className="flex flex-col gap-5">
 
-        {/* ── Profile / Avatar ────────────────────────────── */}
+        {/* Profile / Avatar */}
         <SectionCard
           id="profile"
           icon={User}
@@ -162,26 +158,20 @@ export default function SettingsPage() {
           active={activeSection === 'profile'}
           onFocus={setActiveSection}
         >
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              save('profile', { avatarUrl })
-            }}
-          >
+          <form onSubmit={(e) => { e.preventDefault(); save('profile', { avatarUrl }) }}>
             <div className="flex items-center gap-6 mb-4">
-              {/* Current avatar preview */}
-              <div className="relative w-20 h-20 rounded-full bg-[#1a2235] border-2 border-[#25D366]/25 overflow-hidden shrink-0">
+              <div className="relative w-20 h-20 rounded-full bg-secondary border-2 border-[var(--aro-green)]/25 overflow-hidden shrink-0">
                 {avatarUrl ? (
                   <Image src={avatarUrl} alt="Avatar" fill className="object-cover" sizes="80px" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <User className="w-8 h-8 text-[#25D366]/40" />
+                    <User className="w-8 h-8 text-[var(--aro-green)]/40" />
                   </div>
                 )}
               </div>
               <div className="flex flex-col gap-2 flex-1">
-                <p className="text-white text-sm font-medium">Business Avatar</p>
-                <p className="text-[#8892a4] text-xs">
+                <p className="text-foreground text-sm font-medium">Business Avatar</p>
+                <p className="text-muted-foreground text-xs">
                   Upload a logo or icon. Recommended: square image, at least 256&times;256px.
                 </p>
                 <ImageUpload
@@ -200,7 +190,7 @@ export default function SettingsPage() {
           </form>
         </SectionCard>
 
-        {/* ── Business Info ────────────────────────────────── */}
+        {/* Business Info */}
         <SectionCard
           id="business"
           icon={Building2}
@@ -210,29 +200,23 @@ export default function SettingsPage() {
           onFocus={setActiveSection}
         >
           <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              save('business', { name: businessName.trim() })
-            }}
+            onSubmit={(e) => { e.preventDefault(); save('business', { name: businessName.trim() }) }}
           >
             <div className="flex flex-col gap-4 mb-4">
-              <FieldRow
-                label="Business Name"
-                hint="AVA will introduce itself using this name."
-              >
+              <FieldRow label="Business Name" hint="AVA will introduce itself using this name.">
                 <Input
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   placeholder="e.g. Kicks & Co."
                   required
-                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
                 />
               </FieldRow>
               <FieldRow label="Account Email">
                 <Input
                   value={user?.email ?? ''}
                   disabled
-                  className="bg-[#0d1120] border-[#25D366]/10 text-[#8892a4] cursor-not-allowed"
+                  className="bg-background border-border text-muted-foreground cursor-not-allowed"
                 />
               </FieldRow>
             </div>
@@ -242,7 +226,7 @@ export default function SettingsPage() {
           </form>
         </SectionCard>
 
-        {/* ── AI Personality ───────────────────────────────── */}
+        {/* AI Personality */}
         <SectionCard
           id="ai"
           icon={Bot}
@@ -269,29 +253,27 @@ export default function SettingsPage() {
                   value={openrouterModel}
                   onChange={(e) => setOpenrouterModel(e.target.value)}
                   placeholder="openai/gpt-4o-mini"
-                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
                 />
               </FieldRow>
               <FieldRow
                 label="System Prompt"
                 hint="This is the base persona for AVA, combined with your product catalogue when replying to customers."
               >
-                <div className="relative">
-                  <textarea
-                    value={aiPersonality}
-                    onChange={(e) => setAiPersonality(e.target.value)}
-                    rows={7}
-                    placeholder="Describe how AVA should behave..."
-                    className="w-full bg-[#0d1120] border border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60 rounded-xl px-3 py-2.5 text-sm resize-y outline-none transition-colors leading-relaxed"
-                  />
-                </div>
+                <textarea
+                  value={aiPersonality}
+                  onChange={(e) => setAiPersonality(e.target.value)}
+                  rows={7}
+                  placeholder="Describe how AVA should behave..."
+                  className="w-full bg-background border border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 rounded-xl px-3 py-2.5 text-sm resize-y outline-none transition-colors leading-relaxed"
+                />
               </FieldRow>
             </div>
             <div className="flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setAiPersonality(DEFAULT_PERSONALITY)}
-                className="flex items-center gap-1.5 text-xs text-[#8892a4] hover:text-[#25D366] transition-colors"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[var(--aro-green)] transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />
                 Reset to default
@@ -301,7 +283,7 @@ export default function SettingsPage() {
           </form>
         </SectionCard>
 
-        {/* ── Link Phone Number ────────────────────────────── */}
+        {/* Link Phone Number */}
         <SectionCard
           id="phone"
           icon={MessageSquare}
@@ -313,9 +295,7 @@ export default function SettingsPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              save('phone', {
-                whatsappPhone: whatsappPhone.trim(),
-              })
+              save('phone', { whatsappPhone: whatsappPhone.trim() })
             }}
           >
             <div className="flex flex-col gap-4 mb-4">
@@ -327,11 +307,12 @@ export default function SettingsPage() {
                   value={whatsappPhone}
                   onChange={(e) => setWhatsappPhone(e.target.value)}
                   placeholder="+1234567890"
-                  className="bg-[#0d1120] border-[#25D366]/20 text-white placeholder:text-[#4a5568] focus:border-[#25D366]/60"
+                  className="bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60"
                 />
               </FieldRow>
-              <p className="text-[#8892a4] text-xs">
-                AVA will use this number to send and receive messages with customers. Twilio configuration is handled by your admin.
+              <p className="text-muted-foreground text-xs">
+                AVA will use this number to send and receive messages with customers. Twilio
+                configuration is handled by your admin.
               </p>
             </div>
             <div className="flex justify-end">
@@ -340,7 +321,7 @@ export default function SettingsPage() {
           </form>
         </SectionCard>
 
-        {/* ── Account ─────────────────────────────────────── */}
+        {/* Account */}
         <SectionCard
           id="account"
           icon={Settings}
@@ -354,14 +335,14 @@ export default function SettingsPage() {
               <Input
                 value={user?.email ?? ''}
                 disabled
-                className="bg-[#0d1120] border-[#25D366]/10 text-[#8892a4] cursor-not-allowed"
+                className="bg-background border-border text-muted-foreground cursor-not-allowed"
               />
             </FieldRow>
             <FieldRow label="Account ID">
               <Input
                 value={user?.uid ?? ''}
                 disabled
-                className="bg-[#0d1120] border-[#25D366]/10 text-[#8892a4] cursor-not-allowed font-mono text-xs"
+                className="bg-background border-border text-muted-foreground cursor-not-allowed font-mono text-xs"
               />
             </FieldRow>
           </div>
