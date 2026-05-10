@@ -79,27 +79,45 @@ export default function WhatsAppPage() {
 
       // 3. Poll /status/:userId every second (same as HTML example)
       let attempts = 0
+      let timedOut = false
       pollRef.current = setInterval(async () => {
+        if (timedOut) return
         attempts++
         try {
           const sRes = await fetch(`${GATEWAY}/status/${user.uid}`)
           const sData = await sRes.json()
 
-          if (sData.status === 'connected') {
-            setStatus('connected')
-            setPhone(sData.phone || 'Connected')
-            setQrSrc('')
-            addSystem(`Connected! Phone: ${sData.phone || 'unknown'}`)
+          // Log raw response so we know what the gateway actually returns
+          console.log('[v0] poll status raw:', JSON.stringify(sData))
+
+          // Handle all possible shapes the gateway may return
+          const isConnected =
+            sData.status === 'connected' ||
+            sData.status === 'CONNECTED' ||
+            sData.connected === true ||
+            sData.state === 'open' ||
+            sData.state === 'connected' ||
+            sData.isConnected === true
+
+          if (isConnected) {
+            timedOut = true
             clearInterval(pollRef.current!)
             pollRef.current = null
+            const phoneNum = sData.phone || sData.phoneNumber || sData.number || 'Connected'
+            setStatus('connected')
+            setPhone(phoneNum)
+            setQrSrc('')
+            addSystem(`Connected! Phone: ${phoneNum}`)
             toast.success('WhatsApp connected!')
+            return
           }
         } catch { /* silent */ }
 
-        if (attempts >= 120) {
+        if (attempts >= 120 && !timedOut) {
+          timedOut = true
           clearInterval(pollRef.current!)
           pollRef.current = null
-          addSystem('Timed out waiting for scan. Try again.')
+          addSystem('Timed out waiting for scan. Please try again.')
           setStatus('idle')
         }
       }, 1000)
