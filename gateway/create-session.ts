@@ -108,9 +108,11 @@ async function createSession(userId: string) {
 
       // New QR code available — convert to data URL
       if (qr) {
+        // Always overwrite with the freshest QR — Baileys emits a new one
+        // every ~20s and after a failed scan attempt. Never serve stale QR.
         const qrImage = await QRCode.toDataURL(qr);
         sessions[userId].qr = qrImage;
-        console.log(`[gateway] QR generated for user: ${userId}`);
+        console.log(`[gateway] QR refreshed for user: ${userId}`);
       }
 
       if (connection === "open") {
@@ -203,8 +205,17 @@ app.post("/connect", async (req, res) => {
   if (!sessions[userId]) {
     // Fresh session
     await createSession(userId);
-  } else if (!sessions[userId].connected && !sessions[userId].reconnecting) {
-    // Session exists but disconnected — re-init to get a fresh QR
+  } else if (sessions[userId].connected) {
+    // Already connected — nothing to do
+    return res.json({ success: true, message: "Already connected", connected: true });
+  } else {
+    // Session exists but not connected — clear stale QR and force a fresh session
+    // (a scanned-but-failed QR is single-use; Baileys will emit a new one)
+    sessions[userId].qr = undefined;
+    sessions[userId].reconnecting = false;
+    // Close existing socket cleanly before reinitialising
+    try { sessions[userId].sock?.end(undefined); } catch { /* ignore */ }
+    delete sessions[userId];
     await createSession(userId);
   }
 

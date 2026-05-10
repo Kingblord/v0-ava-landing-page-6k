@@ -286,31 +286,45 @@ export default function WhatsAppPage() {
 
   async function handleConnect() {
     if (!user) return
+    // Clear any stale QR from previous attempt immediately
+    setQrSrc('')
     setStatus('loading')
     addSystem('__global__', 'Initiating session with gateway…')
     try {
-      const res = await fetch(`${GATEWAY}/connect`, {
+      const connectRes = await fetch(`${GATEWAY}/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.uid }),
       })
-      await res.json()
+      const connectData = await connectRes.json() as Record<string, unknown>
 
+      // Gateway says already connected
+      if (connectData.connected === true) {
+        const num = (connectData.phone as string) || (connectData.phoneNumber as string) || 'Connected'
+        setStatus('connected')
+        setPhone(num)
+        addSystem('__global__', `Already connected. Phone: ${num}`)
+        return
+      }
+
+      // Fetch fresh QR — the /qr route waits up to 15s for Baileys to emit one
       const qrRes = await fetch(`${GATEWAY}/qr/${user.uid}`)
       const qrData = await qrRes.json() as Record<string, unknown>
 
-      if (qrData.qr) {
-        setQrSrc(qrData.qr as string)
-        setStatus('qr')
-        addSystem('__global__', 'QR code ready — scan with WhatsApp on your phone.')
-      } else if (isConnectedData(qrData)) {
+      if (isConnectedData(qrData)) {
         const num = (qrData.phone as string) || (qrData.phoneNumber as string) || 'Connected'
         setStatus('connected')
         setPhone(num)
         addSystem('__global__', `Already connected. Phone: ${num}`)
         return
+      }
+
+      if (qrData.qr) {
+        setQrSrc(qrData.qr as string)
+        setStatus('qr')
+        addSystem('__global__', 'QR code ready — scan with WhatsApp on your phone.')
       } else {
-        addSystem('__global__', 'No QR returned yet — retrying…')
+        addSystem('__global__', 'Gateway did not return a QR. Please try again.')
         setStatus('idle')
         return
       }
@@ -321,6 +335,15 @@ export default function WhatsAppPage() {
         if (done) return
         attempts++
         try {
+          // Every 5s also refresh the QR image in case Baileys rotated it
+          if (attempts % 5 === 0) {
+            const freshQr = await fetch(`${GATEWAY}/qr/${user.uid}`)
+            const freshQrData = await freshQr.json() as Record<string, unknown>
+            if (freshQrData.qr && freshQrData.qr !== qrData.qr) {
+              setQrSrc(freshQrData.qr as string)
+            }
+          }
+
           const sRes = await fetch(`${GATEWAY}/status/${user.uid}`)
           const sData = await sRes.json()
           if (isConnectedData(sData)) {
