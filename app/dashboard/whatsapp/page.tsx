@@ -48,18 +48,6 @@ interface ChatMessage {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function isConnectedData(d: unknown): boolean {
-  if (!d || typeof d !== 'object') return false
-  const data = d as Record<string, unknown>
-  return (
-    data.status === 'connected' ||
-    data.status === 'CONNECTED' ||
-    data.connected === true ||
-    data.state === 'open' ||
-    data.state === 'connected' ||
-    data.isConnected === true
-  )
-}
 
 function phoneFromJid(jid: string) {
   return jid.replace(/@.*/, '')
@@ -270,15 +258,14 @@ export default function WhatsAppPage() {
     setInitialising(true)
     try {
       const res = await fetch(`${GATEWAY}/status/${user.uid}`)
-      const data = await res.json()
-      if (isConnectedData(data)) {
-        const num = (data as Record<string, string>).phone || (data as Record<string, string>).phoneNumber || (data as Record<string, string>).number || 'Connected'
+      const data = await res.json() as { connected: boolean; phoneNumber?: string | null }
+      if (data.connected === true) {
+        const num = data.phoneNumber || 'Connected'
         setStatus('connected')
         setPhone(num)
-        addSystem('__global__', `Session restored. Phone: ${num}`)
       }
     } catch {
-      // Gateway offline — show idle
+      // Gateway offline — show idle, do not block UI
     } finally {
       setInitialising(false)
     }
@@ -286,86 +273,104 @@ export default function WhatsAppPage() {
 
   async function handleConnect() {
     if (!user) return
-    // Clear any stale QR from previous attempt immediately
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
     setQrSrc('')
     setStatus('loading')
     addSystem('__global__', 'Initiating session with gateway…')
+
     try {
-      const connectRes = await fetch(`${GATEWAY}/connect`, {
+      // Step 1: tell gateway to create/restore the session.
+      // This returns immediately — Baileys starts async auth in the background.
+      await fetch(`${GATEWAY}/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.uid }),
       })
-      const connectData = await connectRes.json() as Record<string, unknown>
 
-      // Gateway says already connected
-      if (connectData.connected === true) {
-        const num = (connectData.phone as string) || (connectData.phoneNumber as string) || 'Connected'
-        setStatus('connected')
-        setPhone(num)
-        addSystem('__global__', `Already connected. Phone: ${num}`)
-        return
-      }
-
-      // Fetch fresh QR — the /qr route waits up to 15s for Baileys to emit one
-      const qrRes = await fetch(`${GATEWAY}/qr/${user.uid}`)
-      const qrData = await qrRes.json() as Record<string, unknown>
-
-      if (isConnectedData(qrData)) {
-        const num = (qrData.phone as string) || (qrData.phoneNumber as string) || 'Connected'
-        setStatus('connected')
-        setPhone(num)
-        addSystem('__global__', `Already connected. Phone: ${num}`)
-        return
-      }
-
-      if (qrData.qr) {
-        setQrSrc(qrData.qr as string)
-        setStatus('qr')
-        addSystem('__global__', 'QR code ready — scan with WhatsApp on your phone.')
-      } else {
-        addSystem('__global__', 'Gateway did not return a QR. Please try again.')
-        setStatus('idle')
-        return
-      }
-
-      let attempts = 0
+      // Step 2: poll /qr until Baileys emits one (usually within 2-4s).
+      // Once we have a QR, switch to polling /status until connected or timeout.
+      let qrAttempts = 0
+      let statusAttempts = 0
       let done = false
+      let qrShowing = false
+      let lastQr = ''
+
       pollRef.current = setInterval(async () => {
         if (done) return
-        attempts++
+
         try {
-          // Every 5s also refresh the QR image in case Baileys rotated it
-          if (attempts % 5 === 0) {
-            const freshQr = await fetch(`${GATEWAY}/qr/${user.uid}`)
-            const freshQrData = await freshQr.json() as Record<string, unknown>
-            if (freshQrData.qr && freshQrData.qr !== qrData.qr) {
-              setQrSrc(freshQrData.qr as string)
+          if (!qrShowing) {
+            // Phase 1: waiting for QR to appear
+            qrAttempts++
+            const qrRes = await fetch(`${GATEWAY}/qr/${user.uid}`)
+            const qrData = await qrRes.json() as { qr?: string | null; connected: boolean }
+
+            // Already connected (restored from saved credentials)
+            if (qrData.connected === true) {
+              done = true
+              clearInterval(pollRef.current!); pollRef.current = null
+              const statusRes = await fetch(`${GATEWAY}/status/${user.uid}`)
+              const statusData = await statusRes.json() as { connected: boolean; phoneNumber?: string | null }
+              const num = statusData.phoneNumber || 'Connected'
+              setStatus('connected')
+              setPhone(num)
+              setQrSrc('')
+              addSystem('__global__', `Connected! Phone: ${num}`)
+              toast.success('WhatsApp connected!')
+              return
+            }
+
+            if (qrData.qr) {
+              lastQr = qrData.qr
+              setQrSrc(qrData.qr)
+              setStatus('qr')
+              qrShowing = true
+              addSystem('__global__', 'QR ready — scan with WhatsApp on your phone.')
+            } else if (qrAttempts >= 20) {
+              // 20s with no QR — give up
+              done = true
+              clearInterval(pollRef.current!); pollRef.current = null
+              addSystem('__global__', 'Gateway did not produce a QR. Check your gateway server.')
+              setStatus('idle')
+            }
+          } else {
+            // Phase 2: QR is displayed — poll /status for connection
+            statusAttempts++
+
+            // Every 3s refresh the QR in case Baileys rotated it (it does every ~20s)
+            if (statusAttempts % 3 === 0) {
+              const freshQr = await fetch(`${GATEWAY}/qr/${user.uid}`)
+              const freshQrData = await freshQr.json() as { qr?: string | null; connected: boolean }
+              if (freshQrData.qr && freshQrData.qr !== lastQr) {
+                lastQr = freshQrData.qr
+                setQrSrc(freshQrData.qr)
+              }
+            }
+
+            const sRes = await fetch(`${GATEWAY}/status/${user.uid}`)
+            const sData = await sRes.json() as { connected: boolean; phoneNumber?: string | null }
+
+            if (sData.connected === true) {
+              done = true
+              clearInterval(pollRef.current!); pollRef.current = null
+              const num = sData.phoneNumber || 'Connected'
+              setStatus('connected')
+              setPhone(num)
+              setQrSrc('')
+              addSystem('__global__', `Connected! Phone: ${num}`)
+              toast.success('WhatsApp connected!')
+            } else if (statusAttempts >= 90) {
+              // 90s timeout waiting for scan
+              done = true
+              clearInterval(pollRef.current!); pollRef.current = null
+              addSystem('__global__', 'Timed out waiting for scan. Please try again.')
+              setStatus('idle')
+              setQrSrc('')
             }
           }
-
-          const sRes = await fetch(`${GATEWAY}/status/${user.uid}`)
-          const sData = await sRes.json()
-          if (isConnectedData(sData)) {
-            done = true
-            clearInterval(pollRef.current!)
-            pollRef.current = null
-            const num = (sData as Record<string, string>).phone || (sData as Record<string, string>).phoneNumber || (sData as Record<string, string>).number || 'Connected'
-            setStatus('connected')
-            setPhone(num)
-            setQrSrc('')
-            addSystem('__global__', `Connected! Phone: ${num}`)
-            toast.success('WhatsApp connected!')
-          }
-        } catch { /* silent */ }
-        if (attempts >= 120 && !done) {
-          done = true
-          clearInterval(pollRef.current!)
-          pollRef.current = null
-          addSystem('__global__', 'Timed out. Please try again.')
-          setStatus('idle')
-        }
+        } catch { /* network hiccup — keep polling */ }
       }, 1000)
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       addSystem('__global__', `Error: ${msg}`)
@@ -472,7 +477,7 @@ export default function WhatsAppPage() {
     </div>
   )
 
-  // ── Panel: Connection + Activity ─────────────────────────────────────────────
+  // ── Panel: Connection + Activity ��────────────────────────────────────────────
 
   const ConnectionPanel = (
     <div className="flex flex-col h-full overflow-hidden">
