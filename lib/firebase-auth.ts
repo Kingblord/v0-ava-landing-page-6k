@@ -7,10 +7,8 @@ import {
 } from 'firebase/auth'
 import {
   doc,
-  setDoc,
-  getDoc,
-  updateDoc,
   onSnapshot,
+  updateDoc,
 } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import type { Business } from '@/lib/types'
@@ -24,43 +22,21 @@ export async function signUp(email: string, password: string, businessName: stri
     const uid = credential.user.uid
     console.log('[v0] User created with UID:', uid)
 
-    const businessData: Record<string, unknown> = {
-      id: uid,
-      name: businessName,
-      email,
-      whatsappPhone: '',
-      whatsappConnected: false,
-      openrouterModel: 'openai/gpt-4o-mini',
-      avatarUrl: '',
-      aiPersonality:
-        'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision.',
-      createdAt: Date.now(),
+    // Call server action to save business document using Admin SDK
+    console.log('[v0] Calling server action to save business document...')
+    const response = await fetch('/api/auth/create-business', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid, email, businessName }),
+    })
+
+    if (!response.ok) {
+      const errData = await response.json()
+      throw new Error(errData.error || 'Failed to create business document')
     }
 
-    console.log('[v0] Writing business document to /businesses/', uid)
-    
-    // Retry logic: attempt up to 3 times with exponential backoff
-    let lastError: unknown
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        await setDoc(doc(db, 'businesses', uid), businessData)
-        console.log('[v0] Business document saved successfully to Firestore')
-        return credential.user
-      } catch (err) {
-        lastError = err
-        const errorMsg = err instanceof Error ? err.message : String(err)
-        console.error(`[v0] Firestore write attempt ${attempt} failed:`, errorMsg)
-        
-        if (attempt < 3) {
-          const waitMs = Math.pow(2, attempt) * 1000
-          console.log(`[v0] Retrying in ${waitMs}ms...`)
-          await new Promise((resolve) => setTimeout(resolve, waitMs))
-        }
-      }
-    }
-    
-    console.error('[v0] All 3 Firestore write attempts failed:', lastError)
-    throw lastError
+    console.log('[v0] Business document created successfully via Admin SDK')
+    return credential.user
   } catch (err) {
     console.error('[v0] Signup error:', err)
     throw err

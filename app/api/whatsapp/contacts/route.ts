@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import axios from 'axios'
-import { getContacts, createContact, updateContact } from '@/lib/firestore'
+import { getContactsForBusiness, createContactDoc, updateContactDoc } from '@/lib/firestore-server'
+import type { Contact } from '@/lib/types'
 
 /**
  * GET /api/whatsapp/contacts?userId=...
  * Get all WhatsApp contacts for a business
- * Syncs with Firestore to get contact list with AI settings
  */
 export async function GET(request: NextRequest) {
   try {
@@ -15,8 +14,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    // Get contacts from Firestore
-    const contacts = await getContacts(userId)
+    console.log('[v0] Fetching contacts for business:', userId)
+    const contacts = await getContactsForBusiness(userId)
 
     return NextResponse.json({
       success: true,
@@ -24,10 +23,11 @@ export async function GET(request: NextRequest) {
       count: contacts.length,
     })
   } catch (error) {
-    console.error('[contacts] Error:', error)
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[v0] Error fetching contacts:', errorMsg)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch contacts' },
-      { status: 500 }
+      { error: errorMsg || 'Failed to fetch contacts' },
+      { status: 500 },
     )
   }
 }
@@ -47,25 +47,30 @@ export async function POST(request: NextRequest) {
     const jid = phone.includes('@s.whatsapp.net') ? phone : `${phone}@s.whatsapp.net`
 
     // Check if contact exists
-    const contacts = await getContacts(userId)
+    console.log('[v0] Checking for existing contact:', jid)
+    const contacts = await getContactsForBusiness(userId)
     const existing = contacts.find((c) => c.jid === jid)
 
-    let contact
+    let contact: Contact
     if (existing) {
-      // Update
-      await updateContact(userId, existing.id, {
+      // Update existing contact
+      console.log('[v0] Updating existing contact:', existing.id)
+      await updateContactDoc(userId, existing.id, {
         name: name || existing.name,
         aiEnabled: aiEnabled !== undefined ? aiEnabled : existing.aiEnabled,
       })
-      contact = { ...existing, name: name || existing.name, aiEnabled }
+      contact = { ...existing, name: name || existing.name, aiEnabled: aiEnabled !== undefined ? aiEnabled : existing.aiEnabled }
     } else {
-      // Create
-      contact = await createContact(userId, {
+      // Create new contact
+      console.log('[v0] Creating new contact:', jid)
+      contact = (await createContactDoc(userId, {
         jid,
         phone,
         name: name || phone,
         aiEnabled: aiEnabled ?? false,
-      })
+        lastMessage: '',
+        lastTs: Date.now(),
+      } as Contact)) as Contact
     }
 
     return NextResponse.json({
@@ -73,10 +78,11 @@ export async function POST(request: NextRequest) {
       contact,
     })
   } catch (error) {
-    console.error('[contacts POST] Error:', error)
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[v0] Error saving contact:', errorMsg)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to save contact' },
-      { status: 500 }
+      { error: errorMsg || 'Failed to save contact' },
+      { status: 500 },
     )
   }
 }
