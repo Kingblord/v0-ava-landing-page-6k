@@ -11,9 +11,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-console.log('[v0] Firebase config loaded:', {
-  projectId: firebaseConfig.projectId,
+// Verify all config values are present
+const missingVars = Object.entries(firebaseConfig)
+  .filter(([_, value]) => !value)
+  .map(([key, _]) => key)
+
+if (missingVars.length > 0) {
+  console.error('[v0] Missing Firebase config variables:', missingVars)
+  throw new Error(`Firebase config incomplete. Missing: ${missingVars.join(', ')}`)
+}
+
+console.log('[v0] Firebase config loaded successfully with all 6 values:', {
+  apiKey: firebaseConfig.apiKey?.substring(0, 10) + '...',
   authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId?.substring(0, 10) + '...',
 })
 
 // Initialize Firebase app
