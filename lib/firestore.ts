@@ -11,6 +11,7 @@ import {
   orderBy,
   setDoc,
   Timestamp,
+  limit,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase-auth'
 import type { Product, Order, Conversation, Business, Message, ConversationState, TestgroundConversationLog, Contact } from '@/lib/types'
@@ -126,6 +127,93 @@ export async function updateBusiness(
   data: Partial<Omit<Business, 'id' | 'email' | 'createdAt'>>,
 ): Promise<void> {
   await updateDoc(doc(db, 'businesses', businessId), data)
+}
+
+// ─── WhatsApp Sessions ────────────────────────────────────────────────────────
+
+export async function saveWhatsAppSession(
+  businessId: string,
+  phoneNumber: string,
+  connected: boolean,
+): Promise<void> {
+  await updateDoc(doc(db, 'businesses', businessId), {
+    whatsappPhone: phoneNumber,
+    whatsappConnected: connected,
+    whatsappConnectedAt: connected ? Date.now() : undefined,
+  })
+}
+
+export async function getWhatsAppSession(businessId: string): Promise<{ phoneNumber?: string; connected?: boolean }> {
+  const snap = await getDoc(doc(db, 'businesses', businessId))
+  if (!snap.exists()) return {}
+  const data = snap.data()
+  return {
+    phoneNumber: data.whatsappPhone,
+    connected: data.whatsappConnected,
+  }
+}
+
+// ─── WhatsApp Messages ────────────────────────────────────────────────────────
+
+export interface WhatsAppMessage {
+  id: string
+  businessId: string
+  from: string
+  text: string
+  role: 'user' | 'assistant'
+  messageId: string
+  timestamp: number
+  platform: 'whatsapp'
+}
+
+export async function saveWhatsAppMessage(
+  businessId: string,
+  from: string,
+  text: string,
+  role: 'user' | 'assistant',
+  messageId: string,
+  timestamp: number,
+): Promise<void> {
+  await addDoc(collection(db, 'businesses', businessId, 'whatsapp_messages'), {
+    from,
+    text,
+    role,
+    messageId,
+    timestamp,
+    platform: 'whatsapp',
+  })
+
+  // Update contact's last message
+  const contacts = await getDocs(
+    query(
+      collection(db, 'businesses', businessId, 'contacts'),
+      where('jid', '==', `${from}@s.whatsapp.net`),
+    ),
+  )
+  if (contacts.docs.length > 0) {
+    await updateDoc(contacts.docs[0].ref, {
+      lastMessage: text,
+      lastTs: timestamp,
+    })
+  }
+}
+
+export async function getWhatsAppMessages(
+  businessId: string,
+  from: string,
+  limit: number = 50,
+): Promise<WhatsAppMessage[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'businesses', businessId, 'whatsapp_messages'),
+      where('from', '==', from),
+      orderBy('timestamp', 'desc'),
+      limit(limit),
+    ),
+  )
+  return snap.docs
+    .map((d) => ({ id: d.id, businessId, ...d.data() } as WhatsAppMessage))
+    .reverse()
 }
 
 // ─── Contacts ─────────────────────────────────────────────────────────────────

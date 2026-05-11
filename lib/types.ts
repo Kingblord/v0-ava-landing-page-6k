@@ -3,6 +3,8 @@ export interface Business {
   name: string
   email: string
   whatsappPhone?: string
+  whatsappConnected?: boolean
+  whatsappConnectedAt?: number
   twilioAccountSid?: string
   twilioAuthToken?: string
   twilioWhatsappNumber?: string

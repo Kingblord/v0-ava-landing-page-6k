@@ -2,12 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import {
-  getContacts,
-  createContact,
-  updateContact,
-  deleteContact,
-} from '@/lib/firestore'
+import { deleteContact } from '@/lib/firestore'
 import type { Contact } from '@/lib/types'
 import { toast } from 'sonner'
 import {
@@ -260,9 +255,33 @@ export default function WhatsAppPage() {
     checkExistingSession()
   }, [user])
 
+  // ── Check existing WhatsApp connection on mount ──
   useEffect(() => {
     if (!user) return
-    loadContacts()
+
+    const checkConnection = async () => {
+      try {
+        console.log('[v0] Checking WhatsApp connection status...')
+        const res = await fetch(`/api/whatsapp/session-status?userId=${user.uid}`)
+        const data = await res.json()
+        
+        if (data.connected) {
+          console.log('[v0] WhatsApp already connected:', data.phoneNumber)
+          setStatus('connected')
+          setPhone(data.phoneNumber || '')
+          
+          // Load contacts and sync
+          loadContacts()
+        } else {
+          console.log('[v0] WhatsApp not connected')
+          setStatus('idle')
+        }
+      } catch (err) {
+        console.error('[v0] Error checking connection:', err)
+      }
+    }
+
+    checkConnection()
   }, [user])
 
   useEffect(() => {
@@ -303,9 +322,16 @@ export default function WhatsAppPage() {
     if (!user) return
     setContactsLoading(true)
     try {
-      const list = await getContacts(user.uid)
-      setContacts(list)
-    } catch {
+      const res = await fetch(`/api/whatsapp/contacts?userId=${user.uid}`)
+      const data = await res.json()
+      if (data.contacts) {
+        console.log('[v0] Loaded contacts from API:', data.contacts.length)
+        setContacts(data.contacts)
+      } else {
+        toast.error('Failed to load contacts')
+      }
+    } catch (err) {
+      console.error('[v0] Error loading contacts:', err)
       toast.error('Failed to load contacts')
     } finally {
       setContactsLoading(false)
@@ -323,18 +349,29 @@ export default function WhatsAppPage() {
     }
     setAddingContact(true)
     try {
-      const contact = await createContact(user.uid, {
-        jid, phone: rawPhone,
-        name: newName.trim() || rawPhone,
-        aiEnabled: false,
+      const res = await fetch('/api/whatsapp/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          phone: rawPhone,
+          name: newName.trim() || rawPhone,
+          aiEnabled: false,
+        }),
       })
-      setContacts((prev) => [contact, ...prev])
-      setNewPhone(''); setNewName('')
-      setShowAddModal(false)
-      setSelected(contact)
-      setMobileView('chat')
-      toast.success('Contact saved')
-    } catch {
+      const data = await res.json()
+      if (data.contact) {
+        console.log('[v0] Contact created:', data.contact)
+        setContacts((prev) => [data.contact, ...prev])
+        setNewPhone('')
+        setNewName('')
+        setShowAddModal(false)
+        setSelected(data.contact)
+        setMobileView('chat')
+        toast.success('Contact saved')
+      }
+    } catch (err) {
+      console.error('[v0] Error adding contact:', err)
       toast.error('Failed to save contact')
     } finally {
       setAddingContact(false)
@@ -344,10 +381,26 @@ export default function WhatsAppPage() {
   async function handleUpdateContact(id: string, patch: Partial<Contact>) {
     if (!user) return
     try {
-      await updateContact(user.uid, id, patch)
-      setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
-      if (selected?.id === id) setSelected((prev) => prev ? { ...prev, ...patch } : prev)
-    } catch {
+      const target = contacts.find((c) => c.id === id)
+      if (!target) return
+      
+      const res = await fetch('/api/whatsapp/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          phone: target.phone,
+          name: patch.name || target.name,
+          aiEnabled: patch.aiEnabled !== undefined ? patch.aiEnabled : target.aiEnabled,
+        }),
+      })
+      const data = await res.json()
+      if (data.contact) {
+        setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+        if (selected?.id === id) setSelected((prev) => prev ? { ...prev, ...patch } : prev)
+      }
+    } catch (err) {
+      console.error('[v0] Error updating contact:', err)
       toast.error('Failed to update contact')
     }
   }
@@ -356,11 +409,14 @@ export default function WhatsAppPage() {
     if (!user) return
     setDeletingContact(id)
     try {
+      // TODO: Add DELETE /api/whatsapp/contacts endpoint if needed
+      // For now, use Firestore directly
       await deleteContact(user.uid, id)
       setContacts((prev) => prev.filter((c) => c.id !== id))
       if (selected?.id === id) { setSelected(null); setMobileView('list') }
       toast.success('Contact removed')
-    } catch {
+    } catch (err) {
+      console.error('[v0] Error deleting contact:', err)
       toast.error('Failed to delete contact')
     } finally {
       setDeletingContact(null)
@@ -493,18 +549,22 @@ export default function WhatsAppPage() {
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
     if (!input.trim() || !selected || !user) return
-    const text = input.trim(); setInput(''); setSending(true)
+    const text = input.trim()
+    setInput('')
+    setSending(true)
     addMessage(selected.id, { role: 'user', text })
     try {
-      const res = await fetch(`${GATEWAY}/send-message`, {
+      const res = await fetch('/api/whatsapp/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.uid, to: selected.jid, text }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error((data as Record<string, string>).error || 'Failed to send')
+      console.log('[v0] Message sent successfully')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Send failed'
+      console.error('[v0] Send error:', msg)
       toast.error(msg)
     } finally {
       setSending(false)
