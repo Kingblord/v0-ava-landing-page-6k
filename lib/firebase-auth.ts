@@ -18,21 +18,34 @@ import type { Business } from '@/lib/types'
 export { auth, db }
 
 export async function signUp(email: string, password: string, businessName: string) {
-  const credential = await createUserWithEmailAndPassword(auth, email, password)
-  const uid = credential.user.uid
-  await setDoc(doc(db, 'businesses', uid), {
-    id: uid,
-    name: businessName,
-    email,
-    whatsappPhone: '',
-    whatsappConnected: false,
-    openrouterModel: 'openai/gpt-4o-mini',
-    avatarUrl: '',
-    aiPersonality:
-      'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision.',
-    createdAt: Date.now(),
-  })
-  return credential.user
+  try {
+    console.log('[v0] Starting signup for:', email)
+    const credential = await createUserWithEmailAndPassword(auth, email, password)
+    const uid = credential.user.uid
+    console.log('[v0] User created with UID:', uid)
+
+    const businessData = {
+      id: uid,
+      name: businessName,
+      email,
+      whatsappPhone: '',
+      whatsappConnected: false,
+      openrouterModel: 'openai/gpt-4o-mini',
+      avatarUrl: '',
+      aiPersonality:
+        'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision.',
+      createdAt: Date.now(),
+    }
+
+    console.log('[v0] Writing business document:', businessData)
+    await setDoc(doc(db, 'businesses', uid), businessData)
+    console.log('[v0] Business document saved successfully')
+    
+    return credential.user
+  } catch (err) {
+    console.error('[v0] Signup error:', err)
+    throw err
+  }
 }
 
 export async function signIn(email: string, password: string) {
