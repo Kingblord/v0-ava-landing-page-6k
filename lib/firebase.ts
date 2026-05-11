@@ -1,10 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app'
-import {
-  initializeFirestore,
-  getFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-} from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 
 const firebaseConfig = {
@@ -21,25 +16,11 @@ console.log('[v0] Firebase config loaded:', {
   authDomain: firebaseConfig.authDomain,
 })
 
+// Initialize Firebase app
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
-// Use persistent cache so Firestore works offline and avoids "client is offline" errors.
-// Only initialise once — if already initialised, fall back to getFirestore().
-export const db = (() => {
-  try {
-    console.log('[v0] Initializing Firestore with persistent cache...')
-    return initializeFirestore(app, {
-      cache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-      }),
-    })
-  } catch (err) {
-    // Already initialised — return existing instance
-    console.log('[v0] Firestore already initialized, using existing instance')
-    return getFirestore(app)
-  }
-})()
-
+// Get Firestore instance (uses default settings)
+export const db = getFirestore(app)
 export const auth = getAuth(app)
 
-console.log('[v0] Firebase initialized successfully')
+console.log('[v0] Firebase and Firestore initialized successfully')

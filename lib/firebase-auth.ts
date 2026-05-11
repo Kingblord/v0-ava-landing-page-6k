@@ -24,7 +24,7 @@ export async function signUp(email: string, password: string, businessName: stri
     const uid = credential.user.uid
     console.log('[v0] User created with UID:', uid)
 
-    const businessData = {
+    const businessData: Record<string, unknown> = {
       id: uid,
       name: businessName,
       email,
@@ -37,11 +37,30 @@ export async function signUp(email: string, password: string, businessName: stri
       createdAt: Date.now(),
     }
 
-    console.log('[v0] Writing business document:', businessData)
-    await setDoc(doc(db, 'businesses', uid), businessData)
-    console.log('[v0] Business document saved successfully')
+    console.log('[v0] Writing business document to /businesses/', uid)
     
-    return credential.user
+    // Retry logic: attempt up to 3 times with exponential backoff
+    let lastError: unknown
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await setDoc(doc(db, 'businesses', uid), businessData)
+        console.log('[v0] Business document saved successfully to Firestore')
+        return credential.user
+      } catch (err) {
+        lastError = err
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        console.error(`[v0] Firestore write attempt ${attempt} failed:`, errorMsg)
+        
+        if (attempt < 3) {
+          const waitMs = Math.pow(2, attempt) * 1000
+          console.log(`[v0] Retrying in ${waitMs}ms...`)
+          await new Promise((resolve) => setTimeout(resolve, waitMs))
+        }
+      }
+    }
+    
+    console.error('[v0] All 3 Firestore write attempts failed:', lastError)
+    throw lastError
   } catch (err) {
     console.error('[v0] Signup error:', err)
     throw err
