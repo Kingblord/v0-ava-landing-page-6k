@@ -13,7 +13,7 @@ import {
   Timestamp,
   limit,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase-auth'
+import { db } from '@/lib/firebase'
 import type { Product, Order, Conversation, Business, Message, ConversationState, TestgroundConversationLog, Contact } from '@/lib/types'
 
 // ─── Products ─────────────────────────────────────────────────────────────────

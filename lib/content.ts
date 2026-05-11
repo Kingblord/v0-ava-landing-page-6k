@@ -247,7 +247,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       { q: "What happens if Arobi can't answer a question?", a: "If a customer asks something outside Arobi's knowledge base (your products and configured responses), Arobi will politely let them know and can optionally escalate or flag the conversation for you to review." },
       { q: 'How does price negotiation work?', a: "For each product you set a \"floor price\" — the minimum you're willing to accept. Arobi will negotiate naturally within that range, starting from your listed price and moving down strategically, never going below your floor." },
       { q: 'Do I need technical knowledge to set up AroMsg?', a: "No. Setup involves scanning a QR code and filling in your product details. It takes under 10 minutes. No code, no servers, no developers needed." },
-      { q: 'What WhatsApp providers does AroMsg support?', a: "AroMsg uses a direct WhatsApp connection via QR code linking — no Twilio or third-party API required. Just scan and go." },
+      { q: 'What WhatsApp providers does AroMsg support?', a: "AroMsg uses a direct WhatsApp connection via QR code linking — completely direct, no third-party API required. Just scan and go." },
       { q: 'Is there a free trial?', a: "Yes — every plan starts with a 14-day free trial. No credit card required to get started. You can upgrade, downgrade, or cancel anytime." },
     ],
   },

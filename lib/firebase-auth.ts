@@ -25,9 +25,7 @@ export async function signUp(email: string, password: string, businessName: stri
     name: businessName,
     email,
     whatsappPhone: '',
-    twilioAccountSid: '',
-    twilioAuthToken: '',
-    twilioWhatsappNumber: '',
+    whatsappConnected: false,
     openrouterModel: 'openai/gpt-4o-mini',
     avatarUrl: '',
     aiPersonality:

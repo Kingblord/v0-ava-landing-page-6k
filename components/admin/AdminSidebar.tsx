@@ -6,13 +6,12 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Navigation, Layers, Zap,
   MessageSquare, Star, CreditCard, HelpCircle, Footprints,
-  Settings, Beaker, ExternalLink,
+  Beaker, ExternalLink,
 } from 'lucide-react'
 
 const SECTIONS = [
   { label: 'Overview', href: '/admin', icon: LayoutDashboard },
   { label: 'Testground', href: '/admin/testground', icon: Beaker },
-  { label: 'Twilio WhatsApp', href: '/admin/twilio', icon: Settings },
   { label: 'Navbar', href: '/admin/navbar', icon: Navigation },
   { label: 'Hero', href: '/admin/hero', icon: Layers },
   { label: 'Features (Bento)', href: '/admin/bento', icon: Zap },

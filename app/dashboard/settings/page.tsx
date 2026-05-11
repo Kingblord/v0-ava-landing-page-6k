@@ -305,7 +305,7 @@ export default function SettingsPage() {
                 <div className="flex items-start gap-3 p-3.5 bg-[var(--aro-green)]/8 border border-[var(--aro-green)]/20 rounded-xl">
                   <MessageSquare className="w-4 h-4 text-[var(--aro-green)] mt-0.5 shrink-0" />
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Go to the WhatsApp page to connect your number via QR code. Twilio routing is configured by your admin.
+                    Go to the WhatsApp page to connect your number via QR code.
                   </p>
                 </div>
               </div>

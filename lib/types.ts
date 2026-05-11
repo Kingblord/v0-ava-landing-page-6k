@@ -5,9 +5,6 @@ export interface Business {
   whatsappPhone?: string
   whatsappConnected?: boolean
   whatsappConnectedAt?: number
-  twilioAccountSid?: string
-  twilioAuthToken?: string
-  twilioWhatsappNumber?: string
   openrouterModel?: string
   avatarUrl?: string
   aiPersonality: string

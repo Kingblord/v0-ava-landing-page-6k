@@ -1,5 +1,5 @@
 /**
- * Generates webhook URLs for Twilio integration.
+ * Generates webhook URLs for WhatsApp gateway integration.
  * Automatically detects deployment URL from environment.
  */
 
@@ -21,8 +21,8 @@ export function getDeploymentUrl(): string {
   return 'http://localhost:3000'
 }
 
-export function getMainWebhookUrl(): string {
-  return `${getDeploymentUrl()}/api/whatsapp/webhook`
+export function getInternalWebhookUrl(): string {
+  return `${getDeploymentUrl()}/api/internal/receive-message`
 }
 
 export function getTestgroundWebhookUrl(): string {
