@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://aromsg.onrender.com'
+const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://aromsg.up.railway.app'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
