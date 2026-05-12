@@ -33,13 +33,15 @@ export async function updateBusinessDoc(uid: string, data: Partial<Business>) {
 
 export async function getBusinessDoc(uid: string): Promise<Business | null> {
   try {
+    console.log('[v0] Getting business document for:', uid)
     const snap = await adminDb.collection('businesses').doc(uid).get()
-    if (!snap.exists) {
+    if (!snap.exists()) {
       console.log('[v0] Business document not found for:', uid)
       return null
     }
-    console.log('[v0] Business document retrieved for:', uid)
-    return { id: snap.id, ...snap.data() } as Business
+    const data = snap.data()
+    console.log('[v0] Business document retrieved for:', uid, 'data:', data)
+    return { id: snap.id, ...data } as Business
   } catch (err) {
     console.error('[v0] Error getting business document:', err)
     throw err
@@ -218,7 +220,7 @@ export async function getMessagesForContact(
   }
 }
 
-// ─── Landing Page Content ─────────────────────────────────────────────────────
+// ─── Landing Page Content ──────────────────────────────���──────────────────────
 
 export async function getLandingContent<T extends Record<string, unknown>>(
   section: string,

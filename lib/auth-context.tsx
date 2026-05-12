@@ -40,11 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       businessUnsub = null
 
       if (u) {
+        console.log('[v0] Auth user set, subscribing to business data:', u.uid)
         // Subscribe to real-time business profile
         businessUnsub = onBusinessChange(u.uid, (b) => {
+          console.log('[v0] Business data updated in auth context:', b)
           setBusiness(b)
         })
       } else {
+        console.log('[v0] User logged out, clearing business data')
         setBusiness(null)
       }
     })
