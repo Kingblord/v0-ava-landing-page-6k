@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { getOrders, updateOrderStatus } from '@/lib/firestore'
 import type { Order } from '@/lib/types'
 import {
   ShoppingCart,
@@ -53,9 +52,17 @@ export default function OrdersPage() {
   async function reload(silent = false) {
     if (!user) return
     if (!silent) setRefreshing(true)
-    const o = await getOrders(user.uid)
-    setOrders(o)
-    if (!silent) setRefreshing(false)
+    try {
+      const res = await fetch(`/api/orders?userId=${user.uid}`)
+      if (!res.ok) throw new Error('Failed to load orders')
+      const data = await res.json()
+      setOrders(data.orders || [])
+    } catch (err) {
+      console.error('[v0] Error loading orders:', err)
+      toast.error('Failed to load orders')
+    } finally {
+      if (!silent) setRefreshing(false)
+    }
   }
 
   useEffect(() => {
@@ -67,10 +74,16 @@ export default function OrdersPage() {
   async function handleStatusChange(orderId: string, status: Order['status']) {
     setUpdating(orderId)
     try {
-      await updateOrderStatus(orderId, status)
+      const res = await fetch('/api/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, status }),
+      })
+      if (!res.ok) throw new Error('Failed to update')
       toast.success(`Order ${status}.`)
       await reload(true)
-    } catch {
+    } catch (err) {
+      console.error('[v0] Error updating order:', err)
       toast.error('Failed to update order.')
     } finally {
       setUpdating(null)

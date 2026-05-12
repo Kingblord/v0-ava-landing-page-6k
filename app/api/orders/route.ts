@@ -1,39 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { serverGetOrders, serverCreateOrder } from '@/lib/firebase-server'
+import { getOrdersServer, updateOrderStatusServer } from '@/lib/firestore-server'
 
+/**
+ * GET /api/orders?userId=...
+ * Fetch all orders for a business (server-side via Admin SDK)
+ */
 export async function GET(request: NextRequest) {
-  const businessId = request.nextUrl.searchParams.get('businessId')
-  if (!businessId) {
-    return NextResponse.json({ error: 'businessId required' }, { status: 400 })
-  }
   try {
-    const orders = await serverGetOrders(businessId)
-    return NextResponse.json({ orders })
+    const userId = request.nextUrl.searchParams.get('userId')
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+    }
+
+    console.log('[v0] Fetching orders for user:', userId)
+    const orders = await getOrdersServer(userId)
+
+    return NextResponse.json({
+      success: true,
+      orders,
+      count: orders.length,
+    })
   } catch (err) {
-    console.error('[/api/orders GET]', err)
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
+    const errorMsg = err instanceof Error ? err.message : String(err)
+    console.error('[v0] Error fetching orders:', errorMsg)
+    return NextResponse.json(
+      { error: errorMsg || 'Failed to fetch orders' },
+      { status: 500 },
+    )
   }
 }
 
-export async function POST(request: NextRequest) {
+/**
+ * PUT /api/orders
+ * Update order status (server-side via Admin SDK)
+ */
+export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { businessId, userId, productId, productName, amount } = body
-    if (!businessId || !userId || !productId || amount == null) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    const { orderId, status } = await request.json()
+
+    if (!orderId || !status) {
+      return NextResponse.json(
+        { error: 'Missing orderId or status' },
+        { status: 400 },
+      )
     }
-    const order = await serverCreateOrder({
-      businessId,
-      userId,
-      productId,
-      productName: productName ?? '',
-      amount: Number(amount),
-      status: 'pending',
-      createdAt: Date.now(),
-    })
-    return NextResponse.json({ order }, { status: 201 })
+
+    console.log('[v0] Updating order status:', orderId, 'to', status)
+    await updateOrderStatusServer(orderId, status)
+
+    return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('[/api/orders POST]', err)
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+    const errorMsg = err instanceof Error ? err.message : String(err)
+    console.error('[v0] Error updating order:', errorMsg)
+    return NextResponse.json(
+      { error: errorMsg || 'Failed to update order' },
+      { status: 500 },
+    )
   }
 }
+

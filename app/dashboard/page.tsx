@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
-import { getOrders, getConversations, getProducts } from '@/lib/firestore'
-import type { Order, Conversation, Product } from '@/lib/types'
+import type { Order, Product } from '@/lib/types'
 import {
   AreaChart,
   Area,
@@ -162,7 +161,6 @@ function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?
 export default function OverviewPage() {
   const { user, business } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
-  const [conversations, setConversations] = useState<Conversation[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -170,14 +168,22 @@ export default function OverviewPage() {
     if (!user) return
     async function load() {
       try {
-        const [o, c, p] = await Promise.all([
-          getOrders(user!.uid),
-          getConversations(user!.uid),
-          getProducts(user!.uid),
+        console.log('[v0] Loading dashboard data for:', user.uid)
+        const [ordersRes, productsRes] = await Promise.all([
+          fetch(`/api/orders?userId=${user.uid}`),
+          fetch(`/api/products?userId=${user.uid}`),
         ])
-        setOrders(o)
-        setConversations(c)
-        setProducts(p)
+        
+        if (ordersRes.ok) {
+          const oData = await ordersRes.json()
+          setOrders(oData.orders || [])
+        }
+        if (productsRes.ok) {
+          const pData = await productsRes.json()
+          setProducts(pData.products || [])
+        }
+      } catch (err) {
+        console.error('[v0] Error loading dashboard data:', err)
       } finally {
         setLoading(false)
       }
@@ -195,7 +201,6 @@ export default function OverviewPage() {
     orders.length > 0 ? Math.round((confirmedCount / orders.length) * 100) : 0
 
   const orderBuckets = useMemo(() => buildDayBuckets(orders), [orders])
-  const convoBuckets = useMemo(() => buildDayBuckets(conversations.map((c) => ({ createdAt: c.lastActiveAt }))), [conversations])
   const revenueBuckets = useMemo(() => buildRevenueBuckets(orders.filter((o) => o.status === 'confirmed')), [orders])
 
   const statusBreakdown = [
@@ -204,28 +209,16 @@ export default function OverviewPage() {
     { name: 'Cancelled', value: orders.filter((o) => o.status === 'cancelled').length, color: '#ef4444' },
   ]
 
-  const recentActivity = [
-    ...orders.slice(0, 4).map((o) => ({
-      id: o.id,
-      type: 'order' as const,
-      label: `New order — ${o.productName}`,
-      sub: o.userId,
-      time: o.createdAt,
-      amount: o.amount,
-      status: o.status,
-    })),
-    ...conversations.slice(0, 3).map((c) => ({
-      id: c.id,
-      type: 'conversation' as const,
-      label: `Conversation`,
-      sub: c.userId,
-      time: c.lastActiveAt,
-      amount: undefined,
-      status: c.state,
-    })),
-  ]
+  const recentActivity = orders.slice(0, 6).map((o) => ({
+    id: o.id,
+    type: 'order' as const,
+    label: `New order — ${o.productName}`,
+    sub: o.userId,
+    time: o.createdAt,
+    amount: o.amount,
+    status: o.status,
+  }))
     .sort((a, b) => b.time - a.time)
-    .slice(0, 6)
 
   const greeting = (() => {
     const h = new Date().getHours()
@@ -273,13 +266,13 @@ export default function OverviewPage() {
               href="/dashboard/orders"
             />
             <KpiCard
-              label="Total Conversations"
-              value={conversations.length}
-              sub="All time"
-              icon={MessageSquare}
+              label="Total Products"
+              value={products.length}
+              sub="Available for sale"
+              icon={Package}
               iconColor="text-[var(--aro-teal)]"
               iconBg="bg-[var(--aro-teal)]/10"
-              href="/dashboard/whatsapp"
+              href="/dashboard/products"
             />
             <KpiCard
               label="Pending Orders"
@@ -393,11 +386,11 @@ export default function OverviewPage() {
           </div>
           <div className="bg-card border border-border rounded-2xl p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-foreground">Chats / 7d</span>
-              <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold text-foreground">Products Listed</span>
+              <Package className="w-3.5 h-3.5 text-muted-foreground" />
             </div>
-            <p className="text-lg font-bold text-foreground">{conversations.length}</p>
-            {loading ? <div className="h-14 bg-secondary rounded-lg animate-pulse mt-2" /> : <MiniAreaChart data={convoBuckets} color="var(--aro-green)" />}
+            <p className="text-lg font-bold text-foreground">{products.length}</p>
+            <p className="text-xs text-muted-foreground mt-2">Ready for sale</p>
           </div>
         </div>
 
@@ -458,28 +451,19 @@ export default function OverviewPage() {
           ) : (
             <ul className="divide-y divide-border">
               {recentActivity.map((item) => {
-                const isOrder = item.type === 'order'
                 const statusMap: Record<string, { icon: React.ElementType; cls: string }> = {
                   pending: { icon: Clock, cls: 'text-amber-500' },
                   confirmed: { icon: CheckCircle, cls: 'text-[var(--aro-green)]' },
                   cancelled: { icon: XCircle, cls: 'text-destructive' },
                 }
-                const statusInfo = isOrder ? statusMap[item.status as string] : null
+                const statusInfo = statusMap[item.status as string]
                 return (
                   <li
                     key={item.id}
                     className="flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/50 transition-colors"
                   >
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-xl flex items-center justify-center shrink-0',
-                        isOrder ? 'bg-[var(--aro-teal)]/10' : 'bg-[var(--aro-green)]/10',
-                      )}
-                    >
-                      {isOrder
-                        ? <ShoppingCart className="w-3.5 h-3.5 text-[var(--aro-teal)]" />
-                        : <MessageSquare className="w-3.5 h-3.5 text-[var(--aro-green)]" />
-                      }
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-[var(--aro-teal)]/10">
+                      <ShoppingCart className="w-3.5 h-3.5 text-[var(--aro-teal)]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground text-sm font-medium truncate">{item.label}</p>
