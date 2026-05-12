@@ -1,6 +1,3 @@
-import { db } from '@/lib/firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
-
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
 export interface NavLink { label: string; href: string }
@@ -306,37 +303,49 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
 }
 
-// ─── Firestore helpers ────────────────────────────────────────────────────────
+// ─── Firestore helpers (via Admin SDK API) ────────────────────────────────────
 
 const COLLECTION = 'landingContent'
 
-/** Fetch one section. If it doesn't exist yet, write the default and return it.
- *  Falls back to DEFAULT_CONTENT silently if Firestore is unreachable. */
+/** Fetch one section via API. Falls back to DEFAULT_CONTENT silently if API is unreachable. */
 export async function getSection<K extends keyof SiteContent>(
   section: K,
 ): Promise<SiteContent[K]> {
   try {
-    const ref = doc(db, COLLECTION, section)
-    const snap = await getDoc(ref)
-    if (snap.exists()) {
-      return snap.data() as SiteContent[K]
+    const response = await fetch(`/api/admin/landing/${section}`, { method: 'GET' })
+    if (response.ok) {
+      const data = await response.json()
+      return data.content as SiteContent[K]
     }
-    // Document doesn't exist yet — try to initialise it, but don't block on failure
-    setDoc(ref, DEFAULT_CONTENT[section] as object).catch(() => {})
+    console.warn('[v0] Failed to fetch landing content:', section, response.status)
     return DEFAULT_CONTENT[section]
-  } catch {
-    // Firestore offline or misconfigured — return hardcoded defaults silently
+  } catch (err) {
+    console.error('[v0] Error fetching landing content:', err)
     return DEFAULT_CONTENT[section]
   }
 }
 
-/** Overwrite one section in Firestore. */
+/** Overwrite one section via API (Admin SDK server-side). */
 export async function saveSection<K extends keyof SiteContent>(
   section: K,
   data: SiteContent[K],
 ): Promise<void> {
-  const ref = doc(db, COLLECTION, section)
-  await setDoc(ref, data as object)
+  try {
+    console.log('[v0] Saving landing content section:', section)
+    const response = await fetch(`/api/admin/landing/${section}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) {
+      const errData = await response.json()
+      throw new Error(errData.error || `HTTP ${response.status}`)
+    }
+    console.log('[v0] Landing content saved successfully:', section)
+  } catch (err) {
+    console.error('[v0] Error saving landing content:', err)
+    throw err
+  }
 }
 
 /** Fetch all 8 sections in parallel, initialising any that don't exist. */
@@ -347,3 +356,4 @@ export async function getAllContent(): Promise<SiteContent> {
     sections.map((s, i) => [s, results[i]]),
   ) as SiteContent
 }
+

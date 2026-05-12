@@ -1,5 +1,5 @@
 import { adminDb } from '@/lib/firebase-admin'
-import type { Business, Contact } from '@/lib/types'
+import type { Business, Contact, Product, Order, Message } from '@/lib/types'
 
 /**
  * Server-side Firestore operations using Firebase Admin SDK
@@ -44,6 +44,83 @@ export async function getBusinessDoc(uid: string): Promise<Business | null> {
     console.error('[v0] Error getting business document:', err)
     throw err
   }
+}
+
+// ─── Products ─────────────────────────────────────────────────────────────────
+
+export async function getProductsServer(businessId: string): Promise<Product[]> {
+  try {
+    const snap = await adminDb
+      .collection('businesses')
+      .doc(businessId)
+      .collection('products')
+      .orderBy('createdAt', 'desc')
+      .get()
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Product))
+  } catch (err) {
+    console.error('[v0] Error fetching products:', err)
+    return []
+  }
+}
+
+export async function createProductServer(
+  businessId: string,
+  data: Omit<Product, 'id' | 'businessId' | 'createdAt'>,
+): Promise<Product> {
+  const payload = { ...data, businessId, createdAt: Date.now() }
+  const ref = await adminDb
+    .collection('businesses')
+    .doc(businessId)
+    .collection('products')
+    .add(payload)
+  return { id: ref.id, ...payload }
+}
+
+export async function updateProductServer(
+  businessId: string,
+  productId: string,
+  data: Partial<Omit<Product, 'id' | 'businessId' | 'createdAt'>>,
+): Promise<void> {
+  await adminDb
+    .collection('businesses')
+    .doc(businessId)
+    .collection('products')
+    .doc(productId)
+    .update(data)
+}
+
+export async function deleteProductServer(businessId: string, productId: string): Promise<void> {
+  await adminDb
+    .collection('businesses')
+    .doc(businessId)
+    .collection('products')
+    .doc(productId)
+    .delete()
+}
+
+// ─── Orders ───────────────────────────────────────────────────────────────────
+
+export async function getOrdersServer(businessId: string): Promise<Order[]> {
+  try {
+    const snap = await adminDb
+      .collection('orders')
+      .where('businessId', '==', businessId)
+      .orderBy('createdAt', 'desc')
+      .get()
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Order))
+  } catch (err) {
+    console.error('[v0] Error fetching orders:', err)
+    return []
+  }
+}
+
+export async function createOrderServer(data: Omit<Order, 'id'>): Promise<Order> {
+  const ref = await adminDb.collection('orders').add({ ...data, createdAt: Date.now() })
+  return { id: ref.id, ...data }
+}
+
+export async function updateOrderStatusServer(orderId: string, status: Order['status']): Promise<void> {
+  await adminDb.collection('orders').doc(orderId).update({ status, updatedAt: Date.now() })
 }
 
 // ─── Contacts ─────────────────────────────────────────────────────────────────
@@ -140,3 +217,58 @@ export async function getMessagesForContact(
     throw err
   }
 }
+
+// ─── Landing Page Content ─────────────────────────────────────────────────────
+
+export async function getLandingContent<T extends Record<string, unknown>>(
+  section: string,
+  defaultContent: T,
+): Promise<T> {
+  try {
+    const doc = await adminDb.collection('landingContent').doc(section).get()
+    if (doc.exists) {
+      return doc.data() as T
+    }
+    // Initialize with default if doesn't exist
+    await adminDb.collection('landingContent').doc(section).set(defaultContent)
+    return defaultContent
+  } catch (err) {
+    console.error('[v0] Error fetching landing content:', err)
+    return defaultContent
+  }
+}
+
+export async function saveLandingContent<T extends Record<string, unknown>>(
+  section: string,
+  data: T,
+): Promise<void> {
+  try {
+    await adminDb.collection('landingContent').doc(section).set(data, { merge: true })
+    console.log('[v0] Landing content saved:', section)
+  } catch (err) {
+    console.error('[v0] Error saving landing content:', err)
+    throw err
+  }
+}
+
+// ─── WhatsApp Session ──────────────────────────────────────────────────────────
+
+export async function saveWhatsAppSessionServer(
+  businessId: string,
+  phoneNumber: string,
+  connected: boolean,
+): Promise<void> {
+  try {
+    await adminDb.collection('businesses').doc(businessId).update({
+      whatsappPhone: phoneNumber,
+      whatsappConnected: connected,
+      whatsappConnectedAt: connected ? Date.now() : null,
+      updatedAt: Date.now(),
+    })
+    console.log('[v0] WhatsApp session saved:', businessId)
+  } catch (err) {
+    console.error('[v0] Error saving WhatsApp session:', err)
+    throw err
+  }
+}
+

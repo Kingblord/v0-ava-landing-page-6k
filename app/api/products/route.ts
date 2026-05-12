@@ -1,57 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { serverGetProducts, serverGetBusinessByPhone } from '@/lib/firebase-server'
-import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore'
+import { getProductsServer, createProductServer, updateProductServer, deleteProductServer } from '@/lib/firestore-server'
+import type { Product } from '@/lib/types'
 
-function getDb() {
-  const app = getApps().length
-    ? getApp()
-    : initializeApp({
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-      })
-  return getFirestore(app)
-}
-
+/**
+ * GET /api/products?userId=...
+ * Fetch all products for a business (server-side via Admin SDK)
+ */
 export async function GET(request: NextRequest) {
-  const businessId = request.nextUrl.searchParams.get('businessId')
-  if (!businessId) {
-    return NextResponse.json({ error: 'businessId required' }, { status: 400 })
-  }
   try {
-    const products = await serverGetProducts(businessId)
-    return NextResponse.json({ products })
+    const userId = request.nextUrl.searchParams.get('userId')
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+    }
+
+    const products = await getProductsServer(userId)
+    return NextResponse.json({ success: true, products })
   } catch (err) {
-    console.error('[/api/products GET]', err)
+    console.error('[v0] Error fetching products:', err)
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
   }
 }
 
+/**
+ * POST /api/products
+ * Create a new product (server-side via Admin SDK)
+ */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { businessId, name, description, price, minPrice, negotiationEnabled } = body
-    if (!businessId || !name || price == null) {
+    const { userId, name, description, price, minPrice, negotiationEnabled, imageUrl } = await request.json()
+
+    if (!userId || !name) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
-    const db = getDb()
-    const payload = {
-      businessId,
+
+    const product = await createProductServer(userId, {
       name,
-      description: description ?? '',
-      price: Number(price),
-      minPrice: Number(minPrice ?? 0),
+      description: description || '',
+      price: Number(price) || 0,
+      minPrice: Number(minPrice) || 0,
       negotiationEnabled: Boolean(negotiationEnabled),
-      createdAt: Date.now(),
-    }
-    const ref = await addDoc(collection(db, 'businesses', businessId, 'products'), payload)
-    return NextResponse.json({ product: { id: ref.id, ...payload } }, { status: 201 })
+      imageUrl: imageUrl || '',
+    } as Omit<Product, 'id' | 'businessId' | 'createdAt'>)
+
+    return NextResponse.json({ success: true, product }, { status: 201 })
   } catch (err) {
-    console.error('[/api/products POST]', err)
+    console.error('[v0] Error creating product:', err)
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
   }
 }
+
+/**
+ * PUT /api/products
+ * Update a product (server-side via Admin SDK)
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const { userId, productId, ...updates } = await request.json()
+
+    if (!userId || !productId) {
+      return NextResponse.json({ error: 'Missing userId or productId' }, { status: 400 })
+    }
+
+    await updateProductServer(userId, productId, updates)
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('[v0] Error updating product:', err)
+    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
+  }
+}
+
+/**
+ * DELETE /api/products
+ * Delete a product (server-side via Admin SDK)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const { userId, productId } = await request.json()
+
+    if (!userId || !productId) {
+      return NextResponse.json({ error: 'Missing userId or productId' }, { status: 400 })
+    }
+
+    await deleteProductServer(userId, productId)
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('[v0] Error deleting product:', err)
+    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 })
+  }
+}
+

@@ -3,19 +3,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
-import { db } from '@/lib/firebase'
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-} from 'firebase/firestore'
 import type { Product } from '@/lib/types'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { Button } from '@/components/ui/button'
@@ -55,25 +42,33 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
 
+  // Load products on mount
   useEffect(() => {
     if (!user) return
-    const q = query(
-      collection(db, 'products'),
-      where('businessId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-    )
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Product)))
-        setLoading(false)
-      },
-      () => setLoading(false),
-    )
-    return unsub
+    loadProducts()
   }, [user])
 
-  function openNew() { setForm(EMPTY_FORM); setEditingId(null); setShowForm(true) }
+  async function loadProducts() {
+    if (!user) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/products?userId=${user.uid}`)
+      if (!res.ok) throw new Error('Failed to load products')
+      const data = await res.json()
+      setProducts(data.products || [])
+    } catch (err) {
+      console.error('[v0] Error loading products:', err)
+      toast.error('Failed to load products')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function openNew() {
+    setForm(EMPTY_FORM)
+    setEditingId(null)
+    setShowForm(true)
+  }
 
   function openEdit(p: Product) {
     setForm({
@@ -88,50 +83,95 @@ export default function ProductsPage() {
     setShowForm(true)
   }
 
-  function closeForm() { setShowForm(false); setEditingId(null); setForm(EMPTY_FORM) }
+  function closeForm() {
+    setShowForm(false)
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+  }
 
-  const handleSave = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
-    const price = parseFloat(form.price)
-    const minPrice = parseFloat(form.minPrice)
-    if (!form.name.trim()) { toast.error('Product name is required.'); return }
-    if (isNaN(price) || price <= 0) { toast.error('Enter a valid selling price.'); return }
-    if (isNaN(minPrice) || minPrice < 0) { toast.error('Enter a valid floor price.'); return }
-    if (minPrice > price) { toast.error('Floor price cannot exceed selling price.'); return }
+  const handleSave = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!user) return
 
-    setSaving(true)
-    try {
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        price,
-        minPrice,
-        negotiationEnabled: form.negotiationEnabled,
-        imageUrl: form.imageUrl || '',
-        businessId: user.uid,
+      const price = parseFloat(form.price)
+      const minPrice = parseFloat(form.minPrice)
+
+      if (!form.name.trim()) {
+        toast.error('Product name is required.')
+        return
       }
-      if (editingId) {
-        await updateDoc(doc(db, 'products', editingId), payload)
-        toast.success('Product updated.')
-      } else {
-        await addDoc(collection(db, 'products'), { ...payload, createdAt: serverTimestamp() })
-        toast.success('Product added.')
+      if (isNaN(price) || price <= 0) {
+        toast.error('Enter a valid selling price.')
+        return
       }
-      closeForm()
-    } catch {
-      toast.error('Failed to save product.')
-    } finally {
-      setSaving(false)
-    }
-  }, [user, form, editingId])
+      if (isNaN(minPrice) || minPrice < 0) {
+        toast.error('Enter a valid floor price.')
+        return
+      }
+      if (minPrice > price) {
+        toast.error('Floor price cannot exceed selling price.')
+        return
+      }
+
+      setSaving(true)
+      try {
+        const payload = {
+          userId: user.uid,
+          name: form.name.trim(),
+          description: form.description.trim(),
+          price,
+          minPrice,
+          negotiationEnabled: form.negotiationEnabled,
+          imageUrl: form.imageUrl || '',
+        }
+
+        if (editingId) {
+          // Update via API
+          const res = await fetch('/api/products', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, productId: editingId }),
+          })
+          if (!res.ok) throw new Error('Failed to update product')
+          toast.success('Product updated.')
+        } else {
+          // Create via API
+          const res = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+          if (!res.ok) throw new Error('Failed to create product')
+          toast.success('Product added.')
+        }
+
+        closeForm()
+        await loadProducts()
+      } catch (err) {
+        console.error('[v0] Error saving product:', err)
+        toast.error('Failed to save product.')
+      } finally {
+        setSaving(false)
+      }
+    },
+    [user, form, editingId],
+  )
 
   async function handleDelete(id: string) {
+    if (!user) return
     setDeleting(id)
     try {
-      await deleteDoc(doc(db, 'products', id))
+      const res = await fetch('/api/products', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, productId: id }),
+      })
+      if (!res.ok) throw new Error('Failed to delete product')
       toast.success('Product deleted.')
-    } catch {
+      await loadProducts()
+    } catch (err) {
+      console.error('[v0] Error deleting product:', err)
       toast.error('Failed to delete.')
     } finally {
       setDeleting(null)
@@ -139,9 +179,21 @@ export default function ProductsPage() {
   }
 
   async function toggleNegotiation(p: Product) {
+    if (!user) return
     try {
-      await updateDoc(doc(db, 'products', p.id), { negotiationEnabled: !p.negotiationEnabled })
-    } catch {
+      const res = await fetch('/api/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          productId: p.id,
+          negotiationEnabled: !p.negotiationEnabled,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to update')
+      await loadProducts()
+    } catch (err) {
+      console.error('[v0] Error toggling negotiation:', err)
       toast.error('Failed to update.')
     }
   }
