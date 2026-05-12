@@ -9,6 +9,7 @@ export interface Business {
   avatarUrl?: string
   aiPersonality: string
   createdAt: number
+  updatedAt?: number
 }
 
 export interface Product {

@@ -121,15 +121,26 @@ export default function SettingsPage() {
   }, [business])
 
   async function save(tab: Tab, data: Record<string, unknown>) {
-    if (!user) return
+    if (!user) {
+      toast.error('Not authenticated.')
+      return
+    }
+    
+    console.log('[v0] Saving settings for tab:', tab, 'with data:', data)
     setSaveState((s) => ({ ...s, [tab]: 'saving' }))
+    
     try {
-      await updateBusiness(user.uid, data)
+      const result = await updateBusiness(user.uid, data)
+      console.log('[v0] Settings saved successfully:', result)
+      
       setSaveState((s) => ({ ...s, [tab]: 'saved' }))
-      toast.success('Saved.')
+      toast.success('Saved successfully.')
+      
       setTimeout(() => setSaveState((s) => ({ ...s, [tab]: 'idle' })), 2500)
-    } catch {
-      toast.error('Failed to save.')
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      console.error('[v0] Error saving settings:', errorMsg)
+      toast.error(`Failed to save: ${errorMsg}`)
       setSaveState((s) => ({ ...s, [tab]: 'idle' }))
     }
   }

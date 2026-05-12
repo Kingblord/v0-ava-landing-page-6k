@@ -8,7 +8,6 @@ import {
 import {
   doc,
   onSnapshot,
-  updateDoc,
 } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import type { Business } from '@/lib/types'
@@ -57,9 +56,15 @@ export function onAuthChange(callback: (user: User | null) => void) {
 }
 
 export async function getBusiness(uid: string): Promise<Business | null> {
-  const snap = await getDoc(doc(db, 'businesses', uid))
-  if (!snap.exists()) return null
-  return snap.data() as Business
+  try {
+    const response = await fetch(`/api/user/profile?uid=${uid}`)
+    if (!response.ok) return null
+    const data = await response.json()
+    return data.profile as Business
+  } catch (err) {
+    console.error('[v0] Error getting business:', err)
+    return null
+  }
 }
 
 /** Real-time listener for a business document. Returns an unsubscribe function. */
@@ -72,7 +77,25 @@ export function onBusinessChange(
   })
 }
 
-/** Update any subset of Business fields for the given uid. */
+/** Update any subset of Business fields for the given uid via API (Admin SDK server-side). */
 export async function updateBusiness(uid: string, data: Partial<Omit<Business, 'id' | 'createdAt'>>) {
-  await updateDoc(doc(db, 'businesses', uid), data as Record<string, unknown>)
+  try {
+    console.log('[v0] Updating business profile via API:', uid)
+    const response = await fetch('/api/user/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid, ...data }),
+    })
+
+    if (!response.ok) {
+      const errData = await response.json()
+      throw new Error(errData.error || `HTTP ${response.status}`)
+    }
+
+    console.log('[v0] Business profile updated successfully')
+    return await response.json()
+  } catch (err) {
+    console.error('[v0] Error updating business profile:', err)
+    throw err
+  }
 }
