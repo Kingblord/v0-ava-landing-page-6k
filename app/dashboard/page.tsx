@@ -236,7 +236,7 @@ export default function OverviewPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-muted-foreground text-sm font-medium">{greeting},</p>
-            <h1 className="text-xl font-bold text-foreground mt-0.5 capitalize">{businessName}</h1>
+            <h1 className="text-xl font-bold text-foreground mt-0.5">{businessName || 'Dashboard'}</h1>
           </div>
           <div className="flex items-center gap-1.5 bg-[var(--aro-green)]/10 border border-[var(--aro-green)]/20 rounded-xl px-3 py-1.5 shrink-0">
             <Zap className="w-3 h-3 text-[var(--aro-green)]" />
