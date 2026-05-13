@@ -104,12 +104,19 @@ export async function deleteProductServer(businessId: string, productId: string)
 
 export async function getOrdersServer(businessId: string): Promise<Order[]> {
   try {
+    console.log('[v0] Fetching orders for businessId:', businessId)
     const snap = await adminDb
       .collection('orders')
       .where('businessId', '==', businessId)
-      .orderBy('createdAt', 'desc')
       .get()
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Order))
+    
+    const orders = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Order))
+    
+    // Sort by createdAt in memory to avoid composite index requirement
+    orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    
+    console.log('[v0] Retrieved', orders.length, 'orders for business:', businessId)
+    return orders
   } catch (err) {
     console.error('[v0] Error fetching orders:', err)
     return []
@@ -204,15 +211,20 @@ export async function getMessagesForContact(
   limit: number = 50,
 ): Promise<Record<string, unknown>[]> {
   try {
+    console.log('[v0] Fetching messages for contact:', contactJid, 'limit:', limit)
     const snap = await adminDb
       .collection('businesses')
       .doc(uid)
       .collection('whatsapp_messages')
       .where('from', '==', contactJid)
-      .orderBy('timestamp', 'desc')
       .limit(limit)
       .get()
+    
     const messages = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    
+    // Sort by timestamp in memory to avoid composite index requirement
+    messages.sort((a, b) => ((b.timestamp as number) || 0) - ((a.timestamp as number) || 0))
+    
     return messages.reverse()
   } catch (err) {
     console.error('[v0] Error getting messages:', err)
