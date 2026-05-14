@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import type { Product } from '@/lib/types'
+import { getTestgroundProducts, createTestgroundProduct, deleteTestgroundProduct, saveTestgroundConfig, getTestgroundConversationLogs, deleteTestgroundConversationLog } from '@/lib/firestore'
+import { getMainWebhookUrl, getTestgroundWebhookUrl } from '@/lib/webhook-utils'
+import type { Product, TestgroundConversationLog } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -82,7 +84,7 @@ export default function TestgroundPage() {
   const [copiedUrl, setCopiedUrl] = useState<'main' | 'testground' | null>(null)
   const [loadingAddProduct, setLoadingAddProduct] = useState(false)
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
-  const [conversationLogs, setConversationLogs] = useState<Array<{ id: string; message: string; timestamp: number }>>([])
+  const [conversationLogs, setConversationLogs] = useState<TestgroundConversationLog[]>([])
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
@@ -92,25 +94,46 @@ export default function TestgroundPage() {
     negotiationEnabled: false,
   })
 
-  // Load testground products from fallback on mount
+  // Load testground products from Firestore on mount
   useEffect(() => {
     if (!user) return
-    try {
-      console.log('[testground] Using fallback iPhone products')
-      setProducts(FALLBACK_PRODUCTS)
-    } catch (err) {
-      console.error('[testground] Failed to load products:', err)
-      setProducts(FALLBACK_PRODUCTS)
-      toast.error('Using sample products.')
-    } finally {
-      setLoadingProducts(false)
+    async function load() {
+      try {
+        const prods = await getTestgroundProducts(user.uid)
+        if (prods && prods.length > 0) {
+          setProducts(prods)
+        } else {
+          console.log('[testground] No products in database, using fallback iPhone products')
+          setProducts(FALLBACK_PRODUCTS)
+        }
+      } catch (err) {
+        console.error('[testground] Failed to load products from database:', err)
+        console.log('[testground] Using fallback iPhone products instead')
+        setProducts(FALLBACK_PRODUCTS)
+        toast.error('Could not connect to database. Using sample products.')
+      } finally {
+        setLoadingProducts(false)
+      }
     }
+    load()
   }, [user])
 
-  // Auto-save testground config whenever it changes
+  // Auto-save testground config to Firestore whenever it changes
   useEffect(() => {
     if (!user || !products.length) return
-    console.log('[testground] Config changed:', { products, business, selectedModel })
+    async function saveConfig() {
+      try {
+        await saveTestgroundConfig(user.uid, {
+          products,
+          businessName: business.name,
+          aiPersonality: business.aiPersonality,
+          selectedModel,
+        })
+      } catch (err) {
+        console.error('[testground] Config save error:', err)
+      }
+    }
+    saveConfig()
   }, [user, products, business.name, business.aiPersonality, selectedModel])
 
   // Load conversation logs when showing them
@@ -118,8 +141,8 @@ export default function TestgroundPage() {
     if (loadingLogs) return
     setLoadingLogs(true)
     try {
-      console.log('[testground] Loading conversation logs')
-      setConversationLogs([])
+      const logs = await getTestgroundConversationLogs()
+      setConversationLogs(logs)
     } catch (err) {
       console.error('[testground] Failed to load conversation logs:', err)
       toast.error('Failed to load conversation logs')
@@ -135,21 +158,13 @@ export default function TestgroundPage() {
 
   async function deleteConversationLog(logId: string) {
     try {
-      console.log('[testground] Deleting log:', logId)
+      await deleteTestgroundConversationLog(logId)
       setConversationLogs(logs => logs.filter(l => l.id !== logId))
       toast.success('Conversation log deleted')
     } catch (err) {
       console.error('[testground] Failed to delete log:', err)
       toast.error('Failed to delete conversation log')
     }
-  }
-
-  function getMainWebhookUrl() {
-    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/webhook/whatsapp`
-  }
-
-  function getTestgroundWebhookUrl() {
-    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/testground/webhook`
   }
 
   async function copyWebhookUrl(type: 'main' | 'testground') {
@@ -192,19 +207,22 @@ export default function TestgroundPage() {
     try {
       console.log('[testground] Adding product:', { name: newProduct.name, price: newProduct.price })
       
-      const created: Product = {
-        id: `product-${Date.now()}`,
+      // Create a timeout promise that rejects after 10 seconds
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out - Firebase may not be configured')), 10000)
+      )
+      
+      const productPromise = createTestgroundProduct(user.uid, {
         name: newProduct.name.trim(),
         description: newProduct.description.trim(),
         price: newProduct.price,
         minPrice: newProduct.minPrice,
         negotiationEnabled: newProduct.negotiationEnabled ?? false,
-        businessId: 'testground',
-        createdAt: Date.now(),
-      }
+      })
       
+      const created = await Promise.race([productPromise, timeoutPromise])
       console.log('[testground] Product created successfully:', created)
-      setProducts(prev => [...prev, created])
+      setProducts(prev => [...prev, created as typeof created])
       setNewProduct({ name: '', description: '', price: 0, minPrice: 0, negotiationEnabled: false })
       setShowProductForm(false)
       toast.success('Test product added successfully!')
@@ -221,7 +239,7 @@ export default function TestgroundPage() {
     if (!user) return
     setDeletingProductId(id)
     try {
-      console.log('[testground] Deleting product:', id)
+      await deleteTestgroundProduct(user.uid, id)
       setProducts(products.filter((p) => p.id !== id))
       toast.success('Product removed')
     } catch (err) {

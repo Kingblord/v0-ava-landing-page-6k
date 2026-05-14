@@ -22,14 +22,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState('')
-  const [email, setEmail] = useState('')
 
   useEffect(() => {
     if (!business) return
     setName(business.name ?? '')
     setAvatar(business.avatarUrl ?? '')
-    setEmail(business.email ?? user?.email ?? '')
-  }, [business, user])
+  }, [business])
 
   async function handleSave() {
     if (!user) return
@@ -37,17 +35,12 @@ export default function ProfilePage() {
       toast.error('Business name cannot be empty.')
       return
     }
-    if (!email.trim()) {
-      toast.error('Email cannot be empty.')
-      return
-    }
 
     setSaving(true)
     try {
-      console.log('[v0] Saving profile changes:', { name, email, avatar })
+      console.log('[v0] Saving profile changes:', { name, avatar })
       await updateBusiness(user.uid, {
         name: name.trim(),
-        email: email.trim(),
         avatarUrl: avatar,
       })
       console.log('[v0] Profile saved successfully')
@@ -66,7 +59,6 @@ export default function ProfilePage() {
     if (!business) return
     setName(business.name ?? '')
     setAvatar(business.avatarUrl ?? '')
-    setEmail(business.email ?? user?.email ?? '')
     setMode('view')
   }
 
@@ -112,7 +104,7 @@ export default function ProfilePage() {
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                     Email
                   </p>
-                  <p className="text-sm text-foreground font-mono">{business?.email ?? user?.email}</p>
+                  <p className="text-sm text-foreground font-mono">{user?.email}</p>
                 </div>
 
                 <div className="p-4 bg-secondary border border-border rounded-xl">
@@ -189,22 +181,6 @@ export default function ProfilePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your business name"
-                  required
-                  className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 h-11 rounded-xl"
-                />
-              </div>
-
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="business@example.com"
                   required
                   className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 h-11 rounded-xl"
                 />
