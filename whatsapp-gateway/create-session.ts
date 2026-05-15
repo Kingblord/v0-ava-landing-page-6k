@@ -263,7 +263,7 @@ async function createSession(
                 : `${to}@s.whatsapp.net`;
               
               // Send the AI-generated response back to the customer
-              await session.sock.sendMessage(jid, {
+              await sessions[userId].sock.sendMessage(jid, {
                 text: responseText,
               });
 
