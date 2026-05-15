@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { getTestgroundProducts, createTestgroundProduct, deleteTestgroundProduct, saveTestgroundConfig, getTestgroundConversationLogs, deleteTestgroundConversationLog } from '@/lib/firestore'
-import { getMainWebhookUrl, getTestgroundWebhookUrl } from '@/lib/webhook-utils'
+import { getInternalWebhookUrl, getTestgroundWebhookUrl } from '@/lib/webhook-utils'
 import type { Product, TestgroundConversationLog } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -168,7 +168,7 @@ export default function TestgroundPage() {
   }
 
   async function copyWebhookUrl(type: 'main' | 'testground') {
-    const url = type === 'main' ? getMainWebhookUrl() : getTestgroundWebhookUrl()
+    const url = type === 'main' ? getInternalWebhookUrl() : getTestgroundWebhookUrl()
     try {
       await navigator.clipboard.writeText(url)
       setCopiedUrl(type)
@@ -336,7 +336,7 @@ export default function TestgroundPage() {
                     <p className="text-[#8892a4] text-xs font-medium mb-2">Main Platform Webhook</p>
                     <div className="flex gap-2">
                       <code className="flex-1 bg-[#0d1120] border border-[#25D366]/20 p-2 rounded text-[#25D366] text-xs overflow-x-auto break-all">
-                        {getMainWebhookUrl()}
+                        {getInternalWebhookUrl()}
                       </code>
                       <button
                         onClick={() => copyWebhookUrl('main')}
