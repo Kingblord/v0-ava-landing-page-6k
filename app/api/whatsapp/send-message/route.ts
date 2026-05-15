@@ -14,9 +14,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId, to, or text' }, { status: 400 })
     }
 
-    const gatewayUrl = process.env.WHATSAPP_GATEWAY_URL
+    let gatewayUrl = process.env.WHATSAPP_GATEWAY_URL
     if (!gatewayUrl) {
       return NextResponse.json({ error: 'Gateway not configured' }, { status: 500 })
+    }
+
+    // Ensure gatewayUrl has protocol
+    if (!gatewayUrl.startsWith('http://') && !gatewayUrl.startsWith('https://')) {
+      gatewayUrl = `https://${gatewayUrl}`
     }
 
     // Normalize phone number to JID format
