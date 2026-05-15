@@ -1,10 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { AuthProvider } from '@/lib/auth-context'
-import { AppShell } from '@/components/AppShell'
-import { Toaster } from '@/components/ui/sonner'
-import { ThemeProvider } from '@/components/theme-provider'
+import { Providers } from '@/components/providers'
 import './globals.css'
 
 const geistSans = Geist({
@@ -83,19 +80,9 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
     >
       <body className="font-sans antialiased bg-background text-foreground overflow-x-hidden ava-loading">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange={false}
-        >
-          <AuthProvider>
-            <AppShell>
-              {children}
-            </AppShell>
-            <Toaster position="bottom-right" />
-          </AuthProvider>
-        </ThemeProvider>
+        <Providers>
+          {children}
+        </Providers>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
