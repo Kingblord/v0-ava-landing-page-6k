@@ -28,6 +28,7 @@ import {
   BadgeCheck,
   Zap,
 } from 'lucide-react'
+
 import { cn } from '@/lib/utils'
 
 type EditMode = 'view' | 'editing'
@@ -266,7 +267,6 @@ export default function ProfilePage() {
         <div className="space-y-2">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-1 pb-1">Quick Actions</p>
           <QuickLinkRow icon={Settings} label="Settings" href="/dashboard/settings" />
-          <QuickLinkRow icon={Shield} label="Security & Preferences" href="/dashboard/settings" />
         </div>
 
         {/* ── Logout (mobile only) ── */}
