@@ -34,9 +34,20 @@ export async function POST(request: NextRequest) {
       { timeout: 10000 }
     )
 
-    // Save to Firestore via Admin SDK
+    // Save to Firestore via Admin SDK — must match the contactJid schema
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    await saveMessageDoc(userId, { from: to, text, role: 'assistant', messageId, timestamp: Date.now(), platform: 'whatsapp' })
+    const contactJid = jid.replace('@s.whatsapp.net', '')
+    await saveMessageDoc(userId, {
+      contactJid,
+      from:      userId,      // sender: the business (manual send)
+      to:        contactJid,
+      text,
+      role:      'assistant',
+      messageId,
+      timestamp: Date.now(),
+      platform:  'whatsapp',
+      direction: 'outgoing',
+    })
 
     return NextResponse.json({
       success: true,

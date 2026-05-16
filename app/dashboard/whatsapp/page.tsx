@@ -28,6 +28,7 @@ import {
   Zap,
   Activity,
   ChevronRight,
+  Eraser,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -39,7 +40,7 @@ const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://aromsg.up.railwa
 
 interface ChatMessage {
   id: string
-  role: 'user' | 'bot' | 'system'
+  role: 'user' | 'assistant' | 'system'
   text: string
   ts: number
 }
@@ -199,11 +200,14 @@ export default function WhatsAppPage() {
   const [addingContact, setAddingContact] = useState(false)
   const [deletingContact, setDeletingContact] = useState<string | null>(null)
 
-  // Chat
-  const [convos, setConvos] = useState<Record<string, ChatMessage[]>>({})
+  // Chat — sourced from Firestore, not in-memory
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messagesLoading, setMessagesLoading] = useState(false)
+  const [clearingHistory, setClearingHistory] = useState(false)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const msgPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // AI settings
   const [globalAi, setGlobalAi] = useState(false)
@@ -257,9 +261,12 @@ export default function WhatsAppPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [convos, selected])
+  }, [messages, selected])
 
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    if (msgPollRef.current) clearInterval(msgPollRef.current)
+  }, [])
 
   // ── Notifications ─────────────────────────────────────────────────────────
 
@@ -511,19 +518,55 @@ export default function WhatsAppPage() {
     toast.info('Disconnected from WhatsApp')
   }
 
-  // ── Chat ──────────────────────────────────────────────────────────────────
+  // ── Chat — Firestore source of truth ─────────────────────────────────────
 
-  function addMessage(contactId: string, msg: Omit<ChatMessage, 'id' | 'ts'>) {
-    const message: ChatMessage = { ...msg, id: `${Date.now()}${Math.random()}`, ts: Date.now() }
-    setConvos((prev) => ({ ...prev, [contactId]: [...(prev[contactId] ?? []), message] }))
-    setContacts((prev) =>
-      prev.map((c) => c.id === contactId ? { ...c, lastMessage: msg.text, lastTs: Date.now() } : c),
-    )
-    // Increment unread if not currently viewing this contact
-    if (msg.role === 'bot' && selected?.id !== contactId) {
-      setUnread((prev) => ({ ...prev, [contactId]: (prev[contactId] ?? 0) + 1 }))
-      const contact = contacts.find((c) => c.id === contactId)
-      if (contact) sendNotification(`New message from ${contact.name}`, msg.text)
+  async function loadMessages(contact: Contact, silent = false) {
+    if (!user) return
+    if (!silent) setMessagesLoading(true)
+    try {
+      const res = await fetch(
+        `/api/whatsapp/messages?userId=${user.uid}&from=${encodeURIComponent(contact.jid)}&limit=100`,
+      )
+      const data = await res.json()
+      if (data.messages) {
+        const mapped: ChatMessage[] = data.messages.map((m: Record<string, unknown>) => ({
+          id:   (m.id as string) || `${m.messageId}`,
+          role: (m.role as string) === 'assistant' ? 'assistant' : 'user',
+          text: m.text as string,
+          ts:   (m.timestamp as number) || Date.now(),
+        }))
+        setMessages(mapped)
+      }
+    } catch (err) {
+      console.error('[v0] loadMessages error:', err)
+    } finally {
+      if (!silent) setMessagesLoading(false)
+    }
+  }
+
+  function startMessagePolling(contact: Contact) {
+    if (msgPollRef.current) clearInterval(msgPollRef.current)
+    msgPollRef.current = setInterval(() => {
+      loadMessages(contact, true)
+    }, 3000)
+  }
+
+  async function handleClearHistory() {
+    if (!user || !selected) return
+    setClearingHistory(true)
+    try {
+      const res = await fetch('/api/whatsapp/clear-history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, contactJid: selected.jid }),
+      })
+      if (!res.ok) throw new Error('Failed to clear')
+      setMessages([])
+      toast.success('Chat history cleared')
+    } catch (err) {
+      toast.error('Failed to clear history')
+    } finally {
+      setClearingHistory(false)
     }
   }
 
@@ -533,7 +576,6 @@ export default function WhatsAppPage() {
     const text = input.trim()
     setInput('')
     setSending(true)
-    addMessage(selected.id, { role: 'user', text })
     try {
       const res = await fetch('/api/whatsapp/send-message', {
         method: 'POST',
@@ -542,10 +584,10 @@ export default function WhatsAppPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error((data as Record<string, string>).error || 'Failed to send')
-      console.log('[v0] Message sent successfully')
+      // Reload messages immediately so the sent message appears
+      await loadMessages(selected, true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Send failed'
-      console.error('[v0] Send error:', msg)
       toast.error(msg)
     } finally {
       setSending(false)
@@ -561,13 +603,15 @@ export default function WhatsAppPage() {
     setSelected(contact)
     setMobileView('chat')
     setUnread((prev) => ({ ...prev, [contact.id]: 0 }))
+    setMessages([])
+    loadMessages(contact)
+    startMessagePolling(contact)
   }
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
   const isConnected = status === 'connected'
   const connectBusy = status === 'loading' || status === 'qr'
-  const messages = selected ? (convos[selected.id] ?? []) : []
   const filteredContacts = contacts.filter(
     (c) => c.name.toLowerCase().includes(contactSearch.toLowerCase()) || c.phone.includes(contactSearch),
   )
@@ -1077,7 +1121,11 @@ export default function WhatsAppPage() {
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
-                {messages.length === 0 ? (
+                {messagesLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="w-5 h-5 text-[var(--aro-green)] animate-spin" />
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full gap-3 opacity-60">
                     <MessageSquare className="w-8 h-8 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground text-center">
@@ -1086,7 +1134,10 @@ export default function WhatsAppPage() {
                   </div>
                 ) : (
                   messages.map((msg) => (
-                    <div key={msg.id} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                    <div
+                      key={msg.id}
+                      className={cn('flex', msg.role === 'assistant' ? 'justify-start' : 'justify-end')}
+                    >
                       {msg.role === 'system' ? (
                         <div className="w-full text-center">
                           <span className="inline-block px-3 py-1.5 bg-secondary border border-border rounded-xl text-[11px] text-muted-foreground font-mono">
@@ -1096,11 +1147,11 @@ export default function WhatsAppPage() {
                       ) : (
                         <div className={cn(
                           'max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
-                          msg.role === 'user'
-                            ? 'bg-[var(--aro-green)] text-[var(--aro-bg)] rounded-br-sm'
-                            : 'bg-card text-foreground border border-border rounded-bl-sm',
+                          msg.role === 'assistant'
+                            ? 'bg-card text-foreground border border-border rounded-bl-sm'
+                            : 'bg-[var(--aro-green)] text-[var(--aro-bg)] rounded-br-sm',
                         )}>
-                          {msg.role === 'bot' && (
+                          {msg.role === 'assistant' && (
                             <div className="flex items-center gap-1 mb-1.5 opacity-60">
                               <Bot className="w-3 h-3" />
                               <span className="text-[10px] font-medium uppercase tracking-wide">AI</span>
@@ -1235,6 +1286,21 @@ export default function WhatsAppPage() {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
+          )}
+
+          {/* Clear chat history */}
+          {selected && (
+            <Button
+              onClick={handleClearHistory}
+              disabled={clearingHistory}
+              variant="outline"
+              className="w-full h-11 border-border text-muted-foreground hover:text-foreground hover:bg-secondary rounded-2xl font-semibold gap-2"
+            >
+              {clearingHistory
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Eraser className="w-4 h-4" />}
+              Clear Chat History ({selected.name})
+            </Button>
           )}
 
           {/* Disconnect */}
