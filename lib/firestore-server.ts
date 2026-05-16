@@ -208,24 +208,26 @@ export async function saveMessageDoc(uid: string, message: Record<string, unknow
 export async function getMessagesForContact(
   uid: string,
   contactJid: string,
-  limit: number = 50,
+  limitCount: number = 50,
 ): Promise<Record<string, unknown>[]> {
   try {
-    console.log('[v0] Fetching messages for contact:', contactJid, 'limit:', limit)
+    // Normalise — strip @s.whatsapp.net so it matches what receive-message stores
+    const normalised = contactJid.replace('@s.whatsapp.net', '')
+
     const snap = await adminDb
       .collection('businesses')
       .doc(uid)
       .collection('whatsapp_messages')
-      .where('from', '==', contactJid)
-      .limit(limit)
+      .where('contactJid', '==', normalised)
+      .limit(limitCount)
       .get()
-    
+
     const messages = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-    
-    // Sort by timestamp in memory to avoid composite index requirement
-    messages.sort((a, b) => ((b.timestamp as number) || 0) - ((a.timestamp as number) || 0))
-    
-    return messages.reverse()
+
+    // Sort ascending by timestamp (oldest first) for chat display
+    messages.sort((a, b) => ((a.timestamp as number) || 0) - ((b.timestamp as number) || 0))
+
+    return messages
   } catch (err) {
     console.error('[v0] Error getting messages:', err)
     throw err

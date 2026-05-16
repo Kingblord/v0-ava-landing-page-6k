@@ -1,122 +1,135 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { generateText } from 'ai'
 import { saveMessageDoc, getBusinessDoc } from '@/lib/firestore-server'
 
 /**
  * POST /api/internal/receive-message
- * Called by WhatsApp gateway when a message is received
- * Stores message and generates AI response using business personality
- * Requires INTERNAL_API_KEY authorization
+ * Called by the WhatsApp gateway when an inbound customer message arrives.
+ * 1. Validates the INTERNAL_API_KEY bearer token.
+ * 2. Saves the incoming message to Firestore (Admin SDK).
+ * 3. Fetches the business AI personality from Firestore.
+ * 4. Generates an AI reply with generateText (Vercel AI Gateway).
+ * 5. Saves the AI reply to Firestore.
+ * 6. Returns the reply so the gateway can send it back via WhatsApp.
  */
 export async function POST(request: NextRequest) {
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const authHeader = request.headers.get('authorization')
+  const expectedKey = process.env.INTERNAL_API_KEY
+
+  if (!expectedKey) {
+    return NextResponse.json({ error: 'Server misconfigured: missing INTERNAL_API_KEY' }, { status: 500 })
+  }
+
+  if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== expectedKey) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // ── Parse body ────────────────────────────────────────────────────────────
+  let body: {
+    userId: string
+    from: string
+    text: string
+    platform: string
+    messageId: string
+    timestamp: number
+  }
+
   try {
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    const expectedKey = process.env.INTERNAL_API_KEY
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
 
-    if (!authHeader?.startsWith('Bearer ') || !expectedKey) {
-      console.error('[v0] Unauthorized message request - missing auth')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const { userId, from, text, platform, messageId, timestamp } = body
 
-    const token = authHeader.slice(7)
-    if (token !== expectedKey) {
-      console.error('[v0] Unauthorized message request - invalid token')
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-    }
+  if (!userId || !from || !text || !platform || !messageId || !timestamp) {
+    return NextResponse.json(
+      { error: 'Missing required fields: userId, from, text, platform, messageId, timestamp' },
+      { status: 400 },
+    )
+  }
 
-    const { userId, from, text, platform, messageId, timestamp } = await request.json()
+  // Normalise the contact JID — always stored without @s.whatsapp.net suffix
+  // so queries are consistent regardless of whether the gateway sends the full JID.
+  const contactJid = from.replace('@s.whatsapp.net', '')
 
-    if (!userId || !from || !text || !platform || !messageId || !timestamp) {
-      console.error('[v0] Missing required fields in message')
-      return NextResponse.json(
-        { error: 'Missing required fields: userId, from, text, platform, messageId, timestamp' },
-        { status: 400 }
-      )
-    }
-
-    console.log('[v0] Received WhatsApp message:', { userId, from, text, platform })
-
-    // Save incoming message to Firestore via Admin SDK
-    const incomingMsg = await saveMessageDoc(userId, {
-      from,
+  try {
+    // ── 1. Save incoming customer message ─────────────────────────────────
+    await saveMessageDoc(userId, {
+      contactJid,          // consistent query field — always the bare number
+      from:  contactJid,   // sender: the customer
+      to:    userId,       // recipient: the business
       text,
-      role: 'user',
+      role:      'user',
       platform,
       messageId,
-      timestamp,
+      timestamp: Number(timestamp),
       direction: 'incoming',
     })
 
-    console.log('[v0] Incoming message saved:', incomingMsg.id)
-
-    // Get business data to fetch AI personality and settings
+    // ── 2. Fetch business profile ─────────────────────────────────────────
     const business = await getBusinessDoc(userId)
     if (!business) {
-      console.error('[v0] Business not found for userId:', userId)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    console.log('[v0] Business found:', business.name, 'AI Model:', business.openrouterModel)
+    // ── 3. Generate AI reply ──────────────────────────────────────────────
+    const personality =
+      business.aiPersonality?.trim() ||
+      'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision.'
 
-    // Generate AI response using the business's configured model
-    let aiResponse = ''
+    const systemPrompt =
+      `You are an AI sales assistant for ${business.name}.\n\n` +
+      `${personality}\n\n` +
+      `Keep your replies concise (1-3 short sentences) and conversational. ` +
+      `Do not make up product information you don't have. ` +
+      `Never reveal that you are an AI unless directly asked.`
+
+    let aiReplyText: string
+
     try {
-      console.log('[v0] Calling AI service for response generation...')
-      const aiRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/whatsapp/generate-response`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          businessName: business.name,
-          aiPersonality: business.aiPersonality || 'You are a friendly and professional sales agent.',
-          customerMessage: text,
-          aiModel: business.openrouterModel || 'openai/gpt-4o-mini',
-        }),
+      const { text: generated } = await generateText({
+        model:          'openai/gpt-4o-mini',
+        system:         systemPrompt,
+        messages:       [{ role: 'user', content: text }],
+        maxOutputTokens: 300,
+        temperature:    0.7,
       })
-
-      if (aiRes.ok) {
-        const aiData = await aiRes.json()
-        aiResponse = aiData.response || "I couldn't process that request. Please try again."
-        console.log('[v0] AI response generated:', aiResponse.substring(0, 100))
-      } else {
-        const errData = await aiRes.json().catch(() => ({}))
-        console.error('[v0] AI service error:', errData)
-        aiResponse = "I'm temporarily unavailable. Please try again later."
-      }
-    } catch (err) {
-      console.error('[v0] Error calling AI service:', err)
-      aiResponse = "Sorry, I'm having trouble responding right now. Please try again."
+      aiReplyText = generated.trim()
+    } catch (aiErr) {
+      // Log but don't fail the request — send a graceful fallback
+      console.error('[receive-message] AI generation error:', aiErr)
+      aiReplyText =
+        `Hi! Thanks for reaching out to ${business.name}. ` +
+        `We'll get back to you shortly.`
     }
 
-    // Save AI response to Firestore via Admin SDK
-    const outgoingMsg = await saveMessageDoc(userId, {
-      from: userId,
-      to: from,
-      text: aiResponse,
-      role: 'assistant',
+    // ── 4. Save AI reply ──────────────────────────────────────────────────
+    await saveMessageDoc(userId, {
+      contactJid,          // same consistent query field
+      from:      userId,   // sender: the business / AI
+      to:        contactJid,
+      text:      aiReplyText,
+      role:      'assistant',
       platform,
+      messageId: `ai_${Date.now()}`,
       timestamp: Date.now(),
       direction: 'outgoing',
     })
 
-    console.log('[v0] AI response saved:', outgoingMsg.id)
-
-    // Return response for gateway to send back to customer
+    // ── 5. Return reply to gateway ────────────────────────────────────────
     return NextResponse.json({
       success: true,
-      incomingMessage: incomingMsg,
       aiResponse: {
-        to: from,
-        text: aiResponse,
+        to:   from,   // full JID expected by the gateway
+        text: aiReplyText,
         platform,
       },
     })
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Internal server error'
-    console.error('[v0] Error receiving message:', errorMsg)
-    return NextResponse.json(
-      { error: errorMsg },
-      { status: 500 }
-    )
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error'
+    console.error('[receive-message] Unhandled error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

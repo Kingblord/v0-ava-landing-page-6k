@@ -232,6 +232,13 @@ async function createSession(
           // ========================
 
           try {
+            // msg.messageTimestamp is a protobuf Long — convert to plain number
+            const ts = msg.messageTimestamp
+            const timestamp =
+              typeof ts === 'object' && ts !== null && 'toNumber' in ts
+                ? (ts as { toNumber: () => number }).toNumber()
+                : Number(ts)
+
             const backendResponse = await axios.post(
               `${BACKEND_URL}/api/internal/receive-message`,
               {
@@ -239,10 +246,8 @@ async function createSession(
                 from,
                 text,
                 platform: "whatsapp",
-                messageId:
-                  msg.key.id,
-                timestamp:
-                  msg.messageTimestamp,
+                messageId: msg.key.id,
+                timestamp,
               },
               {
                 headers: {
