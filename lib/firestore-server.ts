@@ -35,7 +35,7 @@ export async function getBusinessDoc(uid: string): Promise<Business | null> {
   try {
     console.log('[v0] Getting business document for:', uid)
     const snap = await adminDb.collection('businesses').doc(uid).get()
-    if (!snap.exists()) {
+    if (!snap.exists) {
       console.log('[v0] Business document not found for:', uid)
       return null
     }
