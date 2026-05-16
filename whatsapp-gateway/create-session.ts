@@ -77,7 +77,7 @@ async function createSession(userId: string): Promise<void> {
   if (existing?.sock) {
     try {
       existing.sock.ev.removeAllListeners();
-      existing.sock.end(undefined);
+      existing.sock.end(new Error('session_restart'));
     } catch {
       // ignore cleanup errors
     }
