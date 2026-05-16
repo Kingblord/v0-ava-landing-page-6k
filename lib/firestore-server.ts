@@ -208,24 +208,33 @@ export async function saveMessageDoc(uid: string, message: Record<string, unknow
 export async function getMessagesForContact(
   uid: string,
   contactJid: string,
-  limitCount: number = 50,
+  limitCount: number = 100,
 ): Promise<Record<string, unknown>[]> {
   try {
     // Normalise — strip @s.whatsapp.net so it matches what receive-message stores
-    const normalised = contactJid.replace('@s.whatsapp.net', '')
+    const normalised = contactJid.replace('@s.whatsapp.net', '').replace('@lid', '')
 
     const snap = await adminDb
       .collection('businesses')
       .doc(uid)
       .collection('whatsapp_messages')
       .where('contactJid', '==', normalised)
-      .limit(limitCount)
+      .orderBy('timestamp', 'asc')
+      .limitToLast(limitCount)
       .get()
 
-    const messages = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-
-    // Sort ascending by timestamp (oldest first) for chat display
-    messages.sort((a, b) => ((a.timestamp as number) || 0) - ((b.timestamp as number) || 0))
+    // Deduplicate by messageId — gateway and backend both write,
+    // keep the first occurrence of each messageId
+    const seen = new Set<string>()
+    const messages: Record<string, unknown>[] = []
+    for (const doc of snap.docs) {
+      const data = doc.data()
+      const msgId = (data.messageId as string) || doc.id
+      if (!seen.has(msgId)) {
+        seen.add(msgId)
+        messages.push({ id: doc.id, ...data })
+      }
+    }
 
     return messages
   } catch (err) {

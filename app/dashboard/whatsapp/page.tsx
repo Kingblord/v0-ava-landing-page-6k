@@ -415,16 +415,13 @@ export default function WhatsAppPage() {
       if (data.connected === true) {
         setStatus('connected')
         setPhone(data.phoneNumber || 'Connected')
-        // Load contacts immediately after session is confirmed connected
-        await loadContacts()
-      } else {
-        // Not connected — stop the contacts spinner
-        setContactsLoading(false)
       }
     } catch {
-      // Gateway offline or unreachable — stop loading
-      setContactsLoading(false)
+      // Gateway offline or unreachable — session is idle
     } finally {
+      // Always load contacts regardless of session state —
+      // contacts belong to the business, not the WhatsApp connection
+      await loadContacts()
       setInitialising(false)
     }
   }

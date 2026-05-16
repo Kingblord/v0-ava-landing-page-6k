@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "whatsapp_messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "contactJid", "order": "ASCENDING" },
+        { "fieldPath": "timestamp",  "order": "ASCENDING"  }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
