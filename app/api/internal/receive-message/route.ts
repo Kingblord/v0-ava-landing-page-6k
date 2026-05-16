@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
 import { saveMessageDoc, getBusinessDoc } from '@/lib/firestore-server'
 
+// Allow up to 60 seconds — AI generation + 2 Firestore writes can exceed the default 10s
+export const maxDuration = 60
+
 /**
  * POST /api/internal/receive-message
  * Called by the WhatsApp gateway when an inbound customer message arrives.
@@ -50,9 +53,16 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Normalise the contact JID — always stored without @s.whatsapp.net suffix
-  // so queries are consistent regardless of whether the gateway sends the full JID.
-  const contactJid = from.replace('@s.whatsapp.net', '')
+  // Normalise the contact JID — strip any WhatsApp suffix so queries are consistent.
+  // Baileys may send @s.whatsapp.net or @lid — we convert @lid to @s.whatsapp.net
+  // before storing, and always store the bare phone number as contactJid.
+  const normalizedFrom = from.endsWith('@s.whatsapp.net')
+    ? from
+    : from.endsWith('@lid')
+      ? `${from.replace('@lid', '')}@s.whatsapp.net`
+      : `${from}@s.whatsapp.net`
+
+  const contactJid = normalizedFrom.replace('@s.whatsapp.net', '')
 
   try {
     // ── 1. Save incoming customer message ─────────────────────────────────
@@ -122,7 +132,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       aiResponse: {
-        to:   from,   // full JID expected by the gateway
+        to:   normalizedFrom,   // always @s.whatsapp.net — gateway can send to it directly
         text: aiReplyText,
         platform,
       },
