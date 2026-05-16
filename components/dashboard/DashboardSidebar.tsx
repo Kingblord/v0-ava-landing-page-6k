@@ -19,14 +19,35 @@ import {
   Moon,
   ArrowLeft,
   ChevronRight,
+  UserCircle,
 } from 'lucide-react'
 
+// Desktop sidebar keeps Settings
+const desktopNavItems = [
+  { href: '/dashboard', label: 'Home', icon: LayoutDashboard, exact: true },
+  { href: '/dashboard/products', label: 'Products', icon: Package },
+  { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
+  { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageSquare },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+]
+
+// Mobile bottom nav uses Profile instead of Settings
+const mobileNavItems = [
+  { href: '/dashboard', label: 'Home', icon: LayoutDashboard, exact: true },
+  { href: '/dashboard/products', label: 'Products', icon: Package },
+  { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
+  { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageSquare },
+  { href: '/dashboard/profile', label: 'Profile', icon: UserCircle },
+]
+
+// All nav items (union) for header title lookup
 const navItems = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/products', label: 'Products', icon: Package },
   { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageSquare },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { href: '/dashboard/profile', label: 'Profile', icon: UserCircle },
 ]
 
 function useActiveNav() {
@@ -86,7 +107,7 @@ export default function DashboardSidebar() {
 
       {/* Nav links */}
       <nav className="flex-1 flex flex-col gap-0.5 px-3">
-        {navItems.map((item) => {
+        {desktopNavItems.map((item) => {
           const active = isActive(item.href, item.exact)
           return (
             <Link
@@ -163,7 +184,7 @@ export default function DashboardSidebar() {
   const BottomNav = (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border">
       <div className="flex items-center justify-around px-2 py-1 safe-area-pb">
-        {navItems.map((item) => {
+        {mobileNavItems.map((item) => {
           const active = isActive(item.href, item.exact)
           return (
             <Link
