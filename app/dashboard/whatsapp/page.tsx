@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { deleteContact } from '@/lib/firestore'
 import type { Contact } from '@/lib/types'
 import { toast } from 'sonner'
 import {
@@ -249,39 +248,11 @@ export default function WhatsAppPage() {
     return () => window.removeEventListener('beforeinstallprompt', handleInstall)
   }, [])
 
+  // Single source of truth for session check on mount
   useEffect(() => {
     if (!user || hasCheckedRef.current) return
     hasCheckedRef.current = true
     checkExistingSession()
-  }, [user])
-
-  // ── Check existing WhatsApp connection on mount ──
-  useEffect(() => {
-    if (!user) return
-
-    const checkConnection = async () => {
-      try {
-        console.log('[v0] Checking WhatsApp connection status...')
-        const res = await fetch(`/api/whatsapp/session-status?userId=${user.uid}`)
-        const data = await res.json()
-        
-        if (data.connected) {
-          console.log('[v0] WhatsApp already connected:', data.phoneNumber)
-          setStatus('connected')
-          setPhone(data.phoneNumber || '')
-          
-          // Load contacts and sync
-          loadContacts()
-        } else {
-          console.log('[v0] WhatsApp not connected')
-          setStatus('idle')
-        }
-      } catch (err) {
-        console.error('[v0] Error checking connection:', err)
-      }
-    }
-
-    checkConnection()
   }, [user])
 
   useEffect(() => {
@@ -409,9 +380,12 @@ export default function WhatsAppPage() {
     if (!user) return
     setDeletingContact(id)
     try {
-      // TODO: Add DELETE /api/whatsapp/contacts endpoint if needed
-      // For now, use Firestore directly
-      await deleteContact(user.uid, id)
+      const res = await fetch('/api/whatsapp/contacts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, contactId: id }),
+      })
+      if (!res.ok) throw new Error('Failed to delete')
       setContacts((prev) => prev.filter((c) => c.id !== id))
       if (selected?.id === id) { setSelected(null); setMobileView('list') }
       toast.success('Contact removed')
@@ -434,9 +408,16 @@ export default function WhatsAppPage() {
       if (data.connected === true) {
         setStatus('connected')
         setPhone(data.phoneNumber || 'Connected')
-        sendNotification('AroMsg', 'WhatsApp session restored')
+        // Load contacts immediately after session is confirmed connected
+        await loadContacts()
+      } else {
+        // Not connected — stop the contacts spinner
+        setContactsLoading(false)
       }
-    } catch { /* gateway offline */ } finally {
+    } catch {
+      // Gateway offline or unreachable — stop loading
+      setContactsLoading(false)
+    } finally {
       setInitialising(false)
     }
   }

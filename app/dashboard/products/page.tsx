@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
+import { useCurrency } from '@/lib/use-currency'
 import type { Product } from '@/lib/types'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { Button } from '@/components/ui/button'
@@ -16,7 +17,6 @@ import {
   Package,
   X,
   ImageIcon,
-  DollarSign,
   Tag,
   ToggleLeft,
   ToggleRight,
@@ -34,6 +34,7 @@ const EMPTY_FORM = {
 
 export default function ProductsPage() {
   const { user } = useAuth()
+  const { fmt } = useCurrency()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -275,11 +276,11 @@ export default function ProductsPage() {
 
                   {/* Price row */}
                   <div className="flex items-center gap-2 mt-auto pt-1">
-                    <span className="flex items-center gap-0.5 text-[var(--aro-green)] font-bold text-sm">
-                      <DollarSign className="w-3 h-3" />{p.price.toFixed(2)}
+                    <span className="text-[var(--aro-green)] font-bold text-sm">
+                      {fmt(p.price)}
                     </span>
                     <span className="flex items-center gap-0.5 text-muted-foreground text-[10px]">
-                      <Tag className="w-2.5 h-2.5" />{p.minPrice.toFixed(2)}
+                      <Tag className="w-2.5 h-2.5" />{fmt(p.minPrice)}
                     </span>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getContactsForBusiness, createContactDoc, updateContactDoc } from '@/lib/firestore-server'
+import { getContactsForBusiness, createContactDoc, updateContactDoc, deleteContactDoc } from '@/lib/firestore-server'
 import type { Contact } from '@/lib/types'
 
 /**
@@ -84,5 +84,24 @@ export async function POST(request: NextRequest) {
       { error: errorMsg || 'Failed to save contact' },
       { status: 500 },
     )
+  }
+}
+
+/**
+ * DELETE /api/whatsapp/contacts
+ * Delete a contact by id
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const { userId, contactId } = await request.json()
+    if (!userId || !contactId) {
+      return NextResponse.json({ error: 'Missing userId or contactId' }, { status: 400 })
+    }
+    await deleteContactDoc(userId, contactId)
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('[v0] Error deleting contact:', errorMsg)
+    return NextResponse.json({ error: errorMsg || 'Failed to delete contact' }, { status: 500 })
   }
 }

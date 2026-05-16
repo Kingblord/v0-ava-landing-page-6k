@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import axios from 'axios'
-import { saveWhatsAppMessage } from '@/lib/firestore'
+import { saveMessageDoc } from '@/lib/firestore-server'
 
 /**
  * POST /api/whatsapp/send-message
@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
       { timeout: 10000 }
     )
 
-    // Save to Firestore
+    // Save to Firestore via Admin SDK
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    await saveWhatsAppMessage(userId, to, text, 'assistant', messageId, Date.now())
+    await saveMessageDoc(userId, { from: to, text, role: 'assistant', messageId, timestamp: Date.now(), platform: 'whatsapp' })
 
     return NextResponse.json({
       success: true,

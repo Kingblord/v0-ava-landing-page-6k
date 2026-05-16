@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { useCurrency } from '@/lib/use-currency'
 import type { Order } from '@/lib/types'
 import {
   ShoppingCart,
   Phone,
   Package,
-  DollarSign,
   Clock,
   CheckCircle,
   XCircle,
@@ -43,6 +43,7 @@ type FilterKey = 'all' | Order['status']
 
 export default function OrdersPage() {
   const { user } = useAuth()
+  const { fmt } = useCurrency()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -126,7 +127,7 @@ export default function OrdersPage() {
         {/* ── Summary strip ── */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Revenue', value: `$${totalRevenue.toFixed(0)}`, icon: TrendingUp, color: 'text-[var(--aro-green)]', bg: 'bg-[var(--aro-green)]/10' },
+            { label: 'Revenue', value: fmt(totalRevenue), icon: TrendingUp, color: 'text-[var(--aro-green)]', bg: 'bg-[var(--aro-green)]/10' },
             { label: 'Pending', value: counts.pending, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' },
             { label: 'Confirmed', value: counts.confirmed, icon: CheckCircle, color: 'text-[var(--aro-green)]', bg: 'bg-[var(--aro-green)]/10' },
           ].map((s) => (
@@ -218,9 +219,8 @@ export default function OrdersPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <span className="flex items-center gap-1 text-[var(--aro-green)] font-bold text-sm">
-                        <DollarSign className="w-3.5 h-3.5" />
-                        {order.amount.toFixed(2)}
+                      <span className="text-[var(--aro-green)] font-bold text-sm">
+                        {fmt(order.amount)}
                       </span>
                       <span className={cn('flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border', cfg.pill)}>
                         <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot)} />

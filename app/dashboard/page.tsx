@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
+import { useCurrency } from '@/lib/use-currency'
 import type { Order, Product } from '@/lib/types'
 import {
   AreaChart,
@@ -26,7 +27,6 @@ import {
   ArrowUpRight,
   Zap,
   ChevronRight,
-  DollarSign,
 } from 'lucide-react'
 import { formatDistanceToNow, format, subDays, startOfDay } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -146,12 +146,12 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   )
 }
 
-function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+function RevenueTooltip({ active, payload, label, fmt }: { active?: boolean; payload?: { value: number }[]; label?: string; fmt?: (n: number) => string }) {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs shadow-xl">
       <p className="text-muted-foreground">{label}</p>
-      <p className="text-foreground font-bold mt-0.5">${payload[0].value.toFixed(2)}</p>
+      <p className="text-foreground font-bold mt-0.5">{fmt ? fmt(payload[0].value) : `₦${payload[0].value.toFixed(2)}`}</p>
     </div>
   )
 }
@@ -160,6 +160,7 @@ function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?
 
 export default function OverviewPage() {
   const { user, business } = useAuth()
+  const { fmt } = useCurrency()
   const [orders, setOrders] = useState<Order[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -258,9 +259,9 @@ export default function OverviewPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiCard
               label="Revenue (confirmed)"
-              value={`$${totalRevenue.toFixed(0)}`}
+              value={fmt(totalRevenue)}
               sub={`${confirmedCount} orders confirmed`}
-              icon={DollarSign}
+              icon={TrendingUp}
               iconColor="text-[var(--aro-green)]"
               iconBg="bg-[var(--aro-green)]/10"
               href="/dashboard/orders"
@@ -305,7 +306,7 @@ export default function OverviewPage() {
                 <p className="text-xs text-muted-foreground mt-0.5">Confirmed orders only</p>
               </div>
               <span className="text-xs font-semibold text-[var(--aro-green)] bg-[var(--aro-green)]/10 px-2.5 py-1 rounded-lg">
-                ${totalRevenue.toFixed(0)}
+                {fmt(totalRevenue)}
               </span>
             </div>
             {loading ? (
@@ -321,7 +322,7 @@ export default function OverviewPage() {
                   </defs>
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<RevenueTooltip />} />
+                  <Tooltip content={<RevenueTooltip fmt={fmt} />} />
                   <Area
                     type="monotone"
                     dataKey="revenue"
@@ -472,7 +473,7 @@ export default function OverviewPage() {
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       {item.amount !== undefined && (
                         <span className="text-xs font-semibold text-[var(--aro-green)]">
-                          ${item.amount.toFixed(2)}
+                          {fmt(item.amount)}
                         </span>
                       )}
                       {statusInfo && (

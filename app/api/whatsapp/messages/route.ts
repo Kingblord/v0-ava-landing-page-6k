@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getWhatsAppMessages } from '@/lib/firestore'
+import { getMessagesForContact } from '@/lib/firestore-server'
 
 /**
  * GET /api/whatsapp/messages?userId=...&from=...&limit=...
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId or from' }, { status: 400 })
     }
 
-    const messages = await getWhatsAppMessages(userId, from, limit)
+    const messages = await getMessagesForContact(userId, from, limit)
 
     return NextResponse.json({
       success: true,
