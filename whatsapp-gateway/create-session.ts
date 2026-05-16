@@ -227,6 +227,13 @@ async function createSession(
             `📨 ${from}: ${text}`
           );
 
+          // Convert protobuf Long timestamp to plain number
+          const rawTs = msg.messageTimestamp;
+          const timestamp =
+            rawTs !== null && rawTs !== undefined && typeof rawTs === 'object' && 'toNumber' in rawTs
+              ? (rawTs as { toNumber: () => number }).toNumber() * 1000
+              : Number(rawTs) * 1000;
+
           // ========================
           // SEND DIRECTLY TO BACKEND
           // ========================
@@ -239,10 +246,8 @@ async function createSession(
                 from,
                 text,
                 platform: "whatsapp",
-                messageId:
-                  msg.key.id,
-                timestamp:
-                  msg.messageTimestamp,
+                messageId: msg.key.id,
+                timestamp,
               },
               {
                 headers: {
@@ -256,18 +261,20 @@ async function createSession(
             if (backendResponse.data?.aiResponse) {
               const { to, text: responseText } = backendResponse.data.aiResponse;
               console.log(`📤 Sending AI response to ${to}`);
-              
-              // Normalize the recipient JID
-              const jid = to.includes('@s.whatsapp.net') 
-                ? to 
-                : `${to}@s.whatsapp.net`;
-              
-              // Send the AI-generated response back to the customer
-              await sessions[userId].sock.sendMessage(jid, {
-                text: responseText,
-              });
 
-              console.log(`✅ AI response sent to ${to}`);
+              // Normalize the recipient JID
+              const jid = to.includes('@s.whatsapp.net')
+                ? to
+                : `${to}@s.whatsapp.net`;
+
+              // Safe session reference — socket may have reconnected
+              const activeSession = sessions[userId];
+              if (activeSession?.connected && activeSession.sock) {
+                await activeSession.sock.sendMessage(jid, { text: responseText });
+                console.log(`✅ AI response sent to ${to}`);
+              } else {
+                console.warn(`⚠️ Session ${userId} not connected — skipping send`);
+              }
             }
           } catch (backendErr) {
             console.error("❌ Backend error:", backendErr);
