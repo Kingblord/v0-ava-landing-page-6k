@@ -33,14 +33,16 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { uid, name, avatarUrl, aiPersonality, openrouterModel, whatsappPhone } =
-      await request.json()
+    const body = await request.json()
+    const {
+      uid, name, avatarUrl, aiPersonality, openrouterModel, whatsappPhone,
+      currency, language, timezone,
+      notifNewOrder, notifNewMessage, notifDailyReport, notifWeeklyReport,
+    } = body
 
     if (!uid) {
       return NextResponse.json({ error: 'Missing uid' }, { status: 400 })
     }
-
-    console.log('[v0] Updating profile for user:', uid)
 
     const updateData: Record<string, unknown> = {}
 
@@ -49,6 +51,14 @@ export async function POST(request: NextRequest) {
     if (aiPersonality !== undefined) updateData.aiPersonality = aiPersonality.trim()
     if (openrouterModel !== undefined) updateData.openrouterModel = openrouterModel.trim()
     if (whatsappPhone !== undefined) updateData.whatsappPhone = whatsappPhone.trim()
+    // Preferences
+    if (currency !== undefined) updateData.currency = currency
+    if (language !== undefined) updateData.language = language
+    if (timezone !== undefined) updateData.timezone = timezone
+    if (notifNewOrder !== undefined) updateData.notifNewOrder = notifNewOrder
+    if (notifNewMessage !== undefined) updateData.notifNewMessage = notifNewMessage
+    if (notifDailyReport !== undefined) updateData.notifDailyReport = notifDailyReport
+    if (notifWeeklyReport !== undefined) updateData.notifWeeklyReport = notifWeeklyReport
 
     updateData.updatedAt = Date.now()
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { updateBusiness } from '@/lib/firebase-auth'
+import { updateBusiness, changePassword, firebaseErrorMessage } from '@/lib/firebase-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,17 +11,13 @@ import {
   Bot,
   MessageSquare,
   Shield,
-  Bell,
   Globe,
   CheckCircle2,
   RotateCcw,
   Smartphone,
-  Lock,
   Eye,
   EyeOff,
   Check,
-  DollarSign,
-  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -180,7 +176,6 @@ export default function SettingsPage() {
 
   // AI Agent
   const [aiPersonality, setAiPersonality] = useState(DEFAULT_PERSONALITY)
-  const [openrouterModel, setOpenrouterModel] = useState('openai/gpt-4o-mini')
 
   // WhatsApp
   const [whatsappPhone, setWhatsappPhone] = useState('')
@@ -190,8 +185,7 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
-  const [twoFactor, setTwoFactor] = useState(false)
-  const [loginAlerts, setLoginAlerts] = useState(true)
+  const [pwdStrength, setPwdStrength] = useState<'weak' | 'fair' | 'strong' | ''>('')
 
   // Preferences
   const [currency, setCurrency] = useState('NGN')
@@ -201,22 +195,36 @@ export default function SettingsPage() {
   const [notifNewMessage, setNotifNewMessage] = useState(true)
   const [notifDailyReport, setNotifDailyReport] = useState(false)
   const [notifWeeklyReport, setNotifWeeklyReport] = useState(true)
-  const [soundEffects, setSoundEffects] = useState(true)
 
   const [activeTab, setActiveTab] = useState<Tab>('ai')
   const [saveState, setSaveState] = useState<Record<Tab, SaveState>>({
-    ai: 'idle',
-    whatsapp: 'idle',
-    security: 'idle',
-    preferences: 'idle',
+    ai: 'idle', whatsapp: 'idle', security: 'idle', preferences: 'idle',
   })
 
+  // Hydrate from Firestore business doc
   useEffect(() => {
     if (!business) return
     setAiPersonality(business.aiPersonality ?? DEFAULT_PERSONALITY)
-    setOpenrouterModel(business.openrouterModel ?? 'openai/gpt-4o-mini')
     setWhatsappPhone(business.whatsappPhone ?? '')
+    setCurrency(business.currency ?? 'NGN')
+    setLanguage(business.language ?? 'en')
+    setTimezone(business.timezone ?? 'Africa/Lagos')
+    setNotifNewOrder(business.notifNewOrder ?? true)
+    setNotifNewMessage(business.notifNewMessage ?? true)
+    setNotifDailyReport(business.notifDailyReport ?? false)
+    setNotifWeeklyReport(business.notifWeeklyReport ?? true)
   }, [business])
+
+  // Password strength indicator
+  useEffect(() => {
+    if (!newPassword) { setPwdStrength(''); return }
+    const hasUpper = /[A-Z]/.test(newPassword)
+    const hasNum   = /[0-9]/.test(newPassword)
+    const hasSpec  = /[^a-zA-Z0-9]/.test(newPassword)
+    const long     = newPassword.length >= 12
+    const score    = [hasUpper, hasNum, hasSpec, long].filter(Boolean).length
+    setPwdStrength(score >= 3 ? 'strong' : score >= 2 ? 'fair' : 'weak')
+  }, [newPassword])
 
   async function save(tab: Tab, data: Record<string, unknown>) {
     if (!user) { toast.error('Not authenticated.'); return }
@@ -233,21 +241,31 @@ export default function SettingsPage() {
     }
   }
 
-  function handlePasswordChange(e: React.FormEvent) {
+  async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault()
+    if (!currentPassword) { toast.error('Enter your current password.'); return }
     if (!newPassword) { toast.error('Enter a new password.'); return }
     if (newPassword.length < 8) { toast.error('Password must be at least 8 characters.'); return }
     if (newPassword !== confirmPassword) { toast.error('Passwords do not match.'); return }
+    if (pwdStrength === 'weak') { toast.error('Password is too weak. Add uppercase letters, numbers or symbols.'); return }
+
     setSaveState((s) => ({ ...s, security: 'saving' }))
-    setTimeout(() => {
-      toast.success('Password updated.')
+    try {
+      await changePassword(currentPassword, newPassword)
+      toast.success('Password updated successfully.')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
       setSaveState((s) => ({ ...s, security: 'saved' }))
       setTimeout(() => setSaveState((s) => ({ ...s, security: 'idle' })), 2500)
-    }, 800)
+    } catch (err) {
+      toast.error(firebaseErrorMessage(err))
+      setSaveState((s) => ({ ...s, security: 'idle' }))
+    }
   }
+
+  const strengthColor = pwdStrength === 'strong' ? 'bg-[var(--aro-green)]' : pwdStrength === 'fair' ? 'bg-amber-400' : 'bg-red-500'
+  const strengthWidth = pwdStrength === 'strong' ? 'w-full' : pwdStrength === 'fair' ? 'w-2/3' : 'w-1/3'
 
   return (
     <div className="min-h-full bg-background">
@@ -286,38 +304,20 @@ export default function SettingsPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              save('ai', {
-                aiPersonality: aiPersonality.trim(),
-                openrouterModel: openrouterModel.trim(),
-              })
+              save('ai', { aiPersonality: aiPersonality.trim() })
             }}
             className="space-y-5"
           >
-            <SectionLabel>Model</SectionLabel>
+            <SectionLabel>Personality & Tone</SectionLabel>
             <FieldBlock
-              label="Model Slug"
-              hint="OpenRouter model identifier — e.g. openai/gpt-4o-mini, anthropic/claude-3-haiku"
-            >
-              <Input
-                value={openrouterModel}
-                onChange={(e) => setOpenrouterModel(e.target.value)}
-                placeholder="openai/gpt-4o-mini"
-                className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 h-11 rounded-xl font-mono text-sm"
-              />
-            </FieldBlock>
-
-            <Divider />
-
-            <SectionLabel>System Prompt</SectionLabel>
-            <FieldBlock
-              label="Personality"
-              hint="Defines how AVA speaks to customers. Your product catalogue is appended automatically at runtime."
+              label="AI Character"
+              hint="Describe how your AI agent speaks to customers. Be specific about tone, style, and boundaries. Your product catalogue is automatically included at runtime."
             >
               <textarea
                 value={aiPersonality}
                 onChange={(e) => setAiPersonality(e.target.value)}
-                rows={8}
-                placeholder="Describe how AVA should behave…"
+                rows={9}
+                placeholder="Describe how your AI should behave…"
                 className="w-full bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 rounded-xl px-3 py-3 text-sm resize-y outline-none transition-colors leading-relaxed"
               />
             </FieldBlock>
@@ -348,7 +348,7 @@ export default function SettingsPage() {
             <SectionLabel>Phone Number</SectionLabel>
             <FieldBlock
               label="WhatsApp Number"
-              hint="Include country code. Customers message this number to reach AVA."
+              hint="Include country code, e.g. +2348012345678. Customers message this number to reach your AI agent."
             >
               <Input
                 value={whatsappPhone}
@@ -375,18 +375,18 @@ export default function SettingsPage() {
         {/* ── Security ─────────────────────────────────────────────────────── */}
         {activeTab === 'security' && (
           <div className="space-y-6">
-
-            {/* Change password */}
             <div>
               <SectionLabel>Change Password</SectionLabel>
               <form onSubmit={handlePasswordChange} className="space-y-4">
+
                 <FieldBlock label="Current Password">
                   <div className="relative">
                     <Input
                       type={showPwd ? 'text' : 'password'}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Your current password"
+                      autoComplete="current-password"
                       className="bg-secondary border-border text-foreground h-11 rounded-xl pr-11"
                     />
                     <button
@@ -400,14 +400,30 @@ export default function SettingsPage() {
                   </div>
                 </FieldBlock>
 
-                <FieldBlock label="New Password" hint="Minimum 8 characters.">
+                <FieldBlock label="New Password">
                   <Input
                     type={showPwd ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
                     className="bg-secondary border-border text-foreground h-11 rounded-xl"
                   />
+                  {newPassword && (
+                    <div className="mt-1.5 space-y-1">
+                      <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                        <div className={cn('h-full rounded-full transition-all duration-300', strengthColor, strengthWidth)} />
+                      </div>
+                      <p className={cn(
+                        'text-xs font-medium capitalize',
+                        pwdStrength === 'strong' ? 'text-[var(--aro-green)]' : pwdStrength === 'fair' ? 'text-amber-400' : 'text-red-500',
+                      )}>
+                        {pwdStrength} password
+                        {pwdStrength === 'weak' && ' — add uppercase, numbers or symbols'}
+                        {pwdStrength === 'fair' && ' — add more variety to strengthen'}
+                      </p>
+                    </div>
+                  )}
                 </FieldBlock>
 
                 <FieldBlock label="Confirm New Password">
@@ -415,45 +431,22 @@ export default function SettingsPage() {
                     type={showPwd ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="bg-secondary border-border text-foreground h-11 rounded-xl"
+                    placeholder="Repeat new password"
+                    autoComplete="new-password"
+                    className={cn(
+                      'bg-secondary border-border text-foreground h-11 rounded-xl',
+                      confirmPassword && confirmPassword !== newPassword && 'border-red-500/50',
+                    )}
                   />
+                  {confirmPassword && confirmPassword !== newPassword && (
+                    <p className="text-xs text-red-500">Passwords do not match.</p>
+                  )}
                 </FieldBlock>
 
                 <div className="flex justify-end">
                   <SaveButton state={saveState.security} label="Update Password" />
                 </div>
               </form>
-            </div>
-
-            <Divider />
-
-            {/* Security toggles */}
-            <div>
-              <SectionLabel>Account Security</SectionLabel>
-              <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
-                <div className="bg-card px-4">
-                  <ToggleRow
-                    label="Two-Factor Authentication"
-                    description="Require a code when signing in from a new device"
-                    value={twoFactor}
-                    onChange={setTwoFactor}
-                  />
-                  <ToggleRow
-                    label="Login Alerts"
-                    description="Get notified when your account is accessed from a new location"
-                    value={loginAlerts}
-                    onChange={setLoginAlerts}
-                  />
-                </div>
-              </div>
-              <div className="flex items-start gap-3 mt-4 p-4 bg-amber-500/6 border border-amber-500/20 rounded-xl">
-                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Two-factor authentication is{' '}
-                  <strong className="text-amber-500">strongly recommended</strong> to protect your business account.
-                </p>
-              </div>
             </div>
           </div>
         )}
@@ -475,7 +468,7 @@ export default function SettingsPage() {
                       'flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all',
                       currency === c.code
                         ? 'border-[var(--aro-green)] bg-[var(--aro-green)]/8 text-foreground'
-                        : 'border-border bg-secondary text-muted-foreground hover:text-foreground',
+                        : 'border-border bg-secondary text-muted-foreground hover:text-foreground hover:border-border/80',
                     )}
                   >
                     <span className="text-base font-bold w-6 text-center shrink-0">{c.symbol}</span>
@@ -528,50 +521,59 @@ export default function SettingsPage() {
             {/* Notifications */}
             <div>
               <SectionLabel>Notifications</SectionLabel>
-              <div className="border border-border rounded-xl overflow-hidden">
-                <div className="bg-card px-4">
-                  <ToggleRow
-                    label="New Order"
-                    description="Alert when a customer places an order"
-                    value={notifNewOrder}
-                    onChange={setNotifNewOrder}
-                  />
-                  <ToggleRow
-                    label="New Message"
-                    description="Alert when a customer sends a WhatsApp message"
-                    value={notifNewMessage}
-                    onChange={setNotifNewMessage}
-                  />
-                  <ToggleRow
-                    label="Daily Report"
-                    description="Daily summary of orders and conversations"
-                    value={notifDailyReport}
-                    onChange={setNotifDailyReport}
-                  />
-                  <ToggleRow
-                    label="Weekly Report"
-                    description="Weekly performance digest sent every Monday"
-                    value={notifWeeklyReport}
-                    onChange={setNotifWeeklyReport}
-                  />
-                  <ToggleRow
-                    label="Sound Effects"
-                    description="Play sounds for new messages and orders"
-                    value={soundEffects}
-                    onChange={setSoundEffects}
-                  />
-                </div>
+              <div className="bg-card border border-border rounded-xl px-4">
+                <ToggleRow
+                  label="New Order"
+                  description="Alert when a customer places an order"
+                  value={notifNewOrder}
+                  onChange={setNotifNewOrder}
+                />
+                <ToggleRow
+                  label="New Message"
+                  description="Alert when a customer sends a WhatsApp message"
+                  value={notifNewMessage}
+                  onChange={setNotifNewMessage}
+                />
+                <ToggleRow
+                  label="Daily Report"
+                  description="Daily summary of orders and conversations"
+                  value={notifDailyReport}
+                  onChange={setNotifDailyReport}
+                />
+                <ToggleRow
+                  label="Weekly Report"
+                  description="Weekly performance digest every Monday"
+                  value={notifWeeklyReport}
+                  onChange={setNotifWeeklyReport}
+                />
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <Button
                 type="button"
-                onClick={() => toast.success('Preferences saved.')}
-                className="h-10 px-5 rounded-xl font-semibold text-sm bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)]"
+                disabled={saveState.preferences === 'saving' || saveState.preferences === 'saved'}
+                onClick={() =>
+                  save('preferences', {
+                    currency,
+                    language,
+                    timezone,
+                    notifNewOrder,
+                    notifNewMessage,
+                    notifDailyReport,
+                    notifWeeklyReport,
+                  })
+                }
+                className={cn(
+                  'h-10 px-5 rounded-xl font-semibold text-sm gap-2 transition-all',
+                  saveState.preferences === 'saved'
+                    ? 'bg-[var(--aro-green)]/10 text-[var(--aro-green)] border border-[var(--aro-green)]/30 hover:bg-[var(--aro-green)]/10'
+                    : 'bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)]',
+                )}
               >
-                <DollarSign className="w-4 h-4" />
-                Save Preferences
+                {saveState.preferences === 'saved' ? (
+                  <><CheckCircle2 className="w-4 h-4" /> Saved</>
+                ) : saveState.preferences === 'saving' ? 'Saving…' : 'Save Preferences'}
               </Button>
             </div>
 

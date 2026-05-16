@@ -8,6 +8,14 @@ export interface Business {
   openrouterModel?: string
   avatarUrl?: string
   aiPersonality: string
+  // Preferences
+  currency?: string
+  language?: string
+  timezone?: string
+  notifNewOrder?: boolean
+  notifNewMessage?: boolean
+  notifDailyReport?: boolean
+  notifWeeklyReport?: boolean
   createdAt: number
   updatedAt?: number
 }
