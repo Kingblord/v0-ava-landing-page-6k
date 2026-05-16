@@ -221,8 +221,8 @@ async function createSession(userId: string): Promise<void> {
             }
           }
         } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.error(`[gateway] Backend error for ${userId}:`, msg);
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error(`[gateway] Backend error for ${userId}:`, errMsg);
         }
       }
     });
