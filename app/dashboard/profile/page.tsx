@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 type EditMode = 'view' | 'editing'
 
 export default function ProfilePage() {
-  const { user, business } = useAuth()
+  const { user, business, refreshBusiness } = useAuth()
 
   const [mode, setMode] = useState<EditMode>('view')
   const [saving, setSaving] = useState(false)
@@ -38,17 +38,16 @@ export default function ProfilePage() {
 
     setSaving(true)
     try {
-      console.log('[v0] Saving profile changes:', { name, avatar })
       await updateBusiness(user.uid, {
         name: name.trim(),
         avatarUrl: avatar,
       })
-      console.log('[v0] Profile saved successfully')
+      // Re-fetch from server so UI reflects saved values immediately
+      await refreshBusiness()
       toast.success('Profile updated.')
       setMode('view')
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-      console.error('[v0] Error saving profile:', errorMsg)
       toast.error(`Failed to save: ${errorMsg}`)
     } finally {
       setSaving(false)

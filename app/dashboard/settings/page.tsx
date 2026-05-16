@@ -98,7 +98,7 @@ function ReadonlyField({ label, value, mono = false }: { label: string; value: s
 }
 
 export default function SettingsPage() {
-  const { user, business } = useAuth()
+  const { user, business, refreshBusiness } = useAuth()
 
   const [avatarUrl, setAvatarUrl] = useState('')
   const [businessName, setBusinessName] = useState('')
@@ -125,21 +125,18 @@ export default function SettingsPage() {
       toast.error('Not authenticated.')
       return
     }
-    
-    console.log('[v0] Saving settings for tab:', tab, 'with data:', data)
+
     setSaveState((s) => ({ ...s, [tab]: 'saving' }))
-    
+
     try {
-      const result = await updateBusiness(user.uid, data)
-      console.log('[v0] Settings saved successfully:', result)
-      
+      await updateBusiness(user.uid, data)
+      // Re-fetch from server so all UI (including dashboard header) reflects the new values
+      await refreshBusiness()
       setSaveState((s) => ({ ...s, [tab]: 'saved' }))
       toast.success('Saved successfully.')
-      
       setTimeout(() => setSaveState((s) => ({ ...s, [tab]: 'idle' })), 2500)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-      console.error('[v0] Error saving settings:', errorMsg)
       toast.error(`Failed to save: ${errorMsg}`)
       setSaveState((s) => ({ ...s, [tab]: 'idle' }))
     }
