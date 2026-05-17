@@ -205,8 +205,13 @@ async function createSession(userId: string) {
               )
               .catch((err: any) => {
                 console.error(`[webhook] POST failed: ${err?.message || err}`);
+                if (err?.response?.status === 401) {
+                  console.error(`[v0] AUTH FAIL - INTERNAL_API_KEY length: ${INTERNAL_API_KEY?.length}, value: "${INTERNAL_API_KEY}"`);
+                }
               });
           });
+        } else {
+          console.warn(`[webhook] Cannot POST - BACKEND_URL: ${BACKEND_URL}, INTERNAL_API_KEY: ${INTERNAL_API_KEY ? "set" : "MISSING"}`);
         }
       }
     });
