@@ -33,6 +33,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Toggle } from '@/components/ui/toggle'
 
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://aromsg.up.railway.app'
 
@@ -1269,6 +1270,21 @@ export default function WhatsAppPage() {
               <div className="w-9 h-9 rounded-xl bg-[var(--aro-green)]/15 flex items-center justify-center shrink-0">
                 <Bot className="w-4 h-4 text-[var(--aro-green)]" />
               </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Universal AI</p>
+                <p className="text-xs text-muted-foreground">AI fully controls conversations</p>
+              </div>
+            </div>
+            <Toggle 
+              pressed={business?.universalAIResponse ?? false} 
+              onPressedChange={handleToggleUniversalAI}
+              disabled={!isConnected || togglingUAI}
+              className={business?.universalAIResponse ? 'bg-[var(--aro-green)] text-white' : ''}
+              aria-label="Toggle universal AI mode"
+            >
+              {business?.universalAIResponse ? 'ON' : 'OFF'}
+            </Toggle>
+          </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">Universal AI</p>
                 <p className="text-xs text-muted-foreground">AI fully controls conversations</p>
