@@ -1,166 +1,135 @@
 import { NextRequest, NextResponse } from 'next/server'
-import axios from 'axios'
-import {
-  serverGetBusinessByUserId,
-  serverGetProducts,
-  serverGetConversation,
-  serverUpsertConversation,
-  serverCreateOrder,
-} from '@/lib/firebase-server'
-import { runAI } from '@/lib/ai'
-import type { Message } from '@/lib/types'
-import { db } from '@/lib/firebase'
-import { doc, setDoc } from 'firebase/firestore'
+import { generateText } from 'ai'
+import { saveMessageDoc, getBusinessDoc } from '@/lib/firestore-server'
 
 const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://localhost:3001'
-const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY
 
 /**
- * WhatsApp Webhook - Receives messages from aromsg.render.com gateway
- * Gateway sends: { userId, from, text, messageId, timestamp, apiKey }
+ * WhatsApp Webhook - POST /api/whatsapp/webhook
+ * Receives messages from the WhatsApp gateway.
  * 
  * Flow:
- * 1. Validate gateway API key
- * 2. Load business & conversation history from Firestore (maintains session)
- * 3. Process message through AI with full conversation context
- * 4. Save updated conversation back to Firestore
- * 5. Send response via gateway
+ * 1. Validate INTERNAL_API_KEY
+ * 2. Save incoming message to Firestore
+ * 3. Generate AI reply
+ * 4. Save AI reply to Firestore
+ * 5. Queue message delivery via gateway /send-message
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { userId, from, text: incomingMessage, messageId, timestamp, apiKey } = body
+    const authHeader = request.headers.get('authorization')
+    const expectedKey = INTERNAL_API_KEY
 
-    // Validate required fields
-    if (!userId || !from || !incomingMessage?.trim()) {
+    if (!expectedKey) {
       return NextResponse.json(
-        { error: 'Invalid webhook payload: missing userId, from, or text' },
+        { error: 'Server misconfigured: missing INTERNAL_API_KEY' },
+        { status: 500 }
+      )
+    }
+
+    if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== expectedKey) {
+      console.log('[webhook] AUTH FAIL - sent:', authHeader?.slice(7), 'expected:', expectedKey)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { userId, from, text, platform, messageId, timestamp } = body
+
+    if (!userId || !from || !text || !platform || !messageId || !timestamp) {
+      return NextResponse.json(
+        { error: 'Missing required fields: userId, from, text, platform, messageId, timestamp' },
         { status: 400 }
       )
     }
 
-    // Validate gateway API key for security
-    if (!apiKey || apiKey !== GATEWAY_API_KEY) {
-      console.error('[WhatsApp Webhook] Unauthorized: invalid API key')
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Normalise the contact JID
+    const normalizedFrom = from.endsWith('@s.whatsapp.net')
+      ? from
+      : from.endsWith('@lid')
+        ? `${from.replace('@lid', '')}@s.whatsapp.net`
+        : `${from}@s.whatsapp.net`
 
-    console.log(`[WhatsApp Webhook] Message from ${from}: ${incomingMessage}`)
+    const contactJid = normalizedFrom.replace('@s.whatsapp.net', '')
 
-    // 1. Get business config by userId - validates the business exists
-    const business = await serverGetBusinessByUserId(userId)
+    // 1. Save incoming customer message
+    await saveMessageDoc(userId, {
+      contactJid,
+      from: contactJid,
+      to: userId,
+      text,
+      role: 'user',
+      platform,
+      messageId,
+      timestamp: Number(timestamp),
+      direction: 'incoming',
+    })
+
+    // 2. Fetch business profile
+    const business = await getBusinessDoc(userId)
     if (!business) {
-      console.error(`[WhatsApp Webhook] Business not found for userId: ${userId}`)
-      
-      // Send error message back via gateway
-      await axios.post(
-        `${GATEWAY_URL}/send-message`,
-        {
-          userId,
-          to: from,
-          text: 'Business configuration not found. Please contact support.',
-          apiKey: GATEWAY_API_KEY,
-        },
-        { timeout: 5000 }
-      ).catch(console.error)
-
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // 2. Create/update session tracking in Firestore
-    await setDoc(
-      doc(db, 'whatsapp_sessions', `${userId}_${from}`),
-      {
-        userId,
-        contactPhone: from,
-        lastMessage: incomingMessage,
-        lastMessageAt: Date.now(),
-        messageCount: (await serverGetConversation(business.id, from))?.messages?.length ?? 0,
-        status: 'active',
-        updatedAt: Date.now(),
-      },
-      { merge: true }
-    )
+    // 3. Generate AI reply
+    const personality =
+      business.aiPersonality?.trim() ||
+      'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision.'
 
-    // 3. Load products
-    const products = await serverGetProducts(business.id)
+    const systemPrompt =
+      `You are an AI sales assistant for ${business.name}.\n\n` +
+      `${personality}\n\n` +
+      `Keep your replies concise (1-3 short sentences) and conversational. ` +
+      `Do not make up product information you don't have. ` +
+      `Never reveal that you are an AI unless directly asked.`
 
-    // 4. Load conversation history (SESSION CONTEXT MAINTAINED HERE)
-    const existing = await serverGetConversation(business.id, from)
-    const history: Message[] = existing?.messages ?? []
-    const currentState = existing?.state ?? 'browsing'
+    let aiReplyText: string
 
-    console.log(`[WhatsApp Webhook] Loaded ${history.length} messages from conversation history`)
-
-    // 5. Run AI with full conversation context
-    const { reply, newState, orderIntent } = await runAI({
-      message: incomingMessage,
-      products,
-      conversationHistory: history,
-      conversationState: currentState,
-      businessConfig: {
-        name: business.name,
-        aiPersonality: business.aiPersonality,
-        id: business.id,
-        email: business.email,
-        createdAt: business.createdAt,
-      },
-      model: business.aiModel,
-    })
-
-    // 6. Create order if intent detected
-    if (orderIntent) {
-      await serverCreateOrder({
-        businessId: business.id,
-        userId: from,
-        productId: orderIntent.productId,
-        productName: orderIntent.productName,
-        amount: orderIntent.amount,
-        status: 'pending',
-        createdAt: Date.now(),
-      })
-    }
-
-    // 7. Persist updated conversation (MAINTAINS SESSION FOR NEXT MESSAGE)
-    const updatedMessages: Message[] = [
-      ...history,
-      { role: 'user', content: incomingMessage, timestamp: timestamp || Date.now() },
-      { role: 'assistant', content: reply, timestamp: Date.now() },
-    ].slice(-40) // Keep last 40 messages for context window
-
-    await serverUpsertConversation(business.id, from, updatedMessages, newState)
-
-    // 8. Send response back via gateway
     try {
-      await axios.post(
-        `${GATEWAY_URL}/send-message`,
-        {
-          userId,
-          to: from,
-          text: reply,
-          apiKey: GATEWAY_API_KEY,
-        },
-        { timeout: 10000 }
-      )
-      console.log(`[WhatsApp Webhook] Response sent to ${from}`)
-    } catch (err) {
-      console.error('[WhatsApp Webhook] Failed to send response via gateway:', err)
+      const { text: generated } = await generateText({
+        model: 'openai/gpt-4o-mini',
+        system: systemPrompt,
+        messages: [{ role: 'user', content: text }],
+        maxOutputTokens: 300,
+        temperature: 0.7,
+      })
+      aiReplyText = generated.trim()
+    } catch (aiErr) {
+      console.error('[webhook] AI generation error:', aiErr)
+      aiReplyText = `Hi! Thanks for reaching out to ${business.name}. We'll get back to you shortly.`
     }
 
-    return NextResponse.json({ 
-      success: true,
-      sessionActive: true,
-      conversationLength: updatedMessages.length,
+    // 4. Save AI reply to Firestore
+    await saveMessageDoc(userId, {
+      contactJid,
+      from: userId,
+      to: contactJid,
+      text: aiReplyText,
+      role: 'assistant',
+      platform,
+      messageId: `ai_${Date.now()}`,
+      timestamp: Date.now(),
+      direction: 'outgoing',
     })
+
+    // 5. Queue delivery via gateway (fire-and-forget)
+    setTimeout(() => {
+      fetch(`${GATEWAY_URL}/send-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          to: contactJid,
+          text: aiReplyText,
+        }),
+      }).catch((err) => console.error('[webhook] Gateway delivery failed:', err))
+    }, 100)
+
+    return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('[WhatsApp Webhook Error]', err)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    const msg = err instanceof Error ? err.message : 'Internal server error'
+    console.error('[webhook] Unhandled error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
 

@@ -20,15 +20,11 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const expectedKey = process.env.INTERNAL_API_KEY
 
-  console.log('[v0] AUTH DEBUG - authHeader:', authHeader)
-  console.log('[v0] AUTH DEBUG - expectedKey length:', expectedKey?.length, 'value:', expectedKey)
-
   if (!expectedKey) {
     return NextResponse.json({ error: 'Server misconfigured: missing INTERNAL_API_KEY' }, { status: 500 })
   }
 
   if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== expectedKey) {
-    console.log('[v0] AUTH FAIL - sent:', authHeader?.slice(7), 'expected:', expectedKey)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

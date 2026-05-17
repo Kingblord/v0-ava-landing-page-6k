@@ -189,7 +189,7 @@ async function createSession(userId: string) {
           setImmediate(() => {
             axios
               .post(
-                `${BACKEND_URL}/api/internal/receive-message`,
+                `${BACKEND_URL}/api/whatsapp/webhook`,
                 {
                   userId,
                   from: jid,
