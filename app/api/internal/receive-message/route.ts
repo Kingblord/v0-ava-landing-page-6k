@@ -116,9 +116,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 4. Save AI reply ──────────────────────────────────────────────────
+    // sent:false signals the gateway's Firestore snapshot listener to pick
+    // this up and deliver it via sock.sendMessage, then mark sent:true
     await saveMessageDoc(userId, {
-      contactJid,          // same consistent query field
-      from:      userId,   // sender: the business / AI
+      contactJid,
+      from:      userId,
       to:        contactJid,
       text:      aiReplyText,
       role:      'assistant',
@@ -126,17 +128,11 @@ export async function POST(request: NextRequest) {
       messageId: `ai_${Date.now()}`,
       timestamp: Date.now(),
       direction: 'outgoing',
+      sent:      false,
     })
 
-    // ── 5. Return reply to gateway ────────────────────────────────────────
-    return NextResponse.json({
-      success: true,
-      aiResponse: {
-        to:   normalizedFrom,   // always @s.whatsapp.net — gateway can send to it directly
-        text: aiReplyText,
-        platform,
-      },
-    })
+    // ── 5. Acknowledge — gateway delivers via Firestore snapshot, not HTTP ──
+    return NextResponse.json({ success: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error'
     console.error('[receive-message] Unhandled error:', msg)
