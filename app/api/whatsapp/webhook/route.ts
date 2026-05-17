@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
-import { saveMessageDoc, getBusinessDoc } from '@/lib/firestore-server'
+import { saveMessageDoc, getBusinessDoc, getProductsServer } from '@/lib/firestore-server'
 
 const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://localhost:3001'
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY
+// Use OpenRouter free tier as default, or gpt-4o-mini as fallback
+const DEFAULT_MODEL = process.env.DEFAULT_MODEL || 'openrouter/openai/gpt-4o-mini'
 
 /**
  * WhatsApp Webhook - POST /api/whatsapp/webhook
@@ -71,6 +73,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
+    // 2b. Fetch products for context
+    let productsContext = ''
+    try {
+      const products = await getProductsServer(userId)
+      if (products.length > 0) {
+        productsContext = '\n\nAvailable products:\n' + 
+          products
+            .map((p) => `- ${p.name} ($${p.price}${p.negotiationEnabled ? ', negotiable' : ''}): ${p.description}`)
+            .join('\n')
+      }
+    } catch (err) {
+      console.error('[webhook] Error fetching products:', err)
+    }
+
     // 3. Generate AI reply
     const personality =
       business.aiPersonality?.trim() ||
@@ -78,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt =
       `You are an AI sales assistant for ${business.name}.\n\n` +
-      `${personality}\n\n` +
+      `${personality}${productsContext}\n\n` +
       `Keep your replies concise (1-3 short sentences) and conversational. ` +
       `Do not make up product information you don't have. ` +
       `Never reveal that you are an AI unless directly asked.`
@@ -86,8 +102,10 @@ export async function POST(request: NextRequest) {
     let aiReplyText: string
 
     try {
+      // Use business-specific model or default to OpenRouter
+      const model = business.openrouterModel || DEFAULT_MODEL
       const { text: generated } = await generateText({
-        model: 'openai/gpt-4o-mini',
+        model,
         system: systemPrompt,
         messages: [{ role: 'user', content: text }],
         maxOutputTokens: 300,

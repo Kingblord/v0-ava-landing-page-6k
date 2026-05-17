@@ -5,6 +5,7 @@ export interface Business {
   whatsappPhone?: string
   whatsappConnected?: boolean
   whatsappConnectedAt?: number
+  universalAIResponse?: boolean
   openrouterModel?: string
   avatarUrl?: string
   aiPersonality: string

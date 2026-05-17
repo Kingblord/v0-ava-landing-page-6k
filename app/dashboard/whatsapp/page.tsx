@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import type { Contact } from '@/lib/types'
+import type { Contact, Business } from '@/lib/types'
 import { toast } from 'sonner'
 import {
   Send,
@@ -210,7 +210,8 @@ export default function WhatsAppPage() {
   const msgPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // AI settings
-  const [globalAi, setGlobalAi] = useState(false)
+  const [business, setBusiness] = useState<Business | null>(null)
+  const [togglingUAI, setTogglingUAI] = useState(false)
 
   // Mobile view
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
@@ -410,17 +411,30 @@ export default function WhatsAppPage() {
     if (!user) return
     setInitialising(true)
     try {
+      // 1. Check DB for whatsappConnected flag and business settings
+      const businessRes = await fetch(`/api/business/${user.uid}`)
+      const businessData = await businessRes.json() as { business?: Business }
+      if (businessData.business) {
+        setBusiness(businessData.business)
+        if (businessData.business.whatsappConnected === true) {
+          setStatus('connected')
+          setPhone(businessData.business.whatsappPhone || 'Connected')
+          console.log('[v0] Auto-connected via DB flag')
+        }
+      }
+
+      // 2. Also check gateway for real-time status
       const res = await fetch(`${GATEWAY}/status/${user.uid}`)
       const data = await res.json() as { connected: boolean; phoneNumber?: string | null }
       if (data.connected === true) {
         setStatus('connected')
         setPhone(data.phoneNumber || 'Connected')
       }
-    } catch {
+    } catch (err) {
       // Gateway offline or unreachable — session is idle
+      console.error('[v0] checkExistingSession error:', err)
     } finally {
-      // Always load contacts regardless of session state —
-      // contacts belong to the business, not the WhatsApp connection
+      // Always load contacts regardless of session state
       await loadContacts()
       setInitialising(false)
     }
@@ -594,6 +608,28 @@ export default function WhatsAppPage() {
   async function handleCopy() {
     await navigator.clipboard.writeText(webhookUrl)
     setCopied(true); setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleToggleUniversalAI() {
+    if (!user || !business) return
+    setTogglingUAI(true)
+    try {
+      const res = await fetch(`/api/business/${user.uid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ universalAIResponse: !business.universalAIResponse }),
+      })
+      const data = await res.json() as { business?: Business }
+      if (data.business) {
+        setBusiness(data.business)
+        toast.success(`Universal AI ${data.business.universalAIResponse ? 'enabled' : 'disabled'}`)
+      }
+    } catch (err) {
+      console.error('[v0] Error toggling universal AI:', err)
+      toast.error('Failed to update setting')
+    } finally {
+      setTogglingUAI(false)
+    }
   }
 
   function selectContact(contact: Contact) {
@@ -1164,27 +1200,39 @@ export default function WhatsAppPage() {
                 <div ref={bottomRef} />
               </div>
 
-              {/* Input bar */}
-              <form
-                onSubmit={handleSend}
-                className="flex items-center gap-2.5 px-4 py-3 border-t border-border bg-card shrink-0"
-              >
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  disabled={!isConnected || sending}
-                  placeholder={isConnected ? `Message ${selected.name}…` : 'Connect WhatsApp first…'}
-                  className="flex-1 bg-secondary border border-border rounded-2xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--aro-green)]/30 disabled:opacity-50 transition-all"
-                />
-                <button
-                  type="submit"
-                  disabled={!isConnected || !input.trim() || sending}
-                  className="flex items-center justify-center w-10 h-10 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] disabled:opacity-40 text-[var(--aro-bg)] rounded-2xl transition-colors shrink-0 shadow-md shadow-[var(--aro-green)]/20"
-                  aria-label="Send"
+              {/* Input bar — hidden when Universal AI mode is enabled */}
+              {!business?.universalAIResponse && (
+                <form
+                  onSubmit={handleSend}
+                  className="flex items-center gap-2.5 px-4 py-3 border-t border-border bg-card shrink-0"
                 >
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </button>
-              </form>
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    disabled={!isConnected || sending}
+                    placeholder={isConnected ? `Message ${selected.name}…` : 'Connect WhatsApp first…'}
+                    className="flex-1 bg-secondary border border-border rounded-2xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--aro-green)]/30 disabled:opacity-50 transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!isConnected || !input.trim() || sending}
+                    className="flex items-center justify-center w-10 h-10 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] disabled:opacity-40 text-[var(--aro-bg)] rounded-2xl transition-colors shrink-0 shadow-md shadow-[var(--aro-green)]/20"
+                    aria-label="Send"
+                  >
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </form>
+              )}
+
+              {/* AI mode indicator when Universal AI is enabled */}
+              {business?.universalAIResponse && (
+                <div className="px-4 py-3 border-t border-border bg-card/50 shrink-0 text-center">
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                    <Bot className="w-3.5 h-3.5 text-[var(--aro-green)]" />
+                    <span>Universal AI Mode: AI fully controls this conversation</span>
+                  </p>
+                </div>
+              )}
             </>
           )}
         </main>
@@ -1222,11 +1270,11 @@ export default function WhatsAppPage() {
                 <Bot className="w-4 h-4 text-[var(--aro-green)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Global AI</p>
-                <p className="text-xs text-muted-foreground">Auto-reply all incoming messages</p>
+                <p className="text-sm font-semibold text-foreground">Universal AI</p>
+                <p className="text-xs text-muted-foreground">AI fully controls conversations</p>
               </div>
             </div>
-            <Toggle checked={globalAi} onChange={() => setGlobalAi((v) => !v)} disabled={!isConnected} />
+            <Toggle checked={business?.universalAIResponse ?? false} onChange={handleToggleUniversalAI} disabled={!isConnected || togglingUAI} />
           </div>
 
           {/* Notifications */}
