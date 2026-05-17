@@ -13,7 +13,7 @@ export const maxDuration = 60
  * 3. Fetches the business AI personality from Firestore.
  * 4. Generates an AI reply with generateText (Vercel AI Gateway).
  * 5. Saves the AI reply to Firestore.
- * 6. Returns the reply so the gateway can send it back via WhatsApp.
+ * 6. Calls gateway /send-message to deliver the reply via WhatsApp.
  */
 export async function POST(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -115,9 +115,7 @@ export async function POST(request: NextRequest) {
         `We'll get back to you shortly.`
     }
 
-    // ── 4. Save AI reply ──────────────────────────────────────────────────
-    // sent:false signals the gateway's Firestore snapshot listener to pick
-    // this up and deliver it via sock.sendMessage, then mark sent:true
+    // ── 4. Save AI reply to Firestore ────────────────────────────────────
     await saveMessageDoc(userId, {
       contactJid,
       from:      userId,
@@ -128,10 +126,29 @@ export async function POST(request: NextRequest) {
       messageId: `ai_${Date.now()}`,
       timestamp: Date.now(),
       direction: 'outgoing',
-      sent:      false,
     })
 
-    // ── 5. Acknowledge — gateway delivers via Firestore snapshot, not HTTP ──
+    // ── 5. Deliver AI reply via gateway ──────────────────────────────────
+    // Call the gateway's /send-message endpoint directly.
+    // Gateway handles all JID normalization and WhatsApp delivery.
+    const gatewayUrl = process.env.GATEWAY_URL || 'http://localhost:3001'
+    try {
+      await fetch(`${gatewayUrl}/send-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          to:   contactJid,  // gateway will normalize to @s.whatsapp.net
+          text: aiReplyText,
+        }),
+      })
+      console.log(`[receive-message] AI reply queued for ${contactJid}`)
+    } catch (deliveryErr) {
+      console.error('[receive-message] Gateway delivery failed:', deliveryErr)
+      // Don't fail the response — the message is saved in Firestore
+    }
+
+    // ── 6. Acknowledge ──────────────────────────────────────────────────
     return NextResponse.json({ success: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error'
@@ -139,3 +156,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
+
