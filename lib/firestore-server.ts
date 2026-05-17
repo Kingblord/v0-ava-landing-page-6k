@@ -214,25 +214,28 @@ export async function getMessagesForContact(
     // Normalise — strip @s.whatsapp.net so it matches what receive-message stores
     const normalised = contactJid.replace('@s.whatsapp.net', '').replace('@lid', '')
 
+    // Query by contactJid only — no orderBy to avoid composite index requirement
     const snap = await adminDb
       .collection('businesses')
       .doc(uid)
       .collection('whatsapp_messages')
       .where('contactJid', '==', normalised)
-      .orderBy('timestamp', 'asc')
-      .limitToLast(limitCount)
       .get()
 
-    // Deduplicate by messageId — gateway and backend both write,
-    // keep the first occurrence of each messageId
+    // Sort in memory by timestamp ascending (oldest first)
+    const docs = snap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => ((a.timestamp as number) || 0) - ((b.timestamp as number) || 0))
+
+    // Deduplicate by messageId and apply limit
     const seen = new Set<string>()
     const messages: Record<string, unknown>[] = []
-    for (const doc of snap.docs) {
-      const data = doc.data()
-      const msgId = (data.messageId as string) || doc.id
+    for (const doc of docs) {
+      const msgId = (doc.messageId as string) || doc.id
       if (!seen.has(msgId)) {
         seen.add(msgId)
-        messages.push({ id: doc.id, ...data })
+        messages.push(doc)
+        if (messages.length >= limitCount) break
       }
     }
 
