@@ -594,6 +594,7 @@ export default function WhatsAppPage() {
   async function handleToggleUniversalAI() {
     if (!user || !business) return
     setTogglingUAI(true)
+    console.log('[v0] Toggling Universal AI:', !business.universalAIResponse)
     try {
       const res = await fetch(`/api/business/${user.uid}`, {
         method: 'PATCH',
@@ -601,6 +602,7 @@ export default function WhatsAppPage() {
         body: JSON.stringify({ universalAIResponse: !business.universalAIResponse }),
       })
       const data = await res.json() as { business?: Business }
+      console.log('[v0] Toggle response:', data)
       if (data.business) {
         setBusiness(data.business)
         toast.success(`Universal AI ${data.business.universalAIResponse ? 'enabled' : 'disabled'}`)
@@ -1258,7 +1260,7 @@ export default function WhatsAppPage() {
             <Toggle 
               pressed={business?.universalAIResponse ?? false} 
               onPressedChange={handleToggleUniversalAI}
-              disabled={!isConnected || togglingUAI}
+              disabled={togglingUAI}
               className={business?.universalAIResponse ? 'bg-[var(--aro-green)] text-white' : ''}
               aria-label="Toggle universal AI mode"
             >
