@@ -128,27 +128,12 @@ export async function POST(request: NextRequest) {
       direction: 'outgoing',
     })
 
-    // ── 5. Deliver AI reply via gateway ──────────────────────────────────
-    // Call the gateway's /send-message endpoint directly.
-    // Gateway handles all JID normalization and WhatsApp delivery.
-    const gatewayUrl = process.env.GATEWAY_URL || 'http://localhost:3001'
-    try {
-      await fetch(`${gatewayUrl}/send-message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          to:   contactJid,  // gateway will normalize to @s.whatsapp.net
-          text: aiReplyText,
-        }),
-      })
-      console.log(`[receive-message] AI reply queued for ${contactJid}`)
-    } catch (deliveryErr) {
-      console.error('[receive-message] Gateway delivery failed:', deliveryErr)
-      // Don't fail the response — the message is saved in Firestore
-    }
+    // ── 5. Queue AI reply delivery ──────────────────────────────────────
+    // The backend does NOT call the gateway directly.
+    // Instead, the chat UI or an admin calls /api/whatsapp/send-message
+    // which handles the delivery via the gateway.
+    // This keeps the backend stateless and the gateway simple.
 
-    // ── 6. Acknowledge ──────────────────────────────────────────────────
     return NextResponse.json({ success: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error'
