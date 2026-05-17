@@ -594,21 +594,19 @@ export default function WhatsAppPage() {
   async function handleToggleUniversalAI() {
     if (!user || !business) return
     setTogglingUAI(true)
-    console.log('[v0] Toggling Universal AI:', !business.universalAIResponse)
     try {
       const res = await fetch(`/api/business/${user.uid}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ universalAIResponse: !business.universalAIResponse }),
+        body: JSON.stringify({ universalAIResponse: business.universalAIResponse !== false }),
       })
       const data = await res.json() as { business?: Business }
-      console.log('[v0] Toggle response:', data)
       if (data.business) {
         setBusiness(data.business)
-        toast.success(`Universal AI ${data.business.universalAIResponse ? 'enabled' : 'disabled'}`)
+        toast.success(`AI auto-response ${data.business.universalAIResponse === false ? 'disabled' : 'enabled'}`)
       }
     } catch (err) {
-      console.error('[v0] Error toggling universal AI:', err)
+      console.error('[v0] Error toggling AI auto-response:', err)
       toast.error('Failed to update setting')
     } finally {
       setTogglingUAI(false)
@@ -1183,8 +1181,18 @@ export default function WhatsAppPage() {
                 <div ref={bottomRef} />
               </div>
 
-              {/* Input bar — hidden when Universal AI mode is enabled */}
-              {!business?.universalAIResponse && (
+              {/* Input bar — shown when AI auto-response is disabled (manual mode) */}
+              {business?.universalAIResponse !== false && (
+                <div className="px-4 py-3 border-t border-border bg-card/50 shrink-0 text-center">
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                    <Bot className="w-3.5 h-3.5 text-[var(--aro-green)]" />
+                    <span>AI Auto-Response: AI replies to all messages</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Input bar — shown when AI auto-response is disabled (manual mode) */}
+              {business?.universalAIResponse === false && (
                 <form
                   onSubmit={handleSend}
                   className="flex items-center gap-2.5 px-4 py-3 border-t border-border bg-card shrink-0"
@@ -1205,16 +1213,6 @@ export default function WhatsAppPage() {
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </button>
                 </form>
-              )}
-
-              {/* AI mode indicator when Universal AI is enabled */}
-              {business?.universalAIResponse && (
-                <div className="px-4 py-3 border-t border-border bg-card/50 shrink-0 text-center">
-                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
-                    <Bot className="w-3.5 h-3.5 text-[var(--aro-green)]" />
-                    <span>Universal AI Mode: AI fully controls this conversation</span>
-                  </p>
-                </div>
               )}
             </>
           )}
@@ -1253,18 +1251,18 @@ export default function WhatsAppPage() {
                 <Bot className="w-4 h-4 text-[var(--aro-green)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Universal AI</p>
-                <p className="text-xs text-muted-foreground">AI fully controls conversations</p>
+                <p className="text-sm font-semibold text-foreground">AI Auto-Response</p>
+                <p className="text-xs text-muted-foreground">{business?.universalAIResponse === false ? 'Disabled (manual mode)' : 'Enabled (AI replies to all)'}</p>
               </div>
             </div>
             <Toggle 
-              pressed={business?.universalAIResponse ?? false} 
+              pressed={business?.universalAIResponse === false} 
               onPressedChange={handleToggleUniversalAI}
               disabled={togglingUAI}
-              className={business?.universalAIResponse ? 'bg-[var(--aro-green)] text-white' : ''}
-              aria-label="Toggle universal AI mode"
+              className={business?.universalAIResponse === false ? 'bg-red-500 text-white' : 'bg-[var(--aro-green)]'}
+              aria-label="Toggle AI auto-response"
             >
-              {business?.universalAIResponse ? 'ON' : 'OFF'}
+              {business?.universalAIResponse === false ? 'OFF' : 'ON'}
             </Toggle>
           </div>
 
