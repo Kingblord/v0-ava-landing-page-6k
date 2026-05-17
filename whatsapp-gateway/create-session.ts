@@ -290,6 +290,23 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
+// GET /qr/:userId — Get QR code image
+app.get("/qr/:userId", (req, res) => {
+  const { userId } = req.params;
+  const session = sessions[userId];
+
+  if (!session) {
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  if (!session.qr) {
+    return res.status(400).json({ error: "QR code not available" });
+  }
+
+  // QR is stored as a data URL, return it as JSON so frontend can use it directly in <img>
+  res.json({ qr: session.qr });
+});
+
 // POST /logout/:userId — Disconnect a session
 app.post("/logout/:userId", async (req, res) => {
   const { userId } = req.params;
