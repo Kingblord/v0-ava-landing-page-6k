@@ -1285,13 +1285,6 @@ export default function WhatsAppPage() {
               {business?.universalAIResponse ? 'ON' : 'OFF'}
             </Toggle>
           </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Universal AI</p>
-                <p className="text-xs text-muted-foreground">AI fully controls conversations</p>
-              </div>
-            </div>
-            <Toggle checked={business?.universalAIResponse ?? false} onChange={handleToggleUniversalAI} disabled={!isConnected || togglingUAI} />
-          </div>
 
           {/* Notifications */}
           <div className="flex items-center justify-between p-4 bg-secondary/60 rounded-2xl border border-border">
