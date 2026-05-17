@@ -20,6 +20,8 @@ const DEFAULT_MODEL = process.env.DEFAULT_MODEL || 'openrouter/openai/gpt-4o-min
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('[webhook] 📨 POST received from gateway')
+    
     const authHeader = request.headers.get('authorization')
     const expectedKey = INTERNAL_API_KEY
 
@@ -31,12 +33,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== expectedKey) {
-      console.log('[webhook] AUTH FAIL - sent:', authHeader?.slice(7), 'expected:', expectedKey)
+      console.log('[webhook] ❌ AUTH FAIL - sent:', authHeader?.slice(7), 'expected:', expectedKey)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
     const { userId, from, text, platform, messageId, timestamp } = body
+
+    console.log('[webhook] ✅ Auth validated. Message from:', from, '| Text:', text)
 
     if (!userId || !from || !text || !platform || !messageId || !timestamp) {
       return NextResponse.json(
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
     const contactJid = normalizedFrom.replace('@s.whatsapp.net', '')
 
     // 1. Save incoming customer message
+    console.log('[webhook] 💾 Saving incoming message to Firestore')
     await saveMessageDoc(userId, {
       contactJid,
       from: contactJid,
@@ -66,28 +71,32 @@ export async function POST(request: NextRequest) {
       timestamp: Number(timestamp),
       direction: 'incoming',
     })
+    console.log('[webhook] ✅ Incoming message saved')
 
     // 2. Fetch business profile
     const business = await getBusinessDoc(userId)
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
+    console.log('[webhook] 📦 Business loaded:', business.name)
 
     // 2b. Fetch products for context
     let productsContext = ''
     try {
       const products = await getProductsServer(userId)
       if (products.length > 0) {
+        console.log('[webhook] 🛍️  Found', products.length, 'products')
         productsContext = '\n\nAvailable products:\n' + 
           products
             .map((p) => `- ${p.name} ($${p.price}${p.negotiationEnabled ? ', negotiable' : ''}): ${p.description}`)
             .join('\n')
       }
     } catch (err) {
-      console.error('[webhook] Error fetching products:', err)
+      console.error('[webhook] ⚠️ Error fetching products:', err)
     }
 
     // 3. Generate AI reply
+    console.log('[webhook] 🤖 Generating AI response...')
     const personality =
       business.aiPersonality?.trim() ||
       'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision.'
@@ -104,6 +113,7 @@ export async function POST(request: NextRequest) {
     try {
       // Use business-specific model or default to OpenRouter
       const model = business.openrouterModel || DEFAULT_MODEL
+      console.log('[webhook] 🧠 Using model:', model)
       const { text: generated } = await generateText({
         model,
         system: systemPrompt,
@@ -112,12 +122,14 @@ export async function POST(request: NextRequest) {
         temperature: 0.7,
       })
       aiReplyText = generated.trim()
+      console.log('[webhook] ✅ AI response generated:', aiReplyText)
     } catch (aiErr) {
-      console.error('[webhook] AI generation error:', aiErr)
+      console.error('[webhook] ❌ AI generation error:', aiErr)
       aiReplyText = `Hi! Thanks for reaching out to ${business.name}. We'll get back to you shortly.`
     }
 
     // 4. Save AI reply to Firestore
+    console.log('[webhook] 💾 Saving AI response to Firestore')
     await saveMessageDoc(userId, {
       contactJid,
       from: userId,
@@ -129,8 +141,10 @@ export async function POST(request: NextRequest) {
       timestamp: Date.now(),
       direction: 'outgoing',
     })
+    console.log('[webhook] ✅ AI response saved')
 
     // 5. Queue delivery via gateway (fire-and-forget)
+    console.log('[webhook] 📤 Queuing delivery to gateway...')
     setTimeout(() => {
       fetch(`${GATEWAY_URL}/send-message`, {
         method: 'POST',
@@ -140,13 +154,14 @@ export async function POST(request: NextRequest) {
           to: contactJid,
           text: aiReplyText,
         }),
-      }).catch((err) => console.error('[webhook] Gateway delivery failed:', err))
+      }).catch((err) => console.error('[webhook] ❌ Gateway delivery failed:', err))
     }, 100)
+    console.log('[webhook] ✅ Complete - message will be delivered to WhatsApp')
 
     return NextResponse.json({ success: true })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error'
-    console.error('[webhook] Unhandled error:', msg)
+    console.error('[webhook] ❌ Unhandled error:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
