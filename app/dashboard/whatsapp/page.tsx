@@ -1276,15 +1276,20 @@ export default function WhatsAppPage() {
                 <p className="text-xs text-muted-foreground">{business?.universalAIResponse === false ? 'Disabled (manual mode)' : 'Enabled (AI replies to all)'}</p>
               </div>
             </div>
-            <Toggle 
-              pressed={business?.universalAIResponse === false} 
-              onPressedChange={handleToggleUniversalAI}
+            <button
+              onClick={handleToggleUniversalAI}
               disabled={togglingUAI}
-              className={business?.universalAIResponse === false ? 'bg-red-500 text-white' : 'bg-[var(--aro-green)]'}
+              className={cn(
+                'relative w-12 h-6 rounded-full transition-colors focus:outline-none disabled:opacity-50',
+                business?.universalAIResponse === false ? 'bg-red-500' : 'bg-[var(--aro-green)]'
+              )}
               aria-label="Toggle AI auto-response"
             >
-              {business?.universalAIResponse === false ? 'OFF' : 'ON'}
-            </Toggle>
+              <span className={cn(
+                'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200',
+                business?.universalAIResponse === false ? 'translate-x-0' : 'translate-x-6'
+              )} />
+            </button>
           </div>
 
           {/* Notifications */}
