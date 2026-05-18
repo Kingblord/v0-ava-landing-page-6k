@@ -196,5 +196,51 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ status: 'ok', webhook: 'ready' })
+  try {
+    console.log('[webhook] 🏥 Health check requested')
+    
+    const health = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      checks: {
+        config: {
+          pass: !!INTERNAL_API_KEY && !!GATEWAY_URL && !!DEFAULT_MODEL,
+          details: 'Required environment variables configured'
+        },
+        gateway: {
+          pass: false,
+          details: 'Gateway connection status unknown'
+        }
+      },
+      version: '1.0.0'
+    }
+
+    // Test gateway connectivity
+    try {
+      const gatewayTest = await fetch(`${GATEWAY_URL}/status/health`, {
+        signal: AbortSignal.timeout(5000)
+      })
+      health.checks.gateway.pass = gatewayTest.ok
+      health.checks.gateway.details = `Gateway status: ${gatewayTest.status}`
+      if (!gatewayTest.ok) {
+        health.status = 'degraded'
+      }
+    } catch (err) {
+      health.checks.gateway.pass = false
+      health.checks.gateway.details = `Gateway unreachable: ${err instanceof Error ? err.message : 'unknown error'}`
+      health.status = 'degraded'
+    }
+
+    const statusCode = health.status === 'healthy' ? 200 : 503
+    console.log(`[webhook] 🏥 Health check complete: ${health.status}`)
+    
+    return NextResponse.json(health, { status: statusCode })
+  } catch (err) {
+    console.error('[webhook] ❌ Health check failed:', err)
+    return NextResponse.json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: err instanceof Error ? err.message : 'Unknown error'
+    }, { status: 500 })
+  }
 }
