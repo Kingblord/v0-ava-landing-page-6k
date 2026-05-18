@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getMessagesForContact } from '@/lib/firestore-server'
 
 /**
- * GET /api/whatsapp/messages?userId=...&from=...&limit=...
- * Get WhatsApp messages for a specific contact
+ * GET /api/whatsapp/messages?userId=...&from=...
+ * Get ALL WhatsApp messages for a specific contact
  */
 export async function GET(request: NextRequest) {
   try {
     const userId = request.nextUrl.searchParams.get('userId')
     const from = request.nextUrl.searchParams.get('from')
     const limitStr = request.nextUrl.searchParams.get('limit')
-    const limit = limitStr ? Math.min(parseInt(limitStr), 100) : 50
+    // Default to fetching all messages (10000 limit), or use specified limit
+    const limit = limitStr ? Math.min(parseInt(limitStr), 10000) : 10000
 
     if (!userId || !from) {
       return NextResponse.json({ error: 'Missing userId or from' }, { status: 400 })

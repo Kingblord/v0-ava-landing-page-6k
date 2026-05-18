@@ -519,7 +519,7 @@ export default function WhatsAppPage() {
     setMessagesLoading(true)
     try {
       const res = await fetch(
-        `/api/whatsapp/messages?userId=${user.uid}&from=${encodeURIComponent(contact.jid)}&limit=100`,
+        `/api/whatsapp/messages?userId=${user.uid}&from=${encodeURIComponent(contact.jid)}`,
       )
       const data = await res.json()
       if (data.messages) {
@@ -530,6 +530,7 @@ export default function WhatsAppPage() {
           ts:   (m.timestamp as number) || Date.now(),
         }))
         setMessages(mapped)
+        console.log('[v0] Loaded', mapped.length, 'messages for', contact.name)
       }
     } catch (err) {
       console.error('[v0] loadInitialMessages error:', err)
