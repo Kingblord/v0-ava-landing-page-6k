@@ -517,20 +517,23 @@ export default function WhatsAppPage() {
   async function loadInitialMessages(contact: Contact) {
     if (!user) return
     setMessagesLoading(true)
+    // Pass bare JID (phone only) so the server query matches contactJid field
+    const bareJid = contact.jid.replace('@s.whatsapp.net', '').replace('@lid', '')
     try {
       const res = await fetch(
-        `/api/whatsapp/messages?userId=${user.uid}&from=${encodeURIComponent(contact.jid)}`,
+        `/api/whatsapp/messages?userId=${user.uid}&from=${encodeURIComponent(bareJid)}`,
       )
       const data = await res.json()
       if (data.messages) {
-        const mapped: ChatMessage[] = data.messages.map((m: Record<string, unknown>) => ({
-          id:   (m.id as string) || `${m.messageId}`,
-          role: (m.role as string) === 'assistant' ? 'assistant' : 'user',
-          text: m.text as string,
-          ts:   (m.timestamp as number) || Date.now(),
-        }))
+        const mapped: ChatMessage[] = (data.messages as Record<string, unknown>[])
+          .map((m) => ({
+            id:   (m.id as string) || `${m.messageId}`,
+            role: (m.role as string) === 'assistant' ? 'assistant' : 'user',
+            text: (m.text as string) || '',
+            ts:   (m.timestamp as number) || Date.now(),
+          }))
+          .sort((a, b) => a.ts - b.ts)
         setMessages(mapped)
-        console.log('[v0] Loaded', mapped.length, 'messages for', contact.name)
       }
     } catch (err) {
       console.error('[v0] loadInitialMessages error:', err)
@@ -541,23 +544,32 @@ export default function WhatsAppPage() {
 
   function listenToMessagesSnapshot(contact: Contact) {
     if (!user) return
-    
+
+    // Unsubscribe from any previous listener
     if (msgPollRef.current) msgPollRef.current()
-    
-    const messagesRef = collection(db, 'users', user.uid, 'messages')
+
+    // Normalise JID to bare phone number — matches what the webhook stores as contactJid
+    const bareJid = contact.jid.replace('@s.whatsapp.net', '').replace('@lid', '')
+
+    const messagesRef = collection(db, 'businesses', user.uid, 'whatsapp_messages')
     const q = query(
       messagesRef,
-      where('contactJid', '==', contact.jid.replace('@s.whatsapp.net', '')),
-      orderBy('timestamp', 'asc')
+      where('contactJid', '==', bareJid),
+      orderBy('timestamp', 'asc'),
     )
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const mapped: ChatMessage[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        role: (doc.data().role as string) === 'assistant' ? 'assistant' : 'user',
-        text: doc.data().text as string,
-        ts: (doc.data().timestamp as number) || Date.now(),
-      }))
+      const mapped: ChatMessage[] = snapshot.docs.map((doc) => {
+        const d = doc.data()
+        return {
+          id: doc.id,
+          role: (d.role as string) === 'assistant' ? 'assistant' : 'user',
+          text: (d.text as string) || '',
+          ts: (d.timestamp as number) || Date.now(),
+        }
+      })
+      // Sort by timestamp in case Firestore returns out of order
+      mapped.sort((a, b) => a.ts - b.ts)
       setMessages(mapped)
     }, (err) => {
       console.error('[v0] Snapshot listener error:', err)
@@ -1016,6 +1028,7 @@ export default function WhatsAppPage() {
               filteredContacts.map((contact) => {
                 const badge = unread[contact.id] ?? 0
                 const active = selected?.id === contact.id
+                const isUnknown = (contact as Contact & { unknown?: boolean }).unknown === true
                 return (
                   <button
                     key={contact.id}
@@ -1037,9 +1050,16 @@ export default function WhatsAppPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-1 mb-0.5">
-                        <p className={cn('text-sm font-semibold truncate', badge > 0 ? 'text-foreground' : 'text-foreground/90')}>
-                          {contact.name}
-                        </p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className={cn('text-sm font-semibold truncate', badge > 0 ? 'text-foreground' : 'text-foreground/90')}>
+                            {isUnknown ? `+${contact.phone}` : contact.name}
+                          </p>
+                          {isUnknown && (
+                            <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/20">
+                              Unknown
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
                           {contact.lastTs ? fmtTime(contact.lastTs) : ''}
                         </span>
@@ -1087,40 +1107,72 @@ export default function WhatsAppPage() {
               <div className="hidden lg:flex items-center gap-3 px-5 py-3.5 border-b border-border bg-card shrink-0">
                 <Avatar contact={selected} size="md" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground">{selected.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-foreground truncate">
+                      {(selected as Contact & { unknown?: boolean }).unknown ? `+${phoneFromJid(selected.jid)}` : selected.name}
+                    </p>
+                    {(selected as Contact & { unknown?: boolean }).unknown && (
+                      <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/20">
+                        Unknown
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground font-mono">+{phoneFromJid(selected.jid)}</p>
                 </div>
-                {/* AI quick toggle */}
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs text-muted-foreground">AI</span>
-                  <Toggle
-                    checked={selected.aiEnabled}
-                    onChange={() => handleUpdateContact(selected.id, { aiEnabled: !selected.aiEnabled })}
-                    disabled={!isConnected}
-                  />
-                </div>
-                <button
-                  onClick={() => setShowAiModal(true)}
-                  className={cn(
-                    'p-2 rounded-xl border transition-colors',
-                    selected.aiEnabled
-                      ? 'bg-[var(--aro-green)]/10 border-[var(--aro-green)]/20 text-[var(--aro-green)]'
-                      : 'bg-secondary border-border text-muted-foreground hover:text-foreground',
-                  )}
-                  aria-label="AI settings"
-                >
-                  <Bot className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteContact(selected.id)}
-                  disabled={deletingContact === selected.id}
-                  className="p-2 rounded-xl border border-border bg-secondary text-muted-foreground hover:text-destructive hover:bg-destructive/8 hover:border-destructive/30 transition-colors disabled:opacity-50"
-                  aria-label="Delete contact"
-                >
-                  {deletingContact === selected.id
-                    ? <Loader2 className="w-4 h-4 animate-spin" />
-                    : <Trash2 className="w-4 h-4" />}
-                </button>
+                {/* Save contact button for unknown JIDs */}
+                {(selected as Contact & { unknown?: boolean }).unknown && (
+                  <button
+                    onClick={() => { setNewPhone(phoneFromJid(selected.jid)); setNewName(''); setShowAddModal(true) }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--aro-green)]/10 border border-[var(--aro-green)]/20 text-[var(--aro-green)] text-xs font-medium hover:bg-[var(--aro-green)]/20 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Save contact
+                  </button>
+                )}
+                {/* AI quick toggle — only for saved contacts */}
+                {!(selected as Contact & { unknown?: boolean }).unknown && (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xs text-muted-foreground">AI</span>
+                      <button
+                        onClick={() => handleUpdateContact(selected.id, { aiEnabled: !selected.aiEnabled })}
+                        disabled={!isConnected}
+                        className={cn(
+                          'relative w-10 h-5 rounded-full transition-colors focus:outline-none disabled:opacity-40',
+                          selected.aiEnabled ? 'bg-[var(--aro-green)]' : 'bg-border',
+                        )}
+                        aria-label="Toggle AI for contact"
+                      >
+                        <span className={cn(
+                          'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200',
+                          selected.aiEnabled ? 'translate-x-5' : 'translate-x-0',
+                        )} />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => setShowAiModal(true)}
+                      className={cn(
+                        'p-2 rounded-xl border transition-colors',
+                        selected.aiEnabled
+                          ? 'bg-[var(--aro-green)]/10 border-[var(--aro-green)]/20 text-[var(--aro-green)]'
+                          : 'bg-secondary border-border text-muted-foreground hover:text-foreground',
+                      )}
+                      aria-label="AI settings"
+                    >
+                      <Bot className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteContact(selected.id)}
+                      disabled={deletingContact === selected.id}
+                      className="p-2 rounded-xl border border-border bg-secondary text-muted-foreground hover:text-destructive hover:bg-destructive/8 hover:border-destructive/30 transition-colors disabled:opacity-50"
+                      aria-label="Delete contact"
+                    >
+                      {deletingContact === selected.id
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Mobile chat action bar */}

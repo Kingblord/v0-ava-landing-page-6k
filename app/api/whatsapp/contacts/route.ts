@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getContactsForBusiness, createContactDoc, updateContactDoc, deleteContactDoc } from '@/lib/firestore-server'
+import { getContactsForBusiness, createContactDoc, updateContactDoc, deleteContactDoc, getUniqueJidsFromMessages } from '@/lib/firestore-server'
 import type { Contact } from '@/lib/types'
 
 /**
  * GET /api/whatsapp/contacts?userId=...
- * Get all WhatsApp contacts for a business
+ * Returns saved contacts merged with any unknown JIDs that have sent messages.
+ * Unknown senders appear as contacts using their phone number as the name.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +15,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    console.log('[v0] Fetching contacts for business:', userId)
-    const contacts = await getContactsForBusiness(userId)
+    // Load saved contacts and all JIDs from messages in parallel
+    const [savedContacts, messageJids] = await Promise.all([
+      getContactsForBusiness(userId),
+      getUniqueJidsFromMessages(userId),
+    ])
+
+    // Build a set of JIDs already in saved contacts
+    const savedJidSet = new Set(
+      savedContacts.map((c) => c.jid.replace('@s.whatsapp.net', '').replace('@lid', ''))
+    )
+
+    // Build synthetic contacts for JIDs not yet saved
+    const unknownContacts: Contact[] = messageJids
+      .filter(({ jid }) => !savedJidSet.has(jid))
+      .map(({ jid, lastMessage, lastTs }) => ({
+        id: `jid_${jid}`,
+        jid: `${jid}@s.whatsapp.net`,
+        phone: jid,
+        name: jid,           // Show phone as name until user saves them
+        aiEnabled: false,
+        lastMessage,
+        lastTs,
+        unknown: true,       // Flag so UI can show a "Save contact" option
+      } as Contact & { unknown?: boolean }))
+
+    // Merge: saved contacts first (they may have richer metadata), unknown appended
+    const contacts = [...savedContacts, ...unknownContacts]
+
+    // Sort by most recent message
+    contacts.sort((a, b) => ((b.lastTs ?? 0) - (a.lastTs ?? 0)))
 
     return NextResponse.json({
       success: true,

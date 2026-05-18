@@ -205,6 +205,37 @@ export async function saveMessageDoc(uid: string, message: Record<string, unknow
   }
 }
 
+/**
+ * Get all unique contactJids from the messages collection
+ * so unknown senders still appear in the sidebar
+ */
+export async function getUniqueJidsFromMessages(uid: string): Promise<{ jid: string; lastMessage: string; lastTs: number }[]> {
+  try {
+    const snap = await adminDb
+      .collection('businesses')
+      .doc(uid)
+      .collection('whatsapp_messages')
+      .get()
+
+    const jidMap = new Map<string, { lastMessage: string; lastTs: number }>()
+    for (const doc of snap.docs) {
+      const data = doc.data()
+      const jid = (data.contactJid as string || '').replace('@s.whatsapp.net', '').replace('@lid', '')
+      if (!jid) continue
+      const ts = (data.timestamp as number) || 0
+      const existing = jidMap.get(jid)
+      if (!existing || ts > existing.lastTs) {
+        jidMap.set(jid, { lastMessage: (data.text as string) || '', lastTs: ts })
+      }
+    }
+
+    return Array.from(jidMap.entries()).map(([jid, meta]) => ({ jid, ...meta }))
+  } catch (err) {
+    console.error('[v0] Error getting unique JIDs:', err)
+    return []
+  }
+}
+
 export async function getMessagesForContact(
   uid: string,
   contactJid: string,
