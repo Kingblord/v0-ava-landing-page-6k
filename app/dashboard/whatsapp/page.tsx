@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import type { Contact, Business } from '@/lib/types'
 import { toast } from 'sonner'
+import { db } from '@/lib/firebase'
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
 import {
   Send,
   Loader2,
@@ -247,7 +249,7 @@ export default function WhatsAppPage() {
 
   useEffect(() => () => {
     if (pollRef.current) clearInterval(pollRef.current)
-    if (msgPollRef.current) clearInterval(msgPollRef.current)
+    if (msgPollRef.current) msgPollRef.current()
   }, [])
 
   // ── Notifications ─────────────────────────────────────────────────────────
@@ -512,9 +514,9 @@ export default function WhatsAppPage() {
 
   // ── Chat — Firestore source of truth ─────────────────────────────────────
 
-  async function loadMessages(contact: Contact, silent = false) {
+  async function loadInitialMessages(contact: Contact) {
     if (!user) return
-    if (!silent) setMessagesLoading(true)
+    setMessagesLoading(true)
     try {
       const res = await fetch(
         `/api/whatsapp/messages?userId=${user.uid}&from=${encodeURIComponent(contact.jid)}&limit=100`,
@@ -530,17 +532,37 @@ export default function WhatsAppPage() {
         setMessages(mapped)
       }
     } catch (err) {
-      console.error('[v0] loadMessages error:', err)
+      console.error('[v0] loadInitialMessages error:', err)
     } finally {
-      if (!silent) setMessagesLoading(false)
+      setMessagesLoading(false)
     }
   }
 
-  function startMessagePolling(contact: Contact) {
-    if (msgPollRef.current) clearInterval(msgPollRef.current)
-    msgPollRef.current = setInterval(() => {
-      loadMessages(contact, true)
-    }, 3000)
+  function listenToMessagesSnapshot(contact: Contact) {
+    if (!user) return
+    
+    if (msgPollRef.current) msgPollRef.current()
+    
+    const messagesRef = collection(db, 'users', user.uid, 'messages')
+    const q = query(
+      messagesRef,
+      where('contactJid', '==', contact.jid.replace('@s.whatsapp.net', '')),
+      orderBy('timestamp', 'asc')
+    )
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const mapped: ChatMessage[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        role: (doc.data().role as string) === 'assistant' ? 'assistant' : 'user',
+        text: doc.data().text as string,
+        ts: (doc.data().timestamp as number) || Date.now(),
+      }))
+      setMessages(mapped)
+    }, (err) => {
+      console.error('[v0] Snapshot listener error:', err)
+    })
+
+    msgPollRef.current = unsubscribe
   }
 
   async function handleClearHistory() {
@@ -576,8 +598,7 @@ export default function WhatsAppPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error((data as Record<string, string>).error || 'Failed to send')
-      // Reload messages immediately so the sent message appears
-      await loadMessages(selected, true)
+      // Message will appear automatically via snapshot listener
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Send failed'
       toast.error(msg)
@@ -618,8 +639,8 @@ export default function WhatsAppPage() {
     setMobileView('chat')
     setUnread((prev) => ({ ...prev, [contact.id]: 0 }))
     setMessages([])
-    loadMessages(contact)
-    startMessagePolling(contact)
+    loadInitialMessages(contact)
+    listenToMessagesSnapshot(contact)
   }
 
   // ── Derived ───────────────────────────────────────────────────────────────
