@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = 
       `You are an AI sales assistant for ${business.name}.\n\n` +
-      `\( {personality} \){productsContext}\n\n` +
+      `${personality}${productsContext}\n\n` +
       `Keep your replies concise (1-3 short sentences) and conversational. ` +
       `Do not make up product information. Never reveal that you are an AI unless asked.`
 
