@@ -126,7 +126,7 @@ export default function LoginPage() {
                 className="ml-auto p-0.5 rounded hover:bg-border/50 transition-colors"
                 aria-label="Google sign-in setup guide"
               >
-                <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                
               </button>
             </Button>
 
