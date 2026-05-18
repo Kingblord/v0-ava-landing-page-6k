@@ -15,14 +15,18 @@ const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY
 const GATEWAY_URL = process.env.GATEWAY_URL || 'http://localhost:3001'
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID
+const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY
+const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'openrouter/free'
+const PORT = process.env.PORT || 3000
 
 if (!OPENROUTER_API_KEY) {
   console.warn('⚠️ OPENROUTER_API_KEY is not set in .env file')
 }
 
-if (!FIREBASE_PROJECT_ID) {
-  console.warn('⚠️ FIREBASE_PROJECT_ID is not set in .env file')
+if (!FIREBASE_PROJECT_ID || !FIREBASE_PRIVATE_KEY || !FIREBASE_CLIENT_EMAIL) {
+  console.error('❌ Firebase credentials missing: FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL')
+  process.exit(1)
 }
 
 // ========================
@@ -31,12 +35,18 @@ if (!FIREBASE_PROJECT_ID) {
 let db
 try {
   admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: FIREBASE_PROJECT_ID,
+      privateKey: FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      clientEmail: FIREBASE_CLIENT_EMAIL,
+    }),
     projectId: FIREBASE_PROJECT_ID,
   })
   db = admin.firestore()
-  console.log('✅ Firebase initialized successfully')
+  console.log('✅ Firebase Admin SDK initialized successfully')
 } catch (err) {
   console.error('❌ Firebase initialization error:', err.message)
+  process.exit(1)
 }
 
 // ========================

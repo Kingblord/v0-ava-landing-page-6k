@@ -30,11 +30,26 @@ cp .env.example .env
 ### Required Variables
 
 - `INTERNAL_API_KEY`: Used for webhook authentication
-- `OPENROUTER_API_KEY`: Your OpenRouter API key
+- `OPENROUTER_API_KEY`: Your OpenRouter API key (get from https://openrouter.ai)
 - `FIREBASE_PROJECT_ID`: Your Firebase project ID
+- `FIREBASE_PRIVATE_KEY`: Your Firebase private key (from service account JSON)
+- `FIREBASE_CLIENT_EMAIL`: Your Firebase client email (from service account JSON)
 - `GATEWAY_URL`: URL of your WhatsApp gateway (default: http://localhost:3001)
 - `OPENROUTER_MODEL`: Model to use (default: openrouter/free)
 - `PORT`: Server port (default: 3000)
+
+### Getting Firebase Credentials
+
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project
+3. Go to Settings → Service Accounts
+4. Click "Generate New Private Key"
+5. Copy the JSON file and extract:
+   - `project_id` → `FIREBASE_PROJECT_ID`
+   - `private_key` → `FIREBASE_PRIVATE_KEY`
+   - `client_email` → `FIREBASE_CLIENT_EMAIL`
+
+**Important**: When setting `FIREBASE_PRIVATE_KEY` in your `.env`, escape the newlines properly or use the JSON directly.
 
 ## Running
 
