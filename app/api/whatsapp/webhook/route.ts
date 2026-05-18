@@ -4,24 +4,32 @@ import { saveMessageDoc, getBusinessDoc, getProductsServer } from '@/lib/firesto
 
 const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://localhost:3001'
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY
-// Use OpenRouter free tier as default, or gpt-4o-mini as fallback
-const DEFAULT_MODEL = process.env.DEFAULT_MODEL || 'openrouter/openai/gpt-4o-mini'
+const DEFAULT_MODEL = process.env.DEFAULT_MODEL || 'openrouter/free'
+
 
 /**
- * WhatsApp Webhook - POST /api/whatsapp/webhook
- * Receives messages from the WhatsApp gateway.
- * 
- * Flow:
- * 1. Validate INTERNAL_API_KEY
- * 2. Save incoming message to Firestore
- * 3. Generate AI reply
- * 4. Save AI reply to Firestore
- * 5. Queue message delivery via gateway /send-message
+ * Official Baileys-style JID Normalizer
  */
+function normalizeJid(jid: string): string {
+  if (!jid) return jid;
+
+  if (jid.includes('@')) {
+    if (jid.endsWith('@lid')) {
+      return jid.replace('@lid', '@s.whatsapp.net');
+    }
+    return jid;
+  }
+
+  // Raw number
+  let clean = jid.replace(/\D/g, '');
+  if (clean.startsWith('0')) clean = clean.slice(1);
+  return `${clean}@s.whatsapp.net`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('[webhook] 📨 POST received from gateway')
-    
+   
     const authHeader = request.headers.get('authorization')
     const expectedKey = INTERNAL_API_KEY
 
@@ -33,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!authHeader?.startsWith('Bearer ') || authHeader.slice(7) !== expectedKey) {
-      console.log('[webhook] ❌ AUTH FAIL - sent:', authHeader?.slice(7), 'expected:', expectedKey)
+      console.log('[webhook] ❌ AUTH FAIL')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -44,25 +52,23 @@ export async function POST(request: NextRequest) {
 
     if (!userId || !from || !text || !platform || !messageId || !timestamp) {
       return NextResponse.json(
-        { error: 'Missing required fields: userId, from, text, platform, messageId, timestamp' },
+        { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
-    // Normalise the contact JID
-    const normalizedFrom = from.endsWith('@s.whatsapp.net')
-      ? from
-      : from.endsWith('@lid')
-        ? `${from.replace('@lid', '')}@s.whatsapp.net`
-        : `${from}@s.whatsapp.net`
+    // === IMPROVED JID NORMALIZATION ===
+    const normalizedFrom = normalizeJid(from);
+    const contactJid = normalizedFrom;           // Keep full JID for logging
+    const phoneNumber = normalizedFrom.replace('@s.whatsapp.net', '');
 
-    const contactJid = normalizedFrom.replace('@s.whatsapp.net', '')
+    console.log('[webhook] 📍 Normalized JID:', normalizedFrom);
 
     // 1. Save incoming customer message
     console.log('[webhook] 💾 Saving incoming message to Firestore')
     await saveMessageDoc(userId, {
-      contactJid,
-      from: contactJid,
+      contactJid: phoneNumber,
+      from: phoneNumber,
       to: userId,
       text,
       role: 'user',
@@ -85,8 +91,8 @@ export async function POST(request: NextRequest) {
     try {
       const products = await getProductsServer(userId)
       if (products.length > 0) {
-        console.log('[webhook] 🛍️  Found', products.length, 'products')
-        productsContext = '\n\nAvailable products:\n' + 
+        console.log('[webhook] 🛍️ Found', products.length, 'products')
+        productsContext = '\n\nAvailable products:\n' +
           products
             .map((p) => `- ${p.name} ($${p.price}${p.negotiationEnabled ? ', negotiable' : ''}): ${p.description}`)
             .join('\n')
@@ -97,23 +103,21 @@ export async function POST(request: NextRequest) {
 
     // 3. Generate AI reply
     console.log('[webhook] 🤖 Generating AI response...')
-    const personality =
-      business.aiPersonality?.trim() ||
-      'You are a friendly and professional sales agent. Help customers find the right product, answer their questions honestly, and guide them toward a purchase decision.'
+    const personality = business.aiPersonality?.trim() || 
+      'You are a friendly and professional sales agent.'
 
-    const systemPrompt =
+    const systemPrompt = 
       `You are an AI sales assistant for ${business.name}.\n\n` +
-      `${personality}${productsContext}\n\n` +
+      `\( {personality} \){productsContext}\n\n` +
       `Keep your replies concise (1-3 short sentences) and conversational. ` +
-      `Do not make up product information you don't have. ` +
-      `Never reveal that you are an AI unless directly asked.`
+      `Do not make up product information. Never reveal that you are an AI unless asked.`
 
     let aiReplyText: string
 
     try {
-      // Use business-specific model or default to OpenRouter
       const model = business.openrouterModel || DEFAULT_MODEL
       console.log('[webhook] 🧠 Using model:', model)
+
       const { text: generated } = await generateText({
         model,
         system: systemPrompt,
@@ -121,6 +125,7 @@ export async function POST(request: NextRequest) {
         maxOutputTokens: 300,
         temperature: 0.7,
       })
+
       aiReplyText = generated.trim()
       console.log('[webhook] ✅ AI response generated:', aiReplyText)
     } catch (aiErr) {
@@ -131,9 +136,9 @@ export async function POST(request: NextRequest) {
     // 4. Save AI reply to Firestore
     console.log('[webhook] 💾 Saving AI response to Firestore')
     await saveMessageDoc(userId, {
-      contactJid,
+      contactJid: phoneNumber,
       from: userId,
-      to: contactJid,
+      to: phoneNumber,
       text: aiReplyText,
       role: 'assistant',
       platform,
@@ -143,22 +148,32 @@ export async function POST(request: NextRequest) {
     })
     console.log('[webhook] ✅ AI response saved')
 
-    // 5. Queue delivery via gateway (fire-and-forget)
-    console.log('[webhook] 📤 Queuing delivery to gateway...')
-    setTimeout(() => {
-      fetch(`${GATEWAY_URL}/send-message`, {
+    // 5. Send reply via Gateway
+    console.log('[webhook] 📤 Sending reply to gateway...')
+    try {
+      const response = await fetch(`${GATEWAY_URL}/send-message`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          // Authorization not needed if your gateway doesn't require it for internal calls
+        },
         body: JSON.stringify({
           userId,
-          to: contactJid,
+          to: normalizedFrom,        // ← Send full normalized JID (best practice)
           text: aiReplyText,
         }),
-      }).catch((err) => console.error('[webhook] ❌ Gateway delivery failed:', err))
-    }, 100)
-    console.log('[webhook] ✅ Complete - message will be delivered to WhatsApp')
+      });
 
-    return NextResponse.json({ success: true })
+      if (!response.ok) {
+        console.warn(`[webhook] ⚠️ Gateway responded with status: ${response.status}`);
+      } else {
+        console.log(`[webhook] ✅ Reply successfully queued to ${normalizedFrom}`);
+      }
+    } catch (sendErr) {
+      console.error('[webhook] ❌ Gateway delivery failed:', sendErr);
+    }
+
+    return NextResponse.json({ success: true, reply: aiReplyText })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error'
     console.error('[webhook] ❌ Unhandled error:', msg)
