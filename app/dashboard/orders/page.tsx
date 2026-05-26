@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useCurrency } from '@/lib/use-currency'
+import { db } from '@/lib/firebase'
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
 import type { Order } from '@/lib/types'
 import {
   ShoppingCart,
@@ -49,12 +51,13 @@ export default function OrdersPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterKey>('all')
+  const unsubscribeRef = useRef<(() => void) | null>(null)
 
   async function reload(silent = false) {
     if (!user) return
     if (!silent) setRefreshing(true)
     try {
-      const res = await fetch(`/api/orders?userId=${user.uid}`)
+      const res = await fetch(`/api/orders/${user.uid}`)
       if (!res.ok) throw new Error('Failed to load orders')
       const data = await res.json()
       setOrders(data.orders || [])
@@ -68,8 +71,33 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!user) return
+
+    // Load initial orders
     reload(true).finally(() => setLoading(false))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Setup real-time snapshot listener
+    const ordersRef = collection(db, 'orders')
+    const q = query(
+      ordersRef,
+      where('businessId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    )
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const updated: Order[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      } as Order))
+      setOrders(updated)
+    }, (err) => {
+      console.error('[v0] Orders snapshot error:', err)
+    })
+
+    unsubscribeRef.current = unsubscribe
+
+    return () => {
+      if (unsubscribeRef.current) unsubscribeRef.current()
+    }
   }, [user])
 
   async function handleStatusChange(orderId: string, status: Order['status']) {

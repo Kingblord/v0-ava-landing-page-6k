@@ -324,6 +324,113 @@ async function sendReplyViaGateway(userId, phoneNumber, replyText) {
 }
 
 // ========================
+// AI ACTION TOOLS (Callable by LLM)
+// ========================
+
+async function getPaymentDetails(orderId) {
+  try {
+    console.log('[ACTION] 💳 getPaymentDetails called for order:', orderId)
+    // TODO: Implement payment details retrieval
+    // Query orders collection and return payment info
+    return {
+      status: 'pending',
+      method: 'none',
+      amount: 0,
+      currency: 'NGN',
+    }
+  } catch (err) {
+    console.error('[ACTION] Error getting payment details:', err.message)
+    return null
+  }
+}
+
+async function initiateNegotiation(orderId, productName, proposedPrice) {
+  try {
+    console.log('[ACTION] 💬 initiateNegotiation called for:', productName)
+    // TODO: Implement negotiation logic
+    // Create negotiation record and notify business
+    return {
+      success: true,
+      negotiationId: `neg_${Date.now()}`,
+      productName,
+      proposedPrice,
+      status: 'pending_approval',
+    }
+  } catch (err) {
+    console.error('[ACTION] Error initiating negotiation:', err.message)
+    return null
+  }
+}
+
+async function checkInventory(productName) {
+  try {
+    console.log('[ACTION] 📦 checkInventory called for:', productName)
+    // TODO: Implement inventory check
+    // Query products and return stock status
+    return {
+      available: true,
+      stock: 999,
+      product: productName,
+    }
+  } catch (err) {
+    console.error('[ACTION] Error checking inventory:', err.message)
+    return null
+  }
+}
+
+async function scheduleDelivery(orderId, preferredDate) {
+  try {
+    console.log('[ACTION] 🚚 scheduleDelivery called for order:', orderId)
+    // TODO: Implement delivery scheduling
+    // Save delivery preference and notify logistics
+    return {
+      success: true,
+      deliveryId: `del_${Date.now()}`,
+      orderId,
+      preferredDate,
+      status: 'scheduled',
+    }
+  } catch (err) {
+    console.error('[ACTION] Error scheduling delivery:', err.message)
+    return null
+  }
+}
+
+async function applyPromoCode(code) {
+  try {
+    console.log('[ACTION] 🎟️  applyPromoCode called for:', code)
+    // TODO: Implement promo code validation and discount
+    // Query promo codes collection
+    return {
+      valid: false,
+      code,
+      discount: 0,
+      message: 'Invalid or expired promo code',
+    }
+  } catch (err) {
+    console.error('[ACTION] Error applying promo:', err.message)
+    return null
+  }
+}
+
+async function trackOrderStatus(orderId) {
+  try {
+    console.log('[ACTION] 📍 trackOrderStatus called for order:', orderId)
+    // TODO: Implement order tracking
+    // Query orders collection for status
+    return {
+      orderId,
+      status: 'pending',
+      lastUpdate: Date.now(),
+      estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    }
+  } catch (err) {
+    console.error('[ACTION] Error tracking order:', err.message)
+    return null
+  }
+}
+
+// ========================
 // MAIN WEBHOOK ENDPOINT
 // ========================
 
