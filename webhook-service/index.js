@@ -53,13 +53,14 @@ try {
 // AI RESPONSE USING OPENROUTER
 // ========================
 
-async function getAIResponse(userMessage, systemPrompt) {
+async function getAIResponse(userMessage, systemPrompt, userModel = null) {
   try {
-    console.log('[AI] 🤖 Calling OpenRouter API with model:', OPENROUTER_MODEL)
+    const model = userModel || OPENROUTER_MODEL
+    console.log('[AI] 🤖 Calling OpenRouter API with model:', model)
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
-        model: OPENROUTER_MODEL,
+        model: model,
         messages: [
           {
             role: 'system',
@@ -89,6 +90,30 @@ async function getAIResponse(userMessage, systemPrompt) {
   } catch (error) {
     console.error('[AI] ❌ OpenRouter API Error:', error.response?.data || error.message)
     return 'Sorry, I am having trouble thinking right now. Please try again later.'
+  }
+}
+
+// ========================
+// GET BUSINESS PREFERENCES
+// ========================
+
+async function getBusinessPreferences(businessId) {
+  try {
+    console.log('[DB] 📋 Fetching business preferences for:', businessId)
+    const businessDoc = await db.collection('businesses').doc(businessId).get()
+    if (!businessDoc.exists) {
+      console.log('[DB] ⚠️ Business not found:', businessId)
+      return null
+    }
+    const data = businessDoc.data()
+    return {
+      aiModel: data.openrouterModel || OPENROUTER_MODEL,
+      aiPersonality: data.aiPersonality,
+      currency: data.currency || 'NGN',
+    }
+  } catch (err) {
+    console.error('[DB] Error fetching business preferences:', err.message)
+    return null
   }
 }
 
@@ -190,17 +215,65 @@ async function saveMessage(businessId, phoneNumber, role, text, messageId) {
     const timestamp = Date.now()
     const normalizedPhone = phoneNumber.replace(/\D/g, '')
 
-    const messageDoc = {
-      contactJid: normalizedPhone,
-      from: role === 'user' ? normalizedPhone : businessId,
-      to: role === 'user' ? businessId : normalizedPhone,
-      text,
-      role,
-      platform: 'whatsapp',
-      messageId,
-      timestamp,
-      direction: role === 'user' ? 'incoming' : 'outgoing',
+    await db
+      .collection('businesses')
+      .doc(businessId)
+      .collection('whatsapp_messages')
+      .add({
+        contactJid: normalizedPhone,
+        from: role === 'user' ? normalizedPhone : businessId,
+        to: role === 'user' ? businessId : normalizedPhone,
+        text,
+        role,
+        platform: 'whatsapp',
+        messageId,
+        timestamp,
+        direction: role === 'user' ? 'incoming' : 'outgoing',
+      })
+
+    console.log(`[DB] ✅ Message saved: ${role} from ${phoneNumber}`)
+    return true
+  } catch (err) {
+    console.error('[DB] Save error:', err.message)
+    return false
+  }
+}
+
+// ========================
+// CREATE ORDER
+// ========================
+
+async function createOrder(businessId, phoneNumber, productName, productPrice, quantity = 1) {
+  try {
+    console.log('[DB] 💰 Creating order for:', phoneNumber, 'Product:', productName)
+    
+    const normalizedPhone = phoneNumber.replace(/\D/g, '')
+    const orderId = await db.collection('orders').add({
+      businessId,
+      userId: normalizedPhone,
+      productName,
+      amount: productPrice * quantity,
+      status: 'pending',
+      quantity,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    console.log('[DB] ✅ Order created with ID:', orderId.id)
+    return {
+      id: orderId.id,
+      businessId,
+      userId: normalizedPhone,
+      productName,
+      amount: productPrice * quantity,
+      status: 'pending',
+      createdAt: Date.now(),
     }
+  } catch (err) {
+    console.error('[DB] Order creation error:', err.message)
+    return null
+  }
+}
 
     await db
       .collection('businesses')
@@ -297,6 +370,18 @@ app.post('/webhook', async (req, res) => {
     console.log(`[WEBHOOK] 📍 Using businessId: ${businessId}`)
 
     // ========================
+    // GET BUSINESS PREFERENCES (including AI model)
+    // ========================
+    console.log('[WEBHOOK] 🔧 Loading business preferences...')
+    const prefs = await getBusinessPreferences(businessId)
+    
+    if (!prefs) {
+      console.log('[WEBHOOK] ⚠️ Could not load preferences, using defaults')
+    }
+    const userModel = prefs?.aiModel || OPENROUTER_MODEL
+    const userCurrency = prefs?.currency || 'NGN'
+
+    // ========================
     // GET BUSINESS CONTEXT
     // ========================
     console.log('[WEBHOOK] 📦 Loading business context...')
@@ -322,10 +407,10 @@ app.post('/webhook', async (req, res) => {
     console.log('[WEBHOOK] 🧠 System prompt prepared')
 
     // ========================
-    // GENERATE AI RESPONSE
+    // GENERATE AI RESPONSE (using user's preferred model)
     // ========================
-    console.log('[WEBHOOK] 🤖 Generating AI response...')
-    const aiReply = await getAIResponse(text, systemPrompt)
+    console.log('[WEBHOOK] 🤖 Generating AI response with model:', userModel)
+    const aiReply = await getAIResponse(text, systemPrompt, userModel)
 
     // ========================
     // SAVE AI RESPONSE

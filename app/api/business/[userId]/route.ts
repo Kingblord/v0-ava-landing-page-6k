@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
+import { updateAIModel } from '@/lib/firestore-server'
 
 export async function GET(
   request: NextRequest,
@@ -42,16 +43,20 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { universalAIResponse } = body
+    const { universalAIResponse, openrouterModel } = body
 
-    if (universalAIResponse === undefined) {
-      return NextResponse.json({ error: 'Missing universalAIResponse field' }, { status: 400 })
+    // Handle universal AI response toggle
+    if (universalAIResponse !== undefined) {
+      await adminDb
+        .collection('businesses')
+        .doc(userId)
+        .update({ universalAIResponse })
     }
 
-    await adminDb
-      .collection('businesses')
-      .doc(userId)
-      .update({ universalAIResponse })
+    // Handle AI model change
+    if (openrouterModel !== undefined) {
+      await updateAIModel(userId, openrouterModel)
+    }
 
     const updatedDoc = await adminDb
       .collection('businesses')

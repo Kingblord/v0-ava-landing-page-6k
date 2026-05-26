@@ -31,6 +31,17 @@ export async function updateBusinessDoc(uid: string, data: Partial<Business>) {
   }
 }
 
+export async function updateAIModel(uid: string, model: string): Promise<void> {
+  try {
+    console.log('[v0] Updating AI model for business:', uid, 'to:', model)
+    await adminDb.collection('businesses').doc(uid).update({ openrouterModel: model })
+    console.log('[v0] AI model updated successfully')
+  } catch (err) {
+    console.error('[v0] Error updating AI model:', err)
+    throw err
+  }
+}
+
 export async function getBusinessDoc(uid: string): Promise<Business | null> {
   try {
     console.log('[v0] Getting business document for:', uid)

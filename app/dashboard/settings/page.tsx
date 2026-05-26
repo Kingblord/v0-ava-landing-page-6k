@@ -176,18 +176,8 @@ export default function SettingsPage() {
 
   // AI Agent
   const [aiPersonality, setAiPersonality] = useState(DEFAULT_PERSONALITY)
-
-  // WhatsApp
+  const [aiModel, setAiModel] = useState('google/gemini-2.0-flash-exp')
   const [whatsappPhone, setWhatsappPhone] = useState('')
-
-  // Security
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPwd, setShowPwd] = useState(false)
-  const [pwdStrength, setPwdStrength] = useState<'weak' | 'fair' | 'strong' | ''>('')
-
-  // Preferences
   const [currency, setCurrency] = useState('NGN')
   const [language, setLanguage] = useState('en')
   const [timezone, setTimezone] = useState('Africa/Lagos')
@@ -205,6 +195,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!business) return
     setAiPersonality(business.aiPersonality ?? DEFAULT_PERSONALITY)
+    setAiModel(business.openrouterModel ?? 'google/gemini-2.0-flash-exp')
     setWhatsappPhone(business.whatsappPhone ?? '')
     setCurrency(business.currency ?? 'NGN')
     setLanguage(business.language ?? 'en')
@@ -304,7 +295,7 @@ export default function SettingsPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              save('ai', { aiPersonality: aiPersonality.trim() })
+              save('ai', { aiPersonality: aiPersonality.trim(), openrouterModel: aiModel })
             }}
             className="space-y-5"
           >
@@ -320,6 +311,32 @@ export default function SettingsPage() {
                 placeholder="Describe how your AI should behave…"
                 className="w-full bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:border-[var(--aro-green)]/60 rounded-xl px-3 py-3 text-sm resize-y outline-none transition-colors leading-relaxed"
               />
+            </FieldBlock>
+
+            <SectionLabel>AI Model</SectionLabel>
+            <FieldBlock
+              label="Response Model"
+              hint="Choose which AI model to use for generating responses. Different models have different strengths and speeds."
+            >
+              <select
+                value={aiModel}
+                onChange={(e) => setAiModel(e.target.value)}
+                className="w-full bg-secondary border border-border text-foreground focus:border-[var(--aro-green)]/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-colors"
+              >
+                <optgroup label="Recommended">
+                  <option value="google/gemini-2.0-flash-exp">Gemini 2.0 Flash (Recommended)</option>
+                  <option value="openai/gpt-4o">GPT-4o</option>
+                </optgroup>
+                <optgroup label="Budget-Friendly">
+                  <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                  <option value="google/gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  <option value="meta-llama/llama-3.2-90b-vision-instruct">Llama 3.2 90B</option>
+                </optgroup>
+                <optgroup label="Advanced">
+                  <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
+                  <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                </optgroup>
+              </select>
             </FieldBlock>
 
             <div className="flex items-center justify-between">
