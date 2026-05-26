@@ -53,10 +53,11 @@ try {
 // AI RESPONSE USING OPENROUTER
 // ========================
 
-async function getAIResponse(userMessage, systemPrompt, userModel = null) {
+async function getAIResponse(userMessage, systemPrompt, userModel = null, conversationHistory = []) {
   try {
     const model = userModel || OPENROUTER_MODEL
     console.log('[AI] 🤖 Calling OpenRouter API with model:', model)
+
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
@@ -64,15 +65,21 @@ async function getAIResponse(userMessage, systemPrompt, userModel = null) {
         messages: [
           {
             role: 'system',
-            content: systemPrompt,
+            content: systemPrompt + '\n\n' + CRITICAL_DIRECTIVES,
           },
+          ...conversationHistory.slice(-8).map((m) => ({
+            role: m.role === 'user' ? 'user' : 'assistant',
+            content: m.text,
+          })),
           {
             role: 'user',
             content: userMessage,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 500,
+        tools: AI_TOOLS,
+        tool_choice: 'auto',
+        temperature: 0.65,
+        max_tokens: 800,
       },
       {
         headers: {
@@ -80,16 +87,34 @@ async function getAIResponse(userMessage, systemPrompt, userModel = null) {
           'HTTP-Referer': 'https://aromsg.up.railway.app',
           'X-Title': 'AroMsg WhatsApp AI Service',
         },
-        timeout: 15000,
+        timeout: 20000,
       }
     )
 
-    const reply = response.data.choices[0]?.message?.content?.trim()
-    console.log('[AI] ✅ OpenRouter response received:', reply.substring(0, 100) + '...')
-    return reply || 'Sorry, I could not generate a response right now.'
+    const message = response.data.choices[0]?.message
+
+    if (message.tool_calls?.length > 0) {
+      console.log(`[AI] 🛠️ Tool called: ${message.tool_calls[0].function.name}`)
+      return {
+        type: 'tool_call',
+        tool: message.tool_calls[0],
+        content: message.content || '',
+      }
+    }
+
+    const reply = message.content?.trim() || ERROR_MESSAGES.generic
+    console.log('[AI] ✅ Text response received:', reply.substring(0, 100) + '...')
+
+    return {
+      type: 'text',
+      content: reply,
+    }
   } catch (error) {
     console.error('[AI] ❌ OpenRouter API Error:', error.response?.data || error.message)
-    return 'Sorry, I am having trouble thinking right now. Please try again later.'
+    return {
+      type: 'text',
+      content: ERROR_MESSAGES.generic,
+    }
   }
 }
 
@@ -476,9 +501,172 @@ app.post('/webhook', async (req, res) => {
     let businessId = userId
     console.log(`[WEBHOOK] 📍 Using businessId: ${businessId}`)
 
-    // ========================
-    // GET BUSINESS PREFERENCES (including AI model)
-    // ========================
+// ========================
+// TOOL DEFINITIONS FOR AI
+// ========================
+
+const AI_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'getProductList',
+      description: 'Return list of all available products',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getProductInfo',
+      description: 'Get detailed info about a specific product',
+      parameters: {
+        type: 'object',
+        properties: { productName: { type: 'string' } },
+        required: ['productName'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createOrder',
+      description: 'Create order when customer is ready to buy',
+      parameters: {
+        type: 'object',
+        properties: {
+          productName: { type: 'string' },
+          quantity: { type: 'number', default: 1 },
+          customerName: { type: 'string' },
+        },
+        required: ['productName'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getPaymentDetails',
+      description: 'Get payment methods and instructions',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'checkOrderStatus',
+      description: 'Check status of an existing order',
+      parameters: {
+        type: 'object',
+        properties: { orderId: { type: 'string' } },
+        required: ['orderId'],
+      },
+    },
+  },
+]
+
+// ========================
+// CRITICAL OPERATIONAL DIRECTIVES
+// ========================
+
+const CRITICAL_DIRECTIVES = `
+**CRITICAL OPERATIONAL DIRECTIVES:**
+1. First, think step by step about the user's intent.
+2. Decide if you need to use a tool to extract structured product data or take action (like checking/creating orders).
+3. Use tools when the user asks about products, pricing, availability, or orders.
+4. When a tool returns data, do NOT show raw brackets or code syntax to the user. Instead, process that information and respond like a natural, smooth, empathetic human salesperson.
+5. If an item is marked as negotiable, do not just state 'it is negotiable'. Engage the user conversationally (e.g., ask for their target budget or offer a minor concession to close the sale).
+6. Be concise, persuasive, and natural in your final reply. Never make up product info.
+`
+
+// ========================
+// REFINEMENT DIRECTIVES FOR TOOL RESULTS
+// ========================
+
+const getRefinementDirectives = (businessName, currency) => `You are a smooth, persuasive AI Sales Assistant for ${businessName}.
+
+**CRITICAL OPERATIONAL DIRECTIVES:**
+1. Answer the customer's request conversationally using the database data provided above.
+2. Format all prices matching the profile's preferred currency system: "${currency}". (e.g., If NGN use ₦, if USD use $, if EUR use €, etc.)
+3. If the item status shows it is negotiable, handle it gracefully like a master human negotiator. Ask for their target price range or extend a polite opening offer to secure the order.
+4. Do NOT output raw variable templates, code blocks, or JavaScript structural braces to the customer.
+5. Keep your response concise, friendly, and structured perfectly for a short WhatsApp chat message.
+`
+
+// ========================
+// ERROR FALLBACK MESSAGES
+// ========================
+
+const ERROR_MESSAGES = {
+  generic: "Sorry, I'm having trouble right now. Please try again.",
+  aiGeneration: "I'm processing your request right now. Please give me a moment.",
+  toolExecution: 'Let me process that information for you.',
+  orderCreation: 'I\'m having trouble creating your order. Please try again or contact support.',
+  paymentDetails: "I'll get you our payment details. One moment please.",
+  orderStatus: 'Let me check that order status for you.',
+  productNotFound: "I couldn't find that product. Would you like to see what we have available?",
+  inventory: "I'm checking our inventory for you.",
+  delivery: "I'll help you schedule delivery. Let me get that set up.",
+  promo: "I'll verify that promo code for you.",
+  negotiation: "Great! Let's work out a deal. What budget did you have in mind?",
+}
+
+// ========================
+// TOOL EXECUTION LAYER
+// ========================
+
+async function executeTool(toolCall, businessId, phoneNumber, products = []) {
+  const { name, arguments: argsStr } = toolCall.function
+  const args = JSON.parse(argsStr || '{}')
+
+  console.log(`[TOOL] 🔧 Executing ${name} with args:`, args)
+
+  switch (name) {
+    case 'getProductList': {
+      if (!products || products.length === 0) return ERROR_MESSAGES.productNotFound
+
+      return (
+        'Here are our products:\n' +
+        products
+          .map((p) => {
+            const negotiable = p.negotiationEnabled ? ' [Negotiable]' : ''
+            return `• ${p.name} (${p.price})${negotiable}`
+          })
+          .join('\n') +
+        '\n\nWhich one are you interested in?'
+      )
+    }
+
+    case 'getProductInfo': {
+      const productNameArg = args.productName || ''
+      const product = products.find((p) =>
+        p.name.toLowerCase().includes(productNameArg.toLowerCase())
+      )
+
+      if (product) {
+        const status = product.negotiationEnabled ? 'Negotiable' : 'Fixed price'
+        return `Product Details:\n- Name: ${product.name}\n- Price: ${product.price}\n- Description: ${product.description || 'No description provided.'}\n- Status: ${status}`
+      }
+
+      return ERROR_MESSAGES.productNotFound
+    }
+
+    case 'createOrder': {
+      return `✅ Order started for **${args.productName}**.\nPlease provide your full name to complete the order.`
+    }
+
+    case 'getPaymentDetails': {
+      return 'We accept Bank Transfer, USSD, and Card payments.\nWould you like our account details?'
+    }
+
+    case 'checkOrderStatus': {
+      return `Let me check the status of order #${args.orderId || 'N/A'} for you.`
+    }
+
+    default: {
+      return ERROR_MESSAGES.generic
+    }
+  }
+}
     console.log('[WEBHOOK] 🔧 Loading business preferences...')
     const prefs = await getBusinessPreferences(businessId)
     
@@ -517,20 +705,81 @@ app.post('/webhook', async (req, res) => {
     // GENERATE AI RESPONSE (using user's preferred model)
     // ========================
     console.log('[WEBHOOK] 🤖 Generating AI response with model:', userModel)
-    const aiReply = await getAIResponse(text, systemPrompt, userModel)
+    const aiResult = await getAIResponse(text, systemPrompt, userModel, [])
+
+    let replyText
+
+    // ========================
+    // HANDLE TOOL CALLS
+    // ========================
+    if (aiResult.type === 'tool_call') {
+      console.log('[WEBHOOK] 🔧 AI called tool:', aiResult.tool.function.name)
+
+      // Execute the tool and get structured data
+      const toolResult = await executeTool(aiResult.tool, businessId, phoneNumber, context.products || [])
+
+      console.log('[WEBHOOK] 📊 Tool result:', toolResult.substring(0, 100))
+      console.log('[WEBHOOK] 🔄 Re-routing tool data to AI for natural language synthesis...')
+
+      // Refine the tool result with secondary AI call
+      try {
+        const refinementPrompt =
+          getRefinementDirectives(context.businessName, userCurrency) +
+          '\n\nDatabase Response:\n"""' +
+          toolResult +
+          '"""'
+
+        const refinedResponse = await axios.post(
+          'https://openrouter.ai/api/v1/chat/completions',
+          {
+            model: userModel,
+            messages: [
+              {
+                role: 'system',
+                content: refinementPrompt,
+              },
+              {
+                role: 'user',
+                content: text,
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 450,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+              'HTTP-Referer': 'https://aromsg.up.railway.app',
+              'X-Title': 'AroMsg WhatsApp AI Service',
+            },
+            timeout: 20000,
+          }
+        )
+
+        replyText =
+          refinedResponse.data.choices[0]?.message?.content?.trim() ||
+          ERROR_MESSAGES.toolExecution
+        console.log('[WEBHOOK] ✅ Refined response:', replyText.substring(0, 100))
+      } catch (refineErr) {
+        console.error('[WEBHOOK] ⚠️ Refinement error:', refineErr.message)
+        replyText = toolResult
+      }
+    } else {
+      replyText = aiResult.content
+    }
 
     // ========================
     // SAVE AI RESPONSE
     // ========================
     console.log('[WEBHOOK] 💾 Saving AI response...')
     const responseMessageId = `ai_${Date.now()}`
-    await saveMessage(businessId, phoneNumber, 'assistant', aiReply, responseMessageId)
+    await saveMessage(businessId, phoneNumber, 'assistant', replyText, responseMessageId)
 
     // ========================
     // SEND REPLY VIA GATEWAY
     // ========================
     console.log('[WEBHOOK] 📤 Sending reply via gateway...')
-    await sendReplyViaGateway(businessId, phoneNumber, aiReply)
+    await sendReplyViaGateway(businessId, phoneNumber, replyText)
 
     // ========================
     // RESPOND TO GATEWAY
@@ -540,7 +789,9 @@ app.post('/webhook', async (req, res) => {
 
     res.json({
       success: true,
-      aiReply,
+      reply: replyText,
+      mode: aiResult.type,
+      tool: aiResult.type === 'tool_call' ? aiResult.tool.function.name : null,
       messagesSaved: true,
       gatewaySent: true,
     })
