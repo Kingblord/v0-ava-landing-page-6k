@@ -48,34 +48,16 @@ export default function OrdersPage() {
   const { fmt } = useCurrency()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterKey>('all')
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
-  async function reload(silent = false) {
-    if (!user) return
-    if (!silent) setRefreshing(true)
-    try {
-      const res = await fetch(`/api/orders/${user.uid}`)
-      if (!res.ok) throw new Error('Failed to load orders')
-      const data = await res.json()
-      setOrders(data.orders || [])
-    } catch (err) {
-      console.error('[v0] Error loading orders:', err)
-      toast.error('Failed to load orders')
-    } finally {
-      if (!silent) setRefreshing(false)
-    }
-  }
-
   useEffect(() => {
     if (!user) return
 
-    // Load initial orders
-    reload(true).finally(() => setLoading(false))
+    setLoading(true)
 
-    // Setup real-time snapshot listener
+    // Setup real-time snapshot listener on Firestore directly
     const ordersRef = collection(db, 'orders')
     const q = query(
       ordersRef,
@@ -83,15 +65,21 @@ export default function OrdersPage() {
       orderBy('createdAt', 'desc')
     )
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const updated: Order[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as Order))
-      setOrders(updated)
-    }, (err) => {
-      console.error('[v0] Orders snapshot error:', err)
-    })
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const updated: Order[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Order))
+        setOrders(updated)
+        setLoading(false)
+      },
+      (err) => {
+        console.error('[v0] Orders snapshot error:', err)
+        setLoading(false)
+      }
+    )
 
     unsubscribeRef.current = unsubscribe
 
@@ -110,7 +98,6 @@ export default function OrdersPage() {
       })
       if (!res.ok) throw new Error('Failed to update')
       toast.success(`Order ${status}.`)
-      await reload(true)
     } catch (err) {
       console.error('[v0] Error updating order:', err)
       toast.error('Failed to update order.')
