@@ -65,6 +65,29 @@ export async function signInWithGoogle(): Promise<User> {
   return credential.user
 }
 
+export async function signUpWithGoogle(): Promise<User> {
+  const provider = new GoogleAuthProvider()
+  provider.setCustomParameters({ prompt: 'select_account' })
+  const credential = await signInWithPopup(auth, provider)
+  const uid = credential.user.uid
+  const email = credential.user.email
+  const displayName = credential.user.displayName || email?.split('@')[0] || 'Business'
+
+  // Create business document for new Google sign-up
+  const response = await fetch('/api/auth/create-business', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uid, email, businessName: displayName }),
+  })
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}))
+    throw new Error(errData.error || 'Failed to create business document')
+  }
+
+  return credential.user
+}
+
 export async function sendReset(email: string) {
   await sendPasswordResetEmail(auth, email)
 }

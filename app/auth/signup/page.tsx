@@ -6,11 +6,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
-import { signUp } from '@/lib/firebase-auth'
+import { signUp, signUpWithGoogle, firebaseErrorMessage } from '@/lib/firebase-auth'
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import OnboardingModal from '@/components/onboarding-modal'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -21,12 +22,14 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !showOnboarding) {
       router.replace('/dashboard')
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, showOnboarding])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,13 +41,31 @@ export default function SignupPage() {
     setLoading(true)
     try {
       await signUp(email, password, businessName)
-      router.push('/dashboard')
+      setShowOnboarding(true)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Sign up failed.'
-      setError(msg.replace('Firebase: ', '').replace(/\(auth\/.*?\)\.?/, '').trim())
+      const msg = firebaseErrorMessage(err)
+      setError(msg)
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleGoogleSignup() {
+    setError('')
+    setGoogleLoading(true)
+    try {
+      await signUpWithGoogle()
+      setShowOnboarding(true)
+    } catch (err: unknown) {
+      const msg = firebaseErrorMessage(err)
+      setError(msg)
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
+  if (showOnboarding && user) {
+    return <OnboardingModal />
   }
 
   return (
@@ -126,10 +147,32 @@ export default function SignupPage() {
 
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || googleLoading}
               className="h-11 bg-[var(--aro-green)] hover:bg-[var(--aro-green-dark)] text-[var(--aro-bg)] font-semibold rounded-xl mt-1 transition-all duration-200 glow-green"
             >
               {loading ? 'Creating account...' : 'Create Account'}
+            </Button>
+
+            <div className="flex items-center gap-3 my-2">
+              <div className="h-px bg-border flex-1" />
+              <span className="text-xs text-muted-foreground">or</span>
+              <div className="h-px bg-border flex-1" />
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={loading || googleLoading}
+              className="h-11 bg-card border border-border hover:bg-secondary text-foreground font-semibold rounded-xl transition-all duration-200"
+            >
+              {googleLoading ? (
+                'Signing up with Google...'
+              ) : (
+                <>
+                  <Image src="/google-icon.svg" alt="Google" width={18} height={18} className="mr-2" />
+                  Sign up with Google
+                </>
+              )}
             </Button>
           </form>
 
