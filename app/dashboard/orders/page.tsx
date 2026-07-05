@@ -59,7 +59,7 @@ const STATUS_CONFIG = {
   },
 } as const
 
-type FilterKey = 'all' | Order['status']
+type FilterKey = 'all' | 'PENDING' | 'PAID' | 'CANCELLED'
 
 export default function OrdersPage() {
   const { user } = useAuth()
@@ -124,13 +124,13 @@ export default function OrdersPage() {
   const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter)
   const counts = {
     all: orders.length,
-    pending: orders.filter((o) => o.status === 'pending').length,
-    confirmed: orders.filter((o) => o.status === 'confirmed').length,
-    cancelled: orders.filter((o) => o.status === 'cancelled').length,
+    PENDING: orders.filter((o) => o.status === 'PENDING').length,
+    PAID: orders.filter((o) => o.status === 'PAID').length,
+    CANCELLED: orders.filter((o) => o.status === 'CANCELLED').length,
   }
 
   const totalRevenue = orders
-    .filter((o) => o.status === 'confirmed')
+    .filter((o) => o.status === 'PAID' || o.status === 'PROCESSING' || o.status === 'COMPLETED')
     .reduce((s, o) => s + o.amount, 0)
 
   return (
@@ -142,14 +142,7 @@ export default function OrdersPage() {
           <h1 className="text-xl font-bold text-foreground">Orders</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Manage orders placed through AVA</p>
         </div>
-        <button
-          onClick={() => reload()}
-          disabled={refreshing}
-          className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary border border-border transition-all disabled:opacity-50"
-          aria-label="Refresh orders"
-        >
-          <RefreshCw className={cn('w-4 h-4', refreshing && 'animate-spin')} />
-        </button>
+
       </div>
 
       <div className="px-4 lg:px-8 space-y-5 pb-6">
@@ -158,8 +151,8 @@ export default function OrdersPage() {
         <div className="grid grid-cols-3 gap-3">
           {[
             { label: 'Revenue', value: fmt(totalRevenue), icon: TrendingUp, color: 'text-[var(--aro-green)]', bg: 'bg-[var(--aro-green)]/10' },
-            { label: 'Pending', value: counts.pending, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-            { label: 'Confirmed', value: counts.confirmed, icon: CheckCircle, color: 'text-[var(--aro-green)]', bg: 'bg-[var(--aro-green)]/10' },
+            { label: 'Pending', value: counts.PENDING, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+            { label: 'Paid', value: counts.PAID, icon: CheckCircle, color: 'text-[var(--aro-green)]', bg: 'bg-[var(--aro-green)]/10' },
           ].map((s) => (
             <div key={s.label} className="bg-card border border-border rounded-2xl p-3 flex flex-col gap-2">
               <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', s.bg)}>
@@ -175,10 +168,10 @@ export default function OrdersPage() {
 
         {/* ── Filter tabs ── */}
         <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide -mx-0">
-          {(['all', 'pending', 'confirmed', 'cancelled'] as FilterKey[]).map((f) => (
+          {(['all', 'PENDING', 'PAID', 'CANCELLED'] as (FilterKey | 'all')[]).map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => setFilter(f as FilterKey)}
               className={cn(
                 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border shrink-0',
                 filter === f
@@ -186,15 +179,15 @@ export default function OrdersPage() {
                   : 'text-muted-foreground border-border hover:text-foreground hover:bg-secondary',
               )}
             >
-              {f === 'pending' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
-              {f === 'confirmed' && <span className="w-1.5 h-1.5 rounded-full bg-[var(--aro-green)]" />}
-              {f === 'cancelled' && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'PENDING' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+              {f === 'PAID' && <span className="w-1.5 h-1.5 rounded-full bg-[var(--aro-green)]" />}
+              {f === 'CANCELLED' && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
+              {f === 'all' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
               <span className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
                 filter === f ? 'bg-[var(--aro-bg)]/20 text-[var(--aro-bg)]' : 'bg-secondary text-muted-foreground',
               )}>
-                {counts[f]}
+                {f === 'all' ? counts.all : counts[f]}
               </span>
             </button>
           ))}
@@ -226,7 +219,7 @@ export default function OrdersPage() {
             {filtered.map((order) => {
               const cfg = STATUS_CONFIG[order.status]
               const StatusIcon = cfg.icon
-              const isPending = order.status === 'pending'
+              const isPending = order.status === 'PENDING'
               const isUpdating = updating === order.id
 
               return (
