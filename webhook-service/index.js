@@ -221,6 +221,52 @@ const ERROR_MESSAGES = {
 }
 
 // ========================
+// CREATE ORDER IN FIRESTORE
+// ========================
+
+async function createOrder(businessId, phoneNumber, productName, productPrice, quantity = 1) {
+  try {
+    console.log('[DB] 💰 Creating order for:', phoneNumber, 'Product:', productName)
+    
+    const normalizedPhone = phoneNumber.replace(/\D/g, '')
+    const reference = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+    
+    // Write to businesses/{businessId}/orders subcollection per frontend expectations
+    const orderRef = await db
+      .collection('businesses')
+      .doc(businessId)
+      .collection('orders')
+      .add({
+        reference,
+        businessId,
+        userId: normalizedPhone,
+        productName,
+        amount: productPrice * quantity,
+        quantity,
+        status: 'PENDING',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+
+    console.log('[DB] ✅ Order created with ID:', orderRef.id, 'Reference:', reference)
+    return {
+      id: orderRef.id,
+      reference,
+      businessId,
+      userId: normalizedPhone,
+      productName,
+      amount: productPrice * quantity,
+      quantity,
+      status: 'PENDING',
+      createdAt: Date.now(),
+    }
+  } catch (err) {
+    console.error('[DB] Order creation error:', err.message)
+    return null
+  }
+}
+
+// ========================
 // TOOL EXECUTION LAYER
 // ========================
 
@@ -261,7 +307,22 @@ async function executeTool(toolCall, businessId, phoneNumber, products = []) {
     }
 
     case 'createOrder': {
-      return `✅ Order started for **${args.productName}**.\nPlease provide your full name to complete the order.`
+      const productName = args.productName || ''
+      const quantity = args.quantity || 1
+      
+      // Find product to get price
+      const product = products.find((p) =>
+        p.name.toLowerCase().includes(productName.toLowerCase())
+      )
+      
+      if (product) {
+        const order = await createOrder(businessId, phoneNumber, productName, product.price, quantity)
+        if (order) {
+          return `✅ Order created! Reference: ${order.reference}\nProduct: ${productName}\nAmount: ${order.amount}\nStatus: ${order.status}`
+        }
+      }
+      
+      return ERROR_MESSAGES.orderCreation
     }
 
     case 'getPaymentDetails': {

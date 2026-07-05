@@ -35,13 +35,17 @@ export interface Product {
 
 export interface Order {
   id: string
+  reference: string
   businessId: string
   userId: string        // customer WhatsApp number
-  productId: string
   productName: string
   amount: number
-  status: 'pending' | 'confirmed' | 'cancelled'
+  quantity?: number
+  status: 'PENDING' | 'PAID' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+  paymentMethod?: string
+  paymentReference?: string
   createdAt: number
+  updatedAt?: number
 }
 
 export type ConversationState = 'browsing' | 'interested' | 'ordering'

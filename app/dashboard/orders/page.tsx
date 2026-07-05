@@ -21,19 +21,37 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 const STATUS_CONFIG = {
-  pending: {
-    label: 'Pending',
+  PENDING: {
+    label: 'Pending Payment',
     icon: Clock,
     pill: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     dot: 'bg-amber-500',
   },
-  confirmed: {
-    label: 'Confirmed',
+  PAID: {
+    label: 'Paid',
+    icon: CheckCircle,
+    pill: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    dot: 'bg-blue-500',
+  },
+  PROCESSING: {
+    label: 'Processing',
+    icon: RefreshCw,
+    pill: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+    dot: 'bg-purple-500',
+  },
+  COMPLETED: {
+    label: 'Completed',
     icon: CheckCircle,
     pill: 'bg-[var(--aro-green)]/10 text-[var(--aro-green)] border-[var(--aro-green)]/20',
     dot: 'bg-[var(--aro-green)]',
   },
-  cancelled: {
+  FAILED: {
+    label: 'Failed',
+    icon: XCircle,
+    pill: 'bg-red-500/10 text-red-500 border-red-500/20',
+    dot: 'bg-red-500',
+  },
+  CANCELLED: {
     label: 'Cancelled',
     icon: XCircle,
     pill: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -57,19 +75,16 @@ export default function OrdersPage() {
 
     setLoading(true)
 
-    // Setup real-time snapshot listener on Firestore directly
-    const ordersRef = collection(db, 'orders')
-    const q = query(
-      ordersRef,
-      where('businessId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    )
+    // Setup real-time snapshot listener from webhook's orders subcollection
+    const ordersRef = collection(db, 'businesses', user.uid, 'orders')
+    const q = query(ordersRef, orderBy('createdAt', 'desc'))
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const updated: Order[] = snapshot.docs.map((doc) => ({
           id: doc.id,
+          businessId: user.uid,
           ...doc.data(),
         } as Order))
         setOrders(updated)
